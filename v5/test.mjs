@@ -1044,5 +1044,18 @@ t('전망 3일', md.FC===FF.C.ui.fcDays);
   t('포기해도 이슈 자체는 남는다', FF.issueOf()[0] !== null);
 }
 
+// 하루 기록의 태도값: 한 번도 정하지 않은 날도 기본값을 남긴다
+{
+  FF.reset(30699);
+  FF.stepDay(FF.Cmd.wait()); // stance 를 한 번도 안 정한 채 첫날을 넘긴다
+  const h0 = FF.histOf()[0];
+  t('첫날 stance 길이', h0.stance.length === FF.C.channels.length);
+  t('첫날 stance 기본값', h0.stance.every(v => v === FF.C.stance.start));
+  FF.stepDay(FF.Cmd.stance([2, 3, 1]));
+  const changes = FF.policyChanges();
+  t('변화 전 값이 undefined 가 아니다', changes.every(c => c.from !== undefined));
+  t('변화가 감지된다', changes.length === 2); // [1,1,1] -> [2,3,1]: 세 번째 판로만 그대로다
+}
+
 console.log(pass+' passed, '+fail+' failed');
 process.exit(fail?1:0);

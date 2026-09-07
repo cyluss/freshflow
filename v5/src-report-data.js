@@ -424,7 +424,9 @@ FF.stancePlan=function(){
  }
  preview=preview.map(function(v){return FF.rInt(v)});
  var sum=0; for(i=0;i<n;i++)sum+=preview[i];
- return {rows:rows,levels:levels,est:est,preview:preview,inv:FF.rInt(inv),exp:exp,
+ // 기회비용: 주문은 있는데 다른 판로 우선 때문에 못 받는 양이다.
+ var missed=est.map(function(e,idx){return FF.rInt(Math.max(0,e-preview[idx]))});
+ return {rows:rows,levels:levels,est:est,preview:preview,missed:missed,inv:FF.rInt(inv),exp:exp,
   pool:pool,sum:FF.rInt(sum)};
 }
 // 회복 가능성. "가능"은 오늘 보장으로 두면 쿼터를 채울 수 있다는 뜻이다. 확정이 아니라 오늘 조건 판정이다.
@@ -434,6 +436,46 @@ FF.issueFeasible=function(i){
  return FF.estChannelDemand(i)>=FF.C.channels[i].quota-FF.C.ui.zero?"ok":"hard";
 }
 // 화면이 그릴 신호와 이슈. 도메인 규칙은 여기 없다. 코드값만 옮긴다.
+// 당일 결과. 판로별 판매량과 매출과 관계 변화를 하루 실행 직후 보여준다.
+FF.dayChannelResult=function(){
+ FF.observe();
+ var h=FF.histOf();
+ if(!h.length)return null;
+ var today=h[h.length-1], prev=h.length>1?h[h.length-2]:null;
+ var relBefore=prev?prev.rel:FF.C.channels.map(function(){return FF.C.rel.start});
+ return FF.C.channels.map(function(c,i){
+  var sold=today.toCh?today.toCh[i]:0, rev=today.revCh?today.revCh[i]:0;
+  var relTo=today.rel?today.rel[i]:FF.C.rel.start, relFrom=relBefore[i];
+  return {key:c.key,sold:FF.rInt(sold),revenue:Math.round(rev),
+   relFrom:relFrom,relTo:relTo,changed:relTo!==relFrom};
+ });
+}
+// 사건 이력. 지금까지 발생한 관계 신호를 그대로 돌려준다. 화면 문구는 여기 없다.
+FF.relLogOf=function(){FF.VERSION.value;return FF.RUN.value?FF.logOf().relLog:[]}
+// 관계 포트폴리오 복기. 판로마다 이번 판 전체의 관계 경로를 낸다.
+FF.relPortfolio=function(){
+ FF.observe();
+ var h=FF.histOf();
+ return FF.C.channels.map(function(c,i){
+  var series=h.map(function(row){return row.rel?row.rel[i]:FF.C.rel.start});
+  return {key:c.key,series:series,final:series.length?series[series.length-1]:FF.C.rel.start};
+ });
+}
+// 주요 결정 복기. 판로 태도가 바뀐 날마다 전후와 그날 관계를 남긴다.
+FF.policyChanges=function(){
+ FF.observe();
+ var h=FF.histOf(), out=[], prev=null;
+ for(var d=0;d<h.length;d++){
+  var st=h[d].stance||[];
+  if(prev){
+   for(var i=0;i<FF.C.channels.length;i++){
+    if(st[i]!==prev[i])out.push({day:h[d].day,i:i,from:prev[i],to:st[i],relAfter:h[d].rel[i]});
+   }
+  }
+  prev=st;
+ }
+ return out;
+}
 FF.issuePlan=function(){
  FF.observe();
  var issues=FF.issueOf(), rel=FF.relOf();

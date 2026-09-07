@@ -124,9 +124,9 @@ FF.stepState=function(s,prod,dem,rules){
  // 판로 배분. s.alloc 은 판로별 비중, s.stance 는 판로별 태도(양보/보통/우선/보장)다. 없으면 비싼 곳부터 채운다.
  // s.cap.sales 는 판로 상한과 별개로 하루 전체 판매량의 총상한이다. sold 가 거기 닿으면 더 못 판다.
  var CHS=R.channels, nch=CHS.length;
- var relv=s.rel||[], sold=0, rev=0, ageMix=[], toCh=[];
+ var relv=s.rel||[], sold=0, rev=0, ageMix=[], toCh=[], revCh=[];
  var chDem=[];
- for(var ci=0;ci<nch;ci++){chDem.push(0);toCh.push(0)}
+ for(var ci=0;ci<nch;ci++){chDem.push(0);toCh.push(0);revCh.push(0)}
  // 오늘 판로 수요는 world 가 준다. 없으면 전체 수요를 상한 비율로 나눈다.
  var src=s._chDemand||null;
  for(ci=0;ci<nch;ci++){
@@ -143,7 +143,7 @@ FF.stepState=function(s,prod,dem,rules){
   return CHS[c2].price[age]*R.rel.price[rl3]*R.q[Math.min(age,R.ttl-1)];
  };
  var settleSale=function(c2,amt){
-  rev+=amt;                        // 손익은 발생 시점에 잡는다
+  rev+=amt; revCh[c2]+=amt;        // 손익은 발생 시점에 잡는다
   var lag=CHS[c2].settle;
   if(lag>0){ s.ar=s.ar||[]; s.ar.push({at:s.day+lag,amt:amt}); }
   else s.cash+=amt;                // 당일 정산은 즉시 현금
@@ -232,7 +232,7 @@ FF.stepState=function(s,prod,dem,rules){
  s.cash-=cost;
  return {prod:prod,dem:demTotal,acc:stored,refused:refused,sold:sold,missed:Math.max(0,demTotal-sold),
   ageMix:ageMix,wI:wI,wIcap:byCap,wIstore:byStore,wIneed:byNeed,wS:wS,wT:wT,
-  end:end,profit:profit,sellable:sellable,toCh:toCh};
+  end:end,profit:profit,sellable:sellable,toCh:toCh,revCh:revCh};
 }
 
 

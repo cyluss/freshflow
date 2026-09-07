@@ -100,7 +100,7 @@ function open(file, seed) {
   t('2클릭에 종료', s.q('kd').textContent === '30');
 }
 
-// 5. 종료 화면의 접이식은 네 개이고 실제로 펼쳐진다
+// 5. 종료 화면의 접이식은 여섯 개이고 실제로 펼쳐진다
 {
   const s = open(FILE, 30699);
   let n = 0;
@@ -110,10 +110,10 @@ function open(file, seed) {
   }
   t('결과 카드 존재', !!s.q('kbrief'));
   const folds = s.d.querySelectorAll('[data-fold]');
-  t('접이식 네 개', folds.length === 4);
+  t('접이식 여섯 개', folds.length === 6);
   t('접이식 초기 접힘', [...folds].every(e => e.parentElement.open === false));
   const foldOf = k => s.d.querySelector('[data-fold="' + k + '"]').parentElement;
-  for (const k of ['ops', 'mods', 'miss', 'log']) {
+  for (const k of ['ops', 'mods', 'miss', 'log', 'relport', 'polreview']) {
     const e = s.d.querySelector('[data-fold="' + k + '"]');
     t('fold ' + k + ' 존재', !!e);
     t('fold ' + k + ' 접힘', foldOf(k).open === false && !foldOf(k).querySelector('.fold-body'));
@@ -126,6 +126,7 @@ function open(file, seed) {
   t('투자 분석 내용', after.includes('추가 용량'));
   t('기회 분석 내용', after.includes('그날 하나를 더 샀을 때의 현금 차이'));
   t('전체 기록 내용', after.includes('진행 기록'));
+  t('관계 포트폴리오 내용', after.includes('온라인') && after.includes('프랜차이즈') && after.includes('도매'));
   // 기회 분석 표가 데이터와 같은 수의 행을 낸다
   {
     const body = s.d.querySelector('[data-fold="miss"]').nextElementSibling;
@@ -212,13 +213,14 @@ function open(file, seed) {
   const s7 = open(FILE, 58207);
   for (let i = 0; i < 3; i++) { s7.q('kgo').click(); await tick() }
   const panes = [...s7.d.querySelectorAll('.pane')];
-  t('페이지 둘', panes.length === 2);
-  t('페이지 id', panes.map(p => p.id).join() === 'p0,p1');
+  t('페이지 셋', panes.length === 3);
+  t('페이지 id', panes.map(p => p.id).join() === 'p0,p1,p2');
   const links = [...s7.d.querySelectorAll('.tabs a')];
-  t('탭이 앵커 링크', links.length === 2 && links.every((a, i) => a.getAttribute('href') === '#p' + i));
-  t('두 번째 면은 월간 전망', links[1].textContent === '월간 전망');
-  t('두 번째 면 내용', s7.d.getElementById('p1').textContent.includes('초순'));
-  t('전망은 남은 기간', s7.d.getElementById('p1').textContent.includes('남은'));
+  t('탭이 앵커 링크', links.length === 3 && links.every((a, i) => a.getAttribute('href') === '#p' + i));
+  t('두 번째 면은 사건 이력', links[1].textContent === '사건 이력');
+  t('세 번째 면은 월간 전망', links[2].textContent === '월간 전망');
+  t('세 번째 면 내용', s7.d.getElementById('p2').textContent.includes('초순'));
+  t('전망은 남은 기간', s7.d.getElementById('p2').textContent.includes('남은'));
   const pager = s7.d.querySelector('.pager');
   t('스크롤 핸들러 없음', !pager.onscroll);
   t('캐러셀 상태 변수 없음', s7.w.FF.PANE === undefined && s7.w.FF.goPane === undefined);
@@ -464,7 +466,8 @@ function open(file, seed) {
   const rows = [...bar.querySelectorAll('.chan-card')];
   t('판로 셋', rows.length === 3);
   t('판로 이름', rows.map(r => r.querySelector('.chan-name').textContent).join() === '온라인,프랜차이즈,도매');
-  t('관계 표시', rows.every(r => ['끊김','보통','좋음','최상'].includes(r.querySelector('.chan-rel').textContent)));
+  t('관계 낱말 표시', rows.every(r => ['끊김','보통','좋음','최상'].some(w => r.querySelector('.chan-rel').textContent.includes(w))));
+  t('관계 숫자 표시', rows.every(r => /[0-3]$/.test(r.querySelector('.chan-rel').textContent)));
   t('가격 표시', rows.every(r => /\d+원/.test(r.querySelector('.chan-cond').textContent)));
   t('주문량 표시', rows.every(r => /주문 \d+t/.test(r.querySelector('.chan-cond').textContent)));
   t('상한 표시', rows.every(r => /최대 \d+t/.test(r.querySelector('.chan-cond').textContent)));

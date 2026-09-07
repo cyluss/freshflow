@@ -260,7 +260,7 @@ for (const [name, n] of globalsUsed) problems.push(`미정의 식별자 ${name} 
 
 // D13. 로그 적재는 record* 계열과 흐름 제어 둘만 한다
 {
-  const ALLOWED = ['recordDay','recordPurchase','recordDayStart','recordEvent','finishRun'];
+  const ALLOWED = ['recordDay','recordPurchase','recordDayStart','recordEvent','recordIssues','finishRun'];
   const lines = ['src-kernel.js','src-runner.js','src-record.js','src-engine.js']
     .flatMap(f => fs.readFileSync(f,'utf8').split('\n').map(l => [f,l]));
   let owner = '';

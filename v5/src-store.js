@@ -78,7 +78,7 @@ FF.pushHist=function(rec){FF.HIST.value=FF.HIST.value.concat([rec])}
 FF.LOG=FF._signal(null);
 FF.resetLog=function(){
  FF.HIST.value=[];
- FF.LOG.value={evlog:[],events:[],buylog:[],timeline:[],mods:[]};
+ FF.LOG.value={evlog:[],events:[],buylog:[],timeline:[],mods:[],relLog:[]};
 }
 FF.append=function(k,rec){var L=FF.LOG.value,n={};
  for(var x in L)n[x]=L[x];

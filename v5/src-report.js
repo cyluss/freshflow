@@ -154,6 +154,30 @@ FV.contribNode=function(){
   <//>`;
 }
 
+// 관계 포트폴리오 복기. 판로마다 이번 판 전체의 관계 경로를 막대로 보여준다.
+FV.RelPortfolioView=function(){
+ var P=FF.relPortfolio();
+ return FV._html`<${FV._F}>
+  ${P.map(function(p){
+    return FV._html`<${FV.Spark} label=${FV.say("channel",p.key)}
+     values=${p.series} now=${FV.say("relword",String(p.final))} floor=${3} day=${p.series.length} />`;
+  })}
+ <//>`;
+}
+
+// 주요 결정 복기. 판로 태도가 바뀐 날마다 전후와 그날 관계를 나열한다.
+FV.PolicyReviewView=function(){
+ var changes=FF.policyChanges();
+ if(!changes.length)return FV._html`<div style=${{fontSize:"12px",color:"var(--text-muted)"}}>정책 변경이 없었다</div>`;
+ return FV._html`<${FV._F}>
+  ${changes.map(function(c){
+    return FV._html`<div class="dr-row">${c.day}일 ${FV.say("channel",FF.C.channels[c.i].key)}
+     ${FV.say("stance",String(c.from))} → ${FV.say("stance",String(c.to))}
+     · 그날 관계 ${FV.say("relword",String(c.relAfter))}</div>`;
+  })}
+ <//>`;
+}
+
 FV.endCardNode=function(){
  var E=FF.endCardData();
 
@@ -196,6 +220,10 @@ FV.endCardNode=function(){
        <//>`}} />
    <${FV.Fold} id="log" title="전체 기록"
      render=${function(){return FV._html`<${FV.FullLog} />`}} />
+   <${FV.Fold} id="relport" title="관계 포트폴리오 복기"
+     render=${function(){return FV._html`<${FV.RelPortfolioView} />`}} />
+   <${FV.Fold} id="polreview" title="주요 결정 복기"
+     render=${function(){return FV._html`<${FV.PolicyReviewView} />`}} />
    <div style=${{marginTop:"8px",fontSize:"11px",color:"var(--text-muted)"}}>
     사후 기준은 30일을 미리 알 때 같은 횟수로 얻는 최선이다. 사는 날은 이틀 간격으로 고정했다.
    </div>

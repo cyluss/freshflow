@@ -84,19 +84,20 @@ FV.ChannelBar=function(){
  var rows=P.rows.map(function(r,i){
   var issue=issueOf(i);
   var statusTxt=issue?(" · "+(issue.resolution==="accepted"?"포기함":"회복 중")):"";
+  var missTxt=P.missed[i]>=1?(" · 다른 판로 우선으로 "+FF.fInt(P.missed[i])+"t 못 받음"):"";
   var condTxt=r.price+"원 · 주문 "+FF.fInt(P.est[i])+"t · 최대 "+r.cap+"t"+
    (r.floor>0?(" · 보장 "+r.floor+"t"):"");
   return FV._h("div",{class:"chan-card"},[
    FV._h("div",{class:"chan-id"},[
     FV._h("span",{class:"chan-name"},FV.say("channel",r.key)),
-    FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel)))
+    FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel))+" "+r.rel)
    ]),
    FV._h("div",{class:"chan-cond"},condTxt),
    FV._h("div",{class:"chan-policy"},STANCE_LEVELS.map(function(lv){
     return FV._h("button",{class:"pol"+(P.levels[i]===lv?" pol-on":""),
      onClick:function(){FF.setChannelStance(i,lv)}},FV.say("stance",String(lv)));
    })),
-   FV._h("div",{class:"chan-preview"},"예상 "+FF.fInt(P.preview[i])+"t"+statusTxt)
+   FV._h("div",{class:"chan-preview"},"예상 "+FF.fInt(P.preview[i])+"t"+statusTxt+missTxt)
   ]);
  });
  return FV._h("div",{id:"kchan",class:"chan"},[
@@ -147,11 +148,23 @@ FV.FirstDayPrompt=function(){
 
 
 
+// 당일 결과. 판로별 판매량과 매출과 관계 변화. 다음 판단의 근거다.
+FV.DayResultView=function(){
+ var rows=FF.dayChannelResult();
+ if(!rows)return null;
+ return FV._h("div",{id:"kdayresult",class:"dayresult"},rows.map(function(r){
+  var chg=r.changed?(" · 관계 "+FV.say("relword",String(r.relFrom))+" → "+FV.say("relword",String(r.relTo))):"";
+  return FV._h("div",{class:"dr-row"},
+   FV.say("channel",r.key)+" "+FF.fInt(r.sold)+"t 판매 · "+mo(r.revenue)+"원"+chg);
+ }));
+}
+
 FV.FlowView=function(){
  var d=FF.today();
  return FV._html`
   <div id="kylabel" class="lbl">${d?(d.day+"일 결과"):"운영 시작 전"}</div>
   <${FV.FlowSummary} day=${d} />
+  <${FV.DayResultView} />
   <div id="kchain" class="gap-s">
    <${FV.FlowDiagram} day=${d} inventory=${FF.inventory()} />
   </div>`;
@@ -314,16 +327,35 @@ FV.OutlookView=function(){
  return FV._html`<${FV.MonthOutlook} data=${FF.monthOutlook()} />`;
 }
 
+// 사건 이력. 지금까지의 관계 신호를 최신순으로 나열한다. 없으면 안내 한 줄만 보인다.
+FV.EventLogView=function(){
+ FF.observe();
+ if(!FF.started()||FF.isOver())return null;
+ var log=FF.relLogOf();
+ if(!log.length)return FV._h("div",{class:"sub"},"아직 발생한 사건이 없다");
+ var rows=log.slice().reverse().map(function(s){
+  var name=FV.say("channel",FF.C.channels[s.i].key);
+  var verb=FV.say("signal",s.type);
+  return FV._h("div",{class:"rl-row"},[
+   FV._h("span",{class:"rl-day"},s.day+"일"),
+   name+" "+verb+" · "+FV.say("relword",String(s.from))+" → "+FV.say("relword",String(s.to))
+  ]);
+ });
+ return FV._h("div",{class:"rellog"},rows);
+}
+
 FV.PlayPager=function(){
  if(!FF.histLen()||FF.isOver())return null;
  return FV._html`
   <nav class="tabs">
    <a href="#p0">어제 흐름</a>
-   <a href="#p1">월간 전망</a>
+   <a href="#p1">사건 이력</a>
+   <a href="#p2">월간 전망</a>
   </nav>
   <div class="pager">
    <section class="pane" id="p0"><${FV.FlowView} /></section>
-   <section class="pane" id="p1"><${FV.OutlookView} /></section>
+   <section class="pane" id="p1"><${FV.EventLogView} /></section>
+   <section class="pane" id="p2"><${FV.OutlookView} /></section>
   </div>`;
 }
 
