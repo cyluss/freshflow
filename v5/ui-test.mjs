@@ -61,10 +61,10 @@ function open(file, seed) {
   const s1b = open(FILE, 84206);
   s1b.q('kbc0').click(); await tick();
   s1b.q('kgo').click(); await tick();
-  t('배분도 dock 안', !!s1b.d.querySelector('.dock #kchan'));
-  t('시계도 dock 안', !!s1b.d.querySelector('.dock #kclock'));
+  t('배분은 본문에 있다', !!s1b.q('kchan') && !s1b.d.querySelector('.dock #kchan'));
+  t('시계는 dock 안', !!s1b.d.querySelector('.dock #kclock'));
   const dockIds = [...s1b.d.querySelector('.dock').children].map(c => c.id).filter(Boolean);
-  t('dock 끝은 진행과 종료', dockIds.slice(-2).join() === 'kgo,kfin');
+  t('dock 구성은 시계·진행·종료', dockIds.join() === 'kclock,kgo,kfin');
   t('진행 버튼은 하루', s1b.q('kgo').textContent === '하루 넘기기');
 }
 
@@ -378,7 +378,7 @@ function open(file, seed) {
   // 추세 막대가 두 신호를 항상 보여준다
   const tr = rt.q('ktrend');
   t('추세 막대 존재', !!tr);
-  t('추세도 dock 안', !!rt.d.querySelector('.dock #ktrend'));
+  t('추세는 본문에 있다', !!rt.q('ktrend') && !rt.d.querySelector('.dock #ktrend'));
   t('추세는 재고와 못 판 주문', tr.textContent.includes('재고') && tr.textContent.includes('못 판 주문'));
   t('막대 여덟 칸', [...tr.querySelectorAll('.spark-bars')].every(x => x.textContent.length <= 8));
 
@@ -462,7 +462,7 @@ function open(file, seed) {
 
   const bar = ch.q('kchan');
   t('판로 막대 존재', !!bar);
-  t('판로도 dock 안', !!ch.d.querySelector('.dock #kchan'));
+  t('판로는 본문에 있다', !!ch.q('kchan') && !ch.d.querySelector('.dock #kchan'));
   const rows = [...bar.querySelectorAll('.chan-card')];
   t('판로 셋', rows.length === 3);
   t('판로 이름', rows.map(r => r.querySelector('.chan-name').textContent).join() === '온라인,프랜차이즈,도매');

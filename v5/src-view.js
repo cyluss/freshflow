@@ -301,10 +301,6 @@ FV.DockView=function(){
  return FV._html`
   <div class="dock">
    <${FV.ClockBar} />
-   <${FV.TrendStrip} />
-   <${FV.IssueBar} />
-   <${FV.ChannelBar} />
-   <${FV.CapacityButton} />
    <button id="kgo" class="btn-full"
     style=${{borderColor:over?"var(--border)":"var(--border-strong)",color:over?"var(--text-muted)":"var(--text-primary)"}}
     onClick=${function(){if(!FF.isOver())FF.tickDay()}}>${goText}</button>
@@ -369,6 +365,11 @@ FV.App=function(){
    <${FV.TimelineChartView} />
    <${FV.GameResultView} />
    <${FV.OpeningView} />
+
+   <${FV.IssueBar} />
+   <${FV.ChannelBar} />
+   <${FV.CapacityButton} />
+   <${FV.TrendStrip} />
 
    ${fresh?FV._html`<${FV.FlowView} />`:null}
    <${FV.PlayPager} />
