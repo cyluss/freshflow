@@ -54,39 +54,40 @@ FV.ChannelBar=function(){
  };
  var rows=P.rows.map(function(r,i){
   var t=P.tons[i];
-  return FV._h("div",{class:"chan-row"},[
-   FV._h("span",{class:"chan-name"},FV.say("channel",r.key)),
-   FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel))),
+  var settleTxt=r.settle===0?"당일 정산":(r.settle+"일 뒤 정산");
+  var condTxt="최대 "+r.cap+"t"+(r.floor>0?(" · 보장 "+r.floor+"t"):"")+" · "+settleTxt;
+  return FV._h("div",{class:"chan-card"},[
+   FV._h("div",{class:"chan-top"},[
+    FV._h("span",{class:"chan-name"},FV.say("channel",r.key)),
+    FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel)))
+   ]),
+   FV._h("div",{class:"chan-cond"},condTxt),
+   FV._h("div",{class:"chan-price"},"오늘 "+r.price+"원 · "+r.quota+"t 채우면 관계 상승"),
    FV._h("div",{class:"chan-step"},[
     stepBtn(i,-1,t>eps),
     FV._h("input",{class:"cn",inputmode:"numeric",value:FF.fInt(t),
      onChange:function(e){FF.setChannelTons(i,parseFloat(e.target.value))}}),
     FV._h("span",{class:"cn-unit"},"t"),
     stepBtn(i,1,t<r.cap-eps&&P.rest>eps)
-   ]),
-   FV._h("span",{class:"chan-info"},
-    r.price+"원 · 최대 "+r.cap+"t"+(r.floor>0?(" · 보장 "+r.floor+"t"):"")),
-   FV._h("span",{class:"chan-term"},
-    (r.settle===0?"당일 정산":(r.settle+"일 뒤 정산"))+" · "+r.quota+"t 넣으면 관계 상승")
+   ])
   ]);
  });
- var note=(P.rest>eps)?FV._h("span",{class:"chan-rest"},"남김 "+FF.fInt(P.rest)+"t")
-   :((P.rest<-eps)?FV._h("span",{class:"chan-rest"},"초과 "+FF.fInt(-P.rest)+"t"):null);
+ var restTxt=(P.rest>eps)?("남은 물량 "+FF.fInt(P.rest)+"t")
+   :((P.rest<-eps)?("초과 "+FF.fInt(-P.rest)+"t"):"남은 물량 0t");
  return FV._h("div",{id:"kchan",class:"chan"},[
-  FV._h("div",{class:"chan-head"},
-   "이월 "+FF.fInt(P.inv)+"t + 오늘 입고 예상 "+FF.fInt(P.exp)+"t · 판로가 받는 최대 "+FF.fInt(P.target)+"t"),
+  FV._h("div",{class:"chan-head"},[
+   FV._h("div",{class:"chan-head-num"},"오늘 배분할 재고 "+FF.fInt(P.target)+"t"),
+   FV._h("div",{class:"chan-head-note"},"이월 "+FF.fInt(P.inv)+"t + 입고 예상 "+FF.fInt(P.exp)+"t")
+  ]),
   rows,
   FV._h("div",{class:"chan-sum"},[
-   FV._h("span",{},"합계 "+FF.fInt(P.sum)+" / "+FF.fInt(P.target)+"t"),
-   note,
+   FV._h("span",{},restTxt),
    FV._h("button",{class:"cs cs-auto"+(P.auto?" cw-on":""),
     onClick:function(){FF.clearAlloc()}},"자동")
   ])
  ]);
 }
 
-
-// 첫날. 월간 전망을 보고 계약 여부를 정한다. 계약은 이 화면에서만 산다.
 FV.FirstDayPrompt=function(){
  
  return FV._html`

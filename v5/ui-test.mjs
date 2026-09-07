@@ -460,7 +460,7 @@ function open(file, seed) {
   const bar = ch.q('kchan');
   t('판로 막대 존재', !!bar);
   t('판로도 dock 안', !!ch.d.querySelector('.dock #kchan'));
-  const rows = [...bar.querySelectorAll('.chan-row')];
+  const rows = [...bar.querySelectorAll('.chan-card')];
   t('판로 셋', rows.length === 3);
   t('판로 이름', rows.map(r => r.querySelector('.chan-name').textContent).join() === '온라인,프랜차이즈,도매');
   t('관계 표시', rows.every(r => ['끊김','보통','좋음','최상'].includes(r.querySelector('.chan-rel').textContent)));
@@ -468,11 +468,12 @@ function open(file, seed) {
     rows.filter(r => r.textContent.includes('보장')).length <= 1);
   t('정산일 표시', rows.some(r => r.textContent.includes('당일 정산')) &&
     rows.some(r => r.textContent.includes('14일 뒤 정산')));
-  t('쿼터 표시', rows.every(r => /\dt 넣으면 관계 상승/.test(r.textContent)));
+  t('쿼터 표시', rows.every(r => /\dt 채우면 관계 상승/.test(r.textContent)));
 
   // 스테퍼로 톤을 바꾸면 배분이 즉시 상태에 들어간다
-  t('배분 머리줄', /이월 .*입고 예상 .*판로가 받는 최대/.test(bar.querySelector('.chan-head').textContent));
-  t('합계줄', /합계 .* \/ .*t/.test(bar.querySelector('.chan-sum').textContent));
+  t('배분 머리줄', /오늘 배분할 재고/.test(bar.querySelector('.chan-head-num').textContent));
+  t('머리줄 예상 근거', /이월 .*입고 예상/.test(bar.querySelector('.chan-head-note').textContent));
+  t('합계줄', /남은 물량|초과/.test(bar.querySelector('.chan-sum').textContent));
   t('증감 버튼 둘', rows.every(r => r.querySelectorAll('.cs').length === 2));
   t('숫자 입력 하나', rows.every(r => !!r.querySelector('input.cn')));
 
@@ -492,7 +493,7 @@ function open(file, seed) {
   t('손대면 자동이 풀린다', p1.auto === false);
   t('잔여가 생긴다', Math.abs(p1.rest - 1) < 1e-9);
   t('잔여가 생기면 더하기가 열린다',
-    !ch.q('kchan').querySelectorAll('.chan-row')[D].querySelectorAll('.cs')[1].disabled);
+    !ch.q('kchan').querySelectorAll('.chan-card')[D].querySelectorAll('.cs')[1].disabled);
   up.click(); await tick();
   t('더하기가 되돌린다', Math.abs(ch.w.FF.allocPlan().tons[D] - t0) < 1e-9);
 
