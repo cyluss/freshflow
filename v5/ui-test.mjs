@@ -42,16 +42,17 @@ function open(file, seed) {
   t('로드 오류 없음', errs.length === 0);
 }
 
-// 2. 구매 카드는 진행 중 항상 보인다
+// 2. 배분 막대는 진행 중 항상 보인다
 {
   const s = open(FILE, 31236);
   s.q('kbc0').click(); await tick();
   let always = true;
   for (let i = 0; i < 12; i++) {
     s.q('kgo').click(); await tick();
-    if (s.q('kgo') && !s.q('kacts')) { always = false; break }
+    if (s.q('kgo') && !s.q('kchan')) { always = false; break }
   }
-  t('구매 카드 상시 노출', always);
+  t('배분 막대 상시 노출', always);
+  t('구매 카드 제거', !s.q('kacts') && !s.q('kbs') && !s.q('kbw'));
   t('설비 관리 버튼 없음', !s.q('kopen'));
   t('매입 목표 제거', !s.q('kpolicy'));
   t('비교 근거 없음', !s.q('kcmp'));
@@ -59,7 +60,7 @@ function open(file, seed) {
   const s1b = open(FILE, 84206);
   s1b.q('kbc0').click(); await tick();
   s1b.q('kgo').click(); await tick();
-  t('구매 카드도 dock 안', !!s1b.d.querySelector('.dock #kacts'));
+  t('배분도 dock 안', !!s1b.d.querySelector('.dock #kchan'));
   t('시계도 dock 안', !!s1b.d.querySelector('.dock #kclock'));
   const dockIds = [...s1b.d.querySelector('.dock').children].map(c => c.id).filter(Boolean);
   t('dock 끝은 진행과 종료', dockIds.slice(-2).join() === 'kgo,kfin');
@@ -82,10 +83,7 @@ function open(file, seed) {
   // 진행 중에는 판매만 고른다
   s.q('kgo').click(); await tick();
   t('진행 중 선택지 없음', !s.q('kbc0'));
-  s.q('kbs').click(); await tick();
-  t('판매 선택 대기열 1', s.w.FF.queueOf().length === 1);
-  s.q('kbw').click(); await tick();
-  t('관망 후 대기열 0', s.w.FF.queueOf().length === 0);
+  t('진행 중 대기열은 비어 있다', s.w.FF.queueOf().length === 0);
 }
 
 // 4. 운영 종료는 2단계다
@@ -106,7 +104,7 @@ function open(file, seed) {
   const s = open(FILE, 30699);
   let n = 0;
   while (s.q('kgo') && !(s.q('klabel') && s.q('klabel').textContent.includes('운영 종료')) && n < 60) {
-    if (+s.q('kd').textContent === 5 && s.q('kbs')) { s.q('kbs').click(); await tick() }
+    if (+s.q('kd').textContent === 5) { s.w.FF.toggleBuy('sales'); await tick() }
     s.q('kgo').click(); await tick(); n++;
   }
   t('결과 카드 존재', !!s.q('kbrief'));
@@ -151,7 +149,7 @@ function open(file, seed) {
   const s3 = open(FILE, 30699);
   let n = 0;
   while (s3.q('kgo') && !(s3.q('klabel') && s3.q('klabel').textContent.includes('운영 종료')) && n < 60) {
-    if (+s3.q('kd').textContent === 5 && s3.q('kbs')) { s3.q('kbs').click(); await tick() }
+    if (+s3.q('kd').textContent === 5) { s3.w.FF.toggleBuy('sales'); await tick() }
     s3.q('kgo').click(); await tick(); n++;
   }
   s3.d.querySelector('[data-fold="log"]').click(); await tick();
@@ -176,7 +174,7 @@ function open(file, seed) {
   const s5 = open(FILE, 30699);
   let n = 0;
   while (s5.q('kgo') && !(s5.q('klabel') && s5.q('klabel').textContent.includes('운영 종료')) && n < 60) {
-    if (+s5.q('kd').textContent === 5 && s5.q('kbs')) { s5.q('kbs').click(); await tick() }
+    if (+s5.q('kd').textContent === 5) { s5.w.FF.toggleBuy('sales'); await tick() }
     s5.q('kgo').click(); await tick(); n++;
   }
   const svg = s5.q('kchart').querySelector('svg');
@@ -268,7 +266,7 @@ function open(file, seed) {
   const s10 = open(FILE, 30699);
   let n = 0;
   while (s10.q('kgo') && !(s10.q('klabel') && s10.q('klabel').textContent.includes('운영 종료')) && n < 60) {
-    if (n === 4 && s10.q('kbs')) { s10.q('kbs').click(); await tick() }
+    if (n === 4) { s10.w.FF.toggleBuy('sales'); await tick() }
     s10.q('kgo').click(); await tick(); n++;
   }
   for (const k of ['ops','mods','miss','log']) {
@@ -293,12 +291,8 @@ function open(file, seed) {
   t('선택지 설명', bi.includes('한도 넘는 날'));
   s11.q('kbc0').click(); await tick();
   let n = 0;
-  while (n < 20) { s11.q('kgo').click(); await tick(); n++; if (s11.q('kacts')) break }
-  const bs = s11.q('kbs').textContent;
-  t('판매 카드 이름', bs.includes('판매 한도 늘리기'));
-  t('한도 변화 표기', /21 →\s*22t\/일/.test(bs));
-  t('증분 표기 없음', !bs.includes('판매 +'));
-  t('관망 설명', s11.q('kbw').textContent.includes('이번에는 사지 않기'));
+  while (n < 20) { s11.q('kgo').click(); await tick(); n++; if (s11.q('kchan')) break }
+  t('배분 막대 등장', !!s11.q('kchan'));
 
   // 흐름 화면과 같은 말을 쓴다
   const flow = s11.q('kchain').textContent;
@@ -520,8 +514,7 @@ function open(file, seed) {
   // 배분은 대기열을 쓰지 않는다. 증설과 같은 날 함께 낼 수 있다.
   ch.w.FF.setChannelTons(D, 1); await tick();
   t('배분은 대기열 밖', !ch.w.FF.queueOf().some(x => x.kind === 'sell'));
-  ch.q('kbs').click(); await tick();
-  t('증설과 공존', ch.w.FF.queueOf().length === 1 && ch.w.FF.allocOf()[D] === 1);
+  t('대기열은 계속 비어 있다', ch.w.FF.queueOf().length === 0);
   ch.q('kgo').click(); await tick();
   t('다음 날에도 배분이 남는다', ch.w.FF.allocOf() !== null);
 

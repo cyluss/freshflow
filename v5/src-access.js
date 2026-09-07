@@ -5,7 +5,6 @@ FF.relOf=function(){FF.VERSION.value;
  return FF.REL.value||FF.C.channels.map(function(){return FF.C.rel.start})}
 FF.allocOf=function(){FF.VERSION.value;return FF.ALLOC.value}
 FF.coverOf=function(){FF.VERSION.value;return FF.COVER.value===null?FF.C.cover:FF.COVER.value}
-FF.pendingOf=function(){FF.VERSION.value;return FF.PENDING.value}
 FF.dayOf=function(){FF.VERSION.value;return FF.RUN.value?FF.run().day:1}
 FF.started=function(){FF.VERSION.value;return !!(FF.RUN.value&&FF.histOf().length)}
 FF.today=function(){FF.VERSION.value;return (FF.RUN.value&&FF.histOf().length)?FF.histOf()[FF.histOf().length-1]:null}

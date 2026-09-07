@@ -25,15 +25,13 @@ function open(file, seed) {
 {
   let ok = 0, bad = 0;
   for (const seed of [1, 2, 31236, 30699, 22209, 49616])
-    for (const acts of [null, { 4: 'kbs' }, { 6: 'kbs', 9: 'kbs' }, { 13: 'kbs' }]) {
+    for (const acts of [null, { 4: 'sales' }, { 6: 'sales', 9: 'sales' }, { 13: 'sales' }]) {
       const s = open(FILE, seed);
       if (s.q('kbc0')) { s.q('kbc0').click(); await tick() }
       let n = 0;
       while (s.q('kgo') && !(s.q('klabel') && s.q('klabel').textContent.includes('운영 종료')) && n < 60) {
         const day = +s.q('kd').textContent;
-        if (acts && acts[day]) {
-          if (s.q(acts[day])) { s.q(acts[day]).click(); await tick() }
-        }
+        if (acts && acts[day]) { s.w.FF.toggleBuy(acts[day]); await tick() }
         s.q('kgo').click(); await tick(); n++;
       }
       for (const k of ['ops', 'mods', 'miss', 'log']) {
@@ -93,7 +91,7 @@ function open(file, seed) {
       return false;
     };
     while (s9.q('kgo') && !(s9.q('klabel') && s9.q('klabel').textContent.includes('운영 종료')) && n < 60) {
-      if (n === 4 && s9.q('kbs')) { s9.q('kbs').click(); await tick() }
+      if (n === 4) { s9.w.FF.toggleBuy('sales'); await tick() }
       s9.q('kgo').click(); await tick(); n++;
       if (scan('day ' + n)) break;
     }

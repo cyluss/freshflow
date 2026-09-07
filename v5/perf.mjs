@@ -29,7 +29,7 @@ const FFover = () => q('klabel') && q('klabel').textContent.includes('운영 종
 // 1) 하루 진행: 반사실 재생이 일어나면 안 된다
 let worstReplay = 0, clicks = 0;
 while (q('kgo') && clicks < 60) {
-  if (+q('kd').textContent === 5 && q('kopen')) { q('kopen').click(); await tick(); if (q('kbs')) { q('kbs').click(); await tick() } }
+  if (+q('kd').textContent === 5) { w.FF.toggleBuy('sales'); await tick() }
   reset();
   q('kgo').click();
   await tick();

@@ -44,36 +44,6 @@ FV.ContractOption=function(props){
   ]);
 }
 
-FV.OptionCard=function(props){
- var on=FF.queued(props.kind), ord=FF.ord(props.kind), opt=FF.optionOf(props.kind), tx=FV.optionText(opt);
- return FV._html`
-  <button id=${props.id} class="btn-cell"
-   style=${{borderColor:on?"var(--border-accent)":"var(--border-strong)",background:"transparent",
-     opacity:(opt.affordable||on)?"1":"0.4"}}
-   onClick=${function(){if(!FF.isOver())FF.toggleBuy(props.kind)}}>
-   ${FF.pendingOf()===props.kind?FV._html`<b>내일 적용</b> `:(on?FV._html`<b>${ord}순위</b> `:null)}${FV.capName(props.kind)} 늘리기
-   <div style=${{fontSize:"11px",color:"var(--text-secondary)",padding:"2px 0 1px"}}>${FV.capShift(props.kind)}</div>
-   <div style=${{fontSize:"11px",color:"var(--text-primary)",padding:"1px 0 6px"}}>${mo(opt.cost)}원</div>
-   <${FV.DecisionMetric} label="도달" value=${tx.past} />
-   <${FV.DecisionMetric} label="가능" value=${tx.usable} warn=${opt.usable<=FF.C.ui.lowDays} />
-   <${FV.DecisionMetric} label="회수" value=${tx.payback} warn=${opt.overRun} />
-  </button>`;
-}
-
-FV.WatchCard=function(props){
- return FV._html`
-  <button id="kbw" class="btn-cell"
-   style=${{borderColor:props.hasQueue?"var(--border-strong)":"var(--border-accent)",background:"transparent"}}
-   onClick=${function(){if(!FF.isOver())FF.clearQueue()}}>
-   관망
-   <div style=${{fontSize:"11px",color:"var(--text-secondary)",padding:"2px 0 1px"}}>이번에는 사지 않기</div>
-   <div style=${{fontSize:"11px",color:"var(--text-primary)",padding:"1px 0 6px"}}>0원</div>
-   <div style=${{fontSize:"11px",color:"var(--text-muted)",lineHeight:"1.5"}}>지금 한도로</div>
-   <div style=${{fontSize:"11px",color:"var(--text-muted)",lineHeight:"1.5"}}>하루 더</div>
-   <div style=${{fontSize:"11px",color:"var(--text-muted)",lineHeight:"1.5"}}>운영한다</div>
-  </button>`;
-}
-
 FV.ChannelBar=function(){
  FF.observe();
  if(!FF.started()||FF.isOver())return null;
@@ -115,15 +85,6 @@ FV.ChannelBar=function(){
  ]);
 }
 
-
-FV.DecisionActions=function(props){
- var Q=props.queue||[];
- return FV._html`
-  <div id="kacts" class="acts">
-   <${FV.OptionCard} kind="sales" id="kbs" />
-   <${FV.WatchCard} hasQueue=${Q.length>0} />
-  </div>`;
-}
 
 // 첫날. 월간 전망을 보고 계약 여부를 정한다. 계약은 이 화면에서만 산다.
 FV.FirstDayPrompt=function(){
@@ -221,17 +182,10 @@ FV.DecisionView=function(){
  FF.observe(); FF.SIG.manual.value;
  if(FF.isOver())return FV._html`<div id="klabel" class="lbl">운영 종료</div>`;
  if(!FF.started())return null;
-
- var ev=FF.evt(), Q=FF.queueOf();
+ var ev=FF.evt();
  var evTxt=ev?FV.EVENT_TEXT[ev.b]:"특이사항 없이 운영 중";
- var pend=Q.length===1?("이번에 증설: "+FV.lblOf(Q[0].kind)):
-  (Q.length>1?("이번에 증설: "+Q.map(function(q){return FV.lblOf(q.kind)}).join(" \u2192 ")+" · 하루에 하나씩 산다"):null);
-
  return FV._html`
-  <div id="klabel" class="lbl">${evTxt} · 남은 ${FF.C.days-FF.dayOf()+1}일</div>
-  <${FV.DecisionActions} queue=${Q} />
-  ${pend?FV._html`<div id="kpend" class="sub">${pend}</div>`:null}
-  `;
+  <div id="klabel" class="lbl">${evTxt} · 남은 ${FF.C.days-FF.dayOf()+1}일</div>`;
 }
 
 FV.ForecastView=function(){
