@@ -88,11 +88,12 @@ body{font-variant-numeric:tabular-nums}
 .chan{margin:4px 0 2px}
 .chan-card{padding:6px 0;border-top:1px solid var(--border)}
 .chan-card:first-of-type{border-top:0}
-.chan-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.chan-id{display:flex;align-items:baseline;gap:6px;font-size:13px}
+.chan-row2{display:flex;align-items:center;gap:8px}
+.chan-id{flex:0 0 auto;display:flex;align-items:baseline;gap:6px;font-size:13px;white-space:nowrap}
 .chan-name{color:var(--text-primary)}
 .chan-rel{color:var(--text-secondary);font-size:11px}
-.chan-info{font-size:11px;color:var(--text-muted);margin-top:3px}
+.chan-desc{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ font-size:11px;color:var(--text-muted)}
 .policy{display:flex;align-items:center;gap:5px;margin:4px 0 2px}
 .policy-name{font-size:12px;color:var(--text-muted);min-width:62px}
 .pol{padding:3px 10px;font-size:12px;font-family:inherit;background:none;
@@ -154,11 +155,12 @@ body{font-variant-numeric:tabular-nums}
 .chan{margin:4px 0 2px}
 .chan-card{padding:6px 0;border-top:1px solid var(--border)}
 .chan-card:first-of-type{border-top:0}
-.chan-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.chan-id{display:flex;align-items:baseline;gap:6px;font-size:13px}
+.chan-row2{display:flex;align-items:center;gap:8px}
+.chan-id{flex:0 0 auto;display:flex;align-items:baseline;gap:6px;font-size:13px;white-space:nowrap}
 .chan-name{color:var(--text-primary)}
 .chan-rel{color:var(--text-secondary);font-size:11px}
-.chan-info{font-size:11px;color:var(--text-muted);margin-top:3px}
+.chan-desc{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ font-size:11px;color:var(--text-muted)}
 .policy{display:flex;align-items:center;gap:5px;margin:4px 0 2px}
 .policy-name{font-size:12px;color:var(--text-muted);min-width:62px}
 .pol{padding:3px 10px;font-size:12px;font-family:inherit;background:none;
@@ -196,7 +198,7 @@ body{font-variant-numeric:tabular-nums}
 .chan-head{margin-bottom:5px}
 .chan-head-num{font-size:14px;color:var(--text-primary);font-weight:500}
 .chan-head-note{font-size:11px;color:var(--text-muted);margin-top:1px}
-.chan-step{display:flex;align-items:center;gap:8px}
+.chan-step{display:flex;align-items:center;gap:8px;flex:0 0 auto}
 .cs{width:40px;height:40px;padding:0;font-size:20px;line-height:1;font-family:inherit;background:none;
  border:1px solid var(--border-strong);border-radius:var(--radius);
  color:var(--text-secondary);cursor:pointer;flex:0 0 auto}

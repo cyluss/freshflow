@@ -54,15 +54,14 @@ FV.ChannelBar=function(){
  };
  var rows=P.rows.map(function(r,i){
   var t=P.tons[i];
-  var settleTxt=r.settle===0?"당일 정산":(r.settle+"일 뒤 정산");
-  var infoTxt="최대 "+r.cap+"t"+(r.floor>0?(" · 보장 "+r.floor+"t"):"")+" · "+settleTxt+
-   " · 오늘 "+r.price+"원 · "+r.quota+"t 채우면 관계 상승";
+  var descTxt="오늘 "+r.price+"원 · 최대 "+r.cap+"t"+(r.floor>0?(" · 보장 "+r.floor+"t"):"");
   return FV._h("div",{class:"chan-card"},[
-   FV._h("div",{class:"chan-top"},[
+   FV._h("div",{class:"chan-row2"},[
     FV._h("div",{class:"chan-id"},[
      FV._h("span",{class:"chan-name"},FV.say("channel",r.key)),
      FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel)))
     ]),
+    FV._h("div",{class:"chan-desc"},descTxt),
     FV._h("div",{class:"chan-step"},[
      stepBtn(i,-1,t>eps),
      FV._h("input",{class:"cn",inputmode:"numeric",value:FF.fInt(t),
@@ -70,8 +69,7 @@ FV.ChannelBar=function(){
      FV._h("span",{class:"cn-unit"},"t"),
      stepBtn(i,1,t<r.cap-eps&&P.rest>eps)
     ])
-   ]),
-   FV._h("div",{class:"chan-info"},infoTxt)
+   ])
   ]);
  });
  var restTxt=(P.rest>eps)?("남은 물량 "+FF.fInt(P.rest)+"t")

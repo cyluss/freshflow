@@ -466,9 +466,15 @@ function open(file, seed) {
   t('관계 표시', rows.every(r => ['끊김','보통','좋음','최상'].includes(r.querySelector('.chan-rel').textContent)));
   t('최소 보장은 프랜차이즈만',
     rows.filter(r => r.textContent.includes('보장')).length <= 1);
-  t('정산일 표시', rows.some(r => r.textContent.includes('당일 정산')) &&
-    rows.some(r => r.textContent.includes('14일 뒤 정산')));
-  t('쿼터 표시', rows.every(r => /\dt 채우면 관계 상승/.test(r.textContent)));
+  t('가격 표시', rows.every(r => /오늘 \d+원/.test(r.textContent)));
+  t('상한 표시', rows.every(r => /최대 \d+t/.test(r.textContent)));
+  t('한 줄 구성', rows.every(r => {
+    const row2 = r.querySelector('.chan-row2');
+    return row2.children.length === 3 &&
+      row2.children[0].className === 'chan-id' &&
+      row2.children[1].className === 'chan-desc' &&
+      row2.children[2].className === 'chan-step';
+  }));
 
   // 스테퍼로 톤을 바꾸면 배분이 즉시 상태에 들어간다
   t('배분 머리줄', /오늘 배분할 재고/.test(bar.querySelector('.chan-head-num').textContent));
