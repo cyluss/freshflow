@@ -523,5 +523,43 @@ function open(file, seed) {
   t('굶기면 관계가 내려가거나 유지된다', ch.w.FF.relOf()[F] <= relBefore);
 }
 
+// 신호와 이슈: 평소엔 조용하고, 정책과 결과가 어긋날 때만 나타난다
+{
+  const s = open(FILE, 30699);
+  s.q('kbc2').click(); await tick();
+  t('시작 시 신호 없음', !s.q('kissue'));
+
+  // 태도를 건드리지 않고 며칠 진행해도(전부 보통) 이슈가 뜨면 안 된다
+  for (let i = 0; i < 3; i++) { s.q('kgo').click(); await tick() }
+  t('보통 방치는 조용하다', !s.q('kissue'));
+
+  // 온라인을 우선으로 지키다가 쿼터를 못 채우면 이슈가 뜬다
+  let opened = false;
+  for (let i = 0; i < 10 && !opened; i++) {
+    s.w.FF.setStance([2, 1, 1]);
+    s.q('kgo').click(); await tick();
+    if (s.q('kissue')) opened = true;
+  }
+  t('우선인데 쿼터 미달이면 이슈가 뜬다', opened, JSON.stringify(s.w.FF.issueOf()));
+  if (opened) {
+    const bar = s.q('kissue');
+    t('이슈 문구에 판로 이름', bar.textContent.includes('온라인'));
+    t('이슈에 포기 버튼', !!bar.querySelector('.issue-btn'));
+
+    // 다음 날, 같은 상태가 이어지면 신호는 다시 뜨지 않는다(이슈만 남는다)
+    s.w.FF.setStance([2, 1, 1]);
+    s.q('kgo').click(); await tick();
+    t('다음날 신호 재발행 없음', s.w.FF.signalOf().length === 0 || !s.w.FF.signalOf().some(x => x.i === 0));
+    t('이슈는 계속 열려 있다', !!s.w.FF.issueOf()[0]);
+
+    // 포기 버튼을 누르면 표시가 바뀌고 게임 규칙은 그대로다
+    const nwBefore = s.w.FF.netWorth(s.w.FF.toKernelState());
+    s.q('kissue').querySelector('.issue-btn').click(); await tick();
+    t('포기 후 순자산 불변', s.w.FF.netWorth(s.w.FF.toKernelState()) === nwBefore);
+    t('포기 후 의도적 포기 표시', s.q('kissue').textContent.includes('의도적 포기'));
+    t('포기해도 포기 버튼은 사라진다', !s.q('kissue').querySelector('.issue-btn'));
+  }
+}
+
 console.log(pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

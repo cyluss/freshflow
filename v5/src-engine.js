@@ -1,4 +1,4 @@
-FF.reset=function(seed){FF.SIG.fin.value=false;FF.SIG.manual.value=false;FF.SIG.newGame.value=false;FF.EVENT.value=null;FF.PENDING.value=null;FF.PHASE.value="play";FF.resetRecover();FF.setContract(0);FF.setCover(FF.C.cover);FF.setRel(FF.C.channels.map(function(){return FF.C.rel.start}));FF.setAlloc(null);FF.setStance(null);FF.setAr([]);FF.setWorld(FF.World(seed));FF.setLots([]);FF.resetEngineState();FF.setMarket(FF.world().phase().supply,FF.world().phase().demand);FF.setTilt(FF.world().tilt());FF.resetLedger();FF.resetLog();FF.resetPlant();FF.resetRun(seed);
+FF.reset=function(seed){FF.SIG.fin.value=false;FF.SIG.manual.value=false;FF.SIG.newGame.value=false;FF.EVENT.value=null;FF.PENDING.value=null;FF.PHASE.value="play";FF.resetRecover();FF.setContract(0);FF.setCover(FF.C.cover);FF.setRel(FF.C.channels.map(function(){return FF.C.rel.start}));FF.setAlloc(null);FF.setStance(null);FF.setIssue(null);FF.setSignal([]);FF.setAr([]);FF.setWorld(FF.World(seed));FF.setLots([]);FF.resetEngineState();FF.setMarket(FF.world().phase().supply,FF.world().phase().demand);FF.setTilt(FF.world().tilt());FF.resetLedger();FF.resetLog();FF.resetPlant();FF.resetRun(seed);
 FF.setQueue([]);
  FF.setClock(false);
  FF.commit();FF.repaint()}
@@ -26,8 +26,10 @@ FF.stepDay=function(cmd,path){
    :((cmd.type==="sell"||cmd.type==="policy")?cmd:FF.Cmd.wait());
  var out=FF.transition(s,send,FF.world().next());
  var r=out.result;
+ var prevRel=FF.relOf();
  FF.applyKernelState(s,r,pend);
  FF.recordDay(r,out.events);
+ FF.recordIssues(prevRel,r);
  FF.advanceDay(s);
  if(FF.ledger().cash<=0){FF.setPhase("bust")}
  else if(FF.run().day>FF.C.days){

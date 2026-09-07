@@ -44,6 +44,31 @@ FV.ContractOption=function(props){
   ]);
 }
 
+// 신호는 방금 무엇이 바뀌었는지, 이슈는 지금 무엇이 열려 있는지다. 평소엔 아무것도 그리지 않는다.
+FV.IssueBar=function(){
+ FF.observe();
+ if(FF.isOver())return null;
+ var P=FF.issuePlan();
+ if(!P.signals.length&&!P.issues.length)return null;
+ var chName=function(i){return FV.say("channel",FF.C.channels[i].key)};
+ var relWord=function(v){return FV.say("relword",String(v))};
+ var sigRows=P.signals.map(function(s){
+  return FV._h("div",{class:"sig sig-"+s.type},
+   chName(s.i)+" "+FV.say("signal",s.type)+" · "+relWord(s.from)+" → "+relWord(s.to));
+ });
+ var issueRows=P.issues.map(function(is){
+  var accepted=is.resolution==="accepted";
+  return FV._h("div",{class:"issue"+(accepted?" issue-accepted":"")},[
+   FV._h("div",{class:"issue-text"},
+    chName(is.i)+" 관계 악화 · "+is.days+"일째 · 현재 "+relWord(is.rel)+" · "+FV.say("feasible",is.feasible)),
+   accepted
+    ?FV._h("span",{class:"issue-ack"},"의도적 포기")
+    :FV._h("button",{class:"issue-btn",onClick:function(){FF.acceptIssue(is.i)}},"포기")
+  ]);
+ });
+ return FV._h("div",{id:"kissue",class:"issuebar"},sigRows.concat(issueRows));
+}
+
 FV.ChannelBar=function(){
  FF.observe();
  if(FF.isOver())return null;
@@ -231,6 +256,7 @@ FV.DockView=function(){
   <div class="dock">
    <${FV.ClockBar} />
    <${FV.TrendStrip} />
+   <${FV.IssueBar} />
    <${FV.ChannelBar} />
    <button id="kgo" class="btn-full"
     style=${{borderColor:over?"var(--border)":"var(--border-strong)",color:over?"var(--text-muted)":"var(--text-primary)"}}

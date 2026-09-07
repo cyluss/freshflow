@@ -95,3 +95,29 @@ FF.recordEvent=function(){
  if(!ev)return;
  FF.append("timeline",{day:FF.run().day-1,type:"event",b:ev.b});
 }
+
+// 관계 신호와 이슈. 신호는 방금 무엇이 바뀌었는지, 이슈는 지금 무엇이 열려 있는지다.
+// 이슈는 의도(우선/보장)와 실제(오늘 쿼터 미달)가 어긋날 때만 연다.
+// 양보나 보통에서 쿼터를 못 채우는 것은 의도와 어긋나지 않으므로 이슈가 아니다.
+// 오늘 막 떨어졌으면 decline, 이미 나쁜 상태였는데 이제 지키기로 했으면 stuck 이다.
+// 이미 열려 있으면 다시 열지 않는다(매일 신호하지 않는다). 회복은 열린 이슈를 닫는다.
+FF.recordIssues=function(prevRel,r){
+ var CH=FF.C.channels, nch=CH.length, curRel=FF.relOf(), day=FF.run().day;
+ var stance=FF.stanceOf();
+ var issues=FF.issueOf().slice(), signals=[];
+ for(var i=0;i<nch;i++){
+  var lvl=(stance&&stance.length===nch)?stance[i]:FF.C.stance.start;
+  var quotaFail=r.toCh[i]<CH[i].quota-FF.C.ui.zero;
+  if(lvl>=2&&quotaFail){
+   if(!issues[i]){
+    issues[i]={since:day,resolution:null};
+    signals.push({type:curRel[i]<prevRel[i]?"decline":"stuck",i:i,day:day,from:prevRel[i],to:curRel[i]});
+   }
+  } else if(curRel[i]>prevRel[i]&&issues[i]){
+   signals.push({type:"recover",i:i,day:day,from:prevRel[i],to:curRel[i]});
+   issues[i]=null;
+  }
+ }
+ FF.setIssue(issues);
+ FF.setSignal(signals);
+}

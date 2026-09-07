@@ -231,7 +231,7 @@ FF.stepState=function(s,prod,dem,rules){
  s.cash-=cost;
  return {prod:prod,dem:demTotal,acc:stored,refused:refused,sold:sold,missed:Math.max(0,demTotal-sold),
   ageMix:ageMix,wI:wI,wIcap:byCap,wIstore:byStore,wIneed:byNeed,wS:wS,wT:wT,
-  end:end,profit:profit,sellable:sellable};
+  end:end,profit:profit,sellable:sellable,toCh:toCh};
 }
 
 

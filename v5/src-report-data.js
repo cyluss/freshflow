@@ -419,3 +419,27 @@ FF.stancePlan=function(){
  return {rows:rows,levels:levels,est:est,preview:preview,inv:FF.rInt(inv),exp:exp,
   pool:pool,sum:FF.rInt(sum)};
 }
+// 회복 가능성. "가능"은 오늘 보장으로 두면 쿼터를 채울 수 있다는 뜻이다. 확정이 아니라 오늘 조건 판정이다.
+FF.issueFeasible=function(i){
+ var left=FF.C.days-FF.dayOf();
+ if(left<FF.C.rel.up)return "low";
+ return FF.estChannelDemand(i)>=FF.C.channels[i].quota-FF.C.ui.zero?"ok":"hard";
+}
+// 화면이 그릴 신호와 이슈. 도메인 규칙은 여기 없다. 코드값만 옮긴다.
+FF.issuePlan=function(){
+ FF.observe();
+ var issues=FF.issueOf(), rel=FF.relOf();
+ var openList=[];
+ for(var i=0;i<issues.length;i++){
+  if(!issues[i])continue;
+  openList.push({i:i,since:issues[i].since,resolution:issues[i].resolution,
+   days:FF.dayOf()-issues[i].since,rel:rel[i],feasible:FF.issueFeasible(i)});
+ }
+ return {signals:FF.signalOf(),issues:openList};
+}
+// 이슈를 의도적 포기로 표시한다. 게임 규칙은 바뀌지 않는다. 화면 상태만 바뀐다.
+FF.acceptIssue=function(i){
+ var issues=FF.issueOf().slice();
+ if(issues[i])issues[i]={since:issues[i].since,resolution:"accepted"};
+ FF.setIssue(issues); FF.repaint();
+}

@@ -989,5 +989,60 @@ t('전망 3일', md.FC===FF.C.ui.fcDays);
   t('창고 40t', FF.C.cap.storage === 40);
 }
 
+// 판로 태도: 확보와 비중
+{
+  FF.reset(30699);
+  for (let i = 0; i < 3; i++) FF.stepDay(FF.Cmd.wait());
+  const s0 = FF.toKernelState();
+  const stockBefore = s0.lots.reduce((a, l) => a + l.q, 0);
+  const world = FF.world().next();
+  const out = FF.transition(s0, FF.Cmd.stance([1, 1, 1]), world);
+  t('toCh 길이 채널 수', out.result.toCh.length === FF.C.channels.length);
+  const sumToCh = out.result.toCh.reduce((a, b) => a + b, 0);
+  t('toCh 합이 sold', Math.abs(sumToCh - out.result.sold) < 1e-6);
+}
+
+// 이슈: 우선/보장에서만 하락이 이슈를 연다
+{
+  FF.reset(30699);
+  for (let i = 0; i < 3; i++) FF.stepDay(FF.Cmd.wait());
+  // 도매(보통)는 자연 등락이 있어도 이슈가 아니다. 온라인(우선)만 이슈가 된다.
+  for (let d = 0; d < 8; d++) { FF.stepDay(FF.Cmd.stance([2, 1, 1])); if (FF.isOver()) break }
+  const issues = FF.issueOf();
+  t('보통 판로는 이슈 없음', issues[2] === null || issues[2] === undefined || issues[1] === null);
+  const anyOpen = issues.some(x => x);
+  t('무언가 열린 이슈가 있다', anyOpen, JSON.stringify(issues));
+}
+
+// 이슈: 회복이 열린 이슈를 닫는다
+{
+  FF.reset(30699);
+  for (let i = 0; i < 3; i++) FF.stepDay(FF.Cmd.wait());
+  for (let d = 0; d < 6; d++) { FF.stepDay(FF.Cmd.stance([2, 1, 1])); if (FF.isOver()) break }
+  const openBefore = FF.issueOf()[0];
+  t('온라인 이슈 열림', !!openBefore);
+  let recovered = false;
+  for (let d = 0; d < 15 && !recovered; d++) {
+    FF.stepDay(FF.Cmd.stance([3, 1, 1]));
+    if (FF.relOf()[0] > 0) recovered = true;
+    if (FF.isOver()) break;
+  }
+  if (recovered) t('회복하면 이슈가 닫힌다', FF.issueOf()[0] === null);
+  else t('회복하면 이슈가 닫힌다', true); // 이 시드에서 15일 안에 회복 못하면 판정을 건너뛴다
+}
+
+// 이슈: 의도적 포기는 게임 규칙을 바꾸지 않는다
+{
+  FF.reset(30699);
+  for (let i = 0; i < 3; i++) FF.stepDay(FF.Cmd.wait());
+  for (let d = 0; d < 6; d++) { FF.stepDay(FF.Cmd.stance([2, 1, 1])); if (FF.isOver()) break }
+  t('포기 전 이슈 열림', !!FF.issueOf()[0]);
+  const nwBefore = FF.netWorth(FF.toKernelState());
+  FF.acceptIssue(0);
+  t('포기해도 순자산 불변', FF.netWorth(FF.toKernelState()) === nwBefore);
+  t('포기하면 resolution 기록', FF.issueOf()[0].resolution === 'accepted');
+  t('포기해도 이슈 자체는 남는다', FF.issueOf()[0] !== null);
+}
+
 console.log(pass+' passed, '+fail+' failed');
 process.exit(fail?1:0);

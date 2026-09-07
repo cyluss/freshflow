@@ -210,6 +210,17 @@ body{font-variant-numeric:tabular-nums}
  color:var(--text-secondary);margin-top:5px;padding-top:5px;
  border-top:1px solid var(--border)}
 .chan-rest{color:var(--text-warning)}
+.issuebar{margin:4px 0 10px;display:flex;flex-direction:column;gap:6px}
+.sig{font-size:12px;padding:6px 9px;border-radius:var(--radius);border:1px solid var(--border)}
+.sig-decline{color:var(--text-warning);border-color:var(--border-warning);background:var(--bg-warning)}
+.sig-stuck{color:var(--text-warning);border-color:var(--border-warning);background:var(--bg-warning)}
+.sig-recover{color:var(--text-success);border-color:var(--text-success)}
+.issue{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 9px;
+ border-radius:var(--radius);border:1px solid var(--border-strong);color:var(--text-secondary)}
+.issue-text{flex:1;min-width:0}
+.issue-accepted{opacity:.6}
+.issue-btn{flex:0 0 auto;padding:4px 10px;font-size:11px}
+.issue-ack{flex:0 0 auto;font-size:11px;color:var(--text-muted)}
 </style>
 </head>
 <body><div class="wrap"><div id="app"></div>
@@ -387,6 +398,11 @@ FF.setAlloc=function(a){FF.ALLOC.value=a}
 // 판로 태도. 판로마다 0~3 단계. 최소 확보량과 나머지 가중치를 core 의 stance 표가 정한다.
 FF.STANCE=FF._signal(null);
 FF.setStance=function(a){FF.STANCE.value=a}
+// 관계 이슈. 판로마다 열린 이슈 하나 또는 null. 신호는 그날 하루만 유효하다.
+FF.ISSUE=FF._signal(null);
+FF.setIssue=function(a){FF.ISSUE.value=a}
+FF.SIGNAL=FF._signal([]);
+FF.setSignal=function(a){FF.SIGNAL.value=a}
 
 // 이번 달 성향. 판 시작에 정해지고 끝까지 유지된다. 전망 계산이 이것을 쓴다.
 // 매입 정책. 며칠치를 목표로 들고 갈지. 플레이 중 바뀐다.
@@ -415,6 +431,8 @@ FF.relOf=function(){FF.VERSION.value;
  return FF.REL.value||FF.C.channels.map(function(){return FF.C.rel.start})}
 FF.allocOf=function(){FF.VERSION.value;return FF.ALLOC.value}
 FF.stanceOf=function(){FF.VERSION.value;return FF.STANCE.value}
+FF.issueOf=function(){FF.VERSION.value;return FF.ISSUE.value||FF.C.channels.map(function(){return null})}
+FF.signalOf=function(){FF.VERSION.value;return FF.SIGNAL.value||[]}
 FF.coverOf=function(){FF.VERSION.value;return FF.COVER.value===null?FF.C.cover:FF.COVER.value}
 FF.dayOf=function(){FF.VERSION.value;return FF.RUN.value?FF.run().day:1}
 FF.started=function(){FF.VERSION.value;return !!(FF.RUN.value&&FF.histOf().length)}
@@ -761,7 +779,7 @@ FF.stepState=function(s,prod,dem,rules){
  s.cash-=cost;
  return {prod:prod,dem:demTotal,acc:stored,refused:refused,sold:sold,missed:Math.max(0,demTotal-sold),
   ageMix:ageMix,wI:wI,wIcap:byCap,wIstore:byStore,wIneed:byNeed,wS:wS,wT:wT,
-  end:end,profit:profit,sellable:sellable};
+  end:end,profit:profit,sellable:sellable,toCh:toCh};
 }
 
 
@@ -1140,11 +1158,37 @@ FF.recordEvent=function(){
  if(!ev)return;
  FF.append("timeline",{day:FF.run().day-1,type:"event",b:ev.b});
 }
+
+// 관계 신호와 이슈. 신호는 방금 무엇이 바뀌었는지, 이슈는 지금 무엇이 열려 있는지다.
+// 이슈는 의도(우선/보장)와 실제(오늘 쿼터 미달)가 어긋날 때만 연다.
+// 양보나 보통에서 쿼터를 못 채우는 것은 의도와 어긋나지 않으므로 이슈가 아니다.
+// 오늘 막 떨어졌으면 decline, 이미 나쁜 상태였는데 이제 지키기로 했으면 stuck 이다.
+// 이미 열려 있으면 다시 열지 않는다(매일 신호하지 않는다). 회복은 열린 이슈를 닫는다.
+FF.recordIssues=function(prevRel,r){
+ var CH=FF.C.channels, nch=CH.length, curRel=FF.relOf(), day=FF.run().day;
+ var stance=FF.stanceOf();
+ var issues=FF.issueOf().slice(), signals=[];
+ for(var i=0;i<nch;i++){
+  var lvl=(stance&&stance.length===nch)?stance[i]:FF.C.stance.start;
+  var quotaFail=r.toCh[i]<CH[i].quota-FF.C.ui.zero;
+  if(lvl>=2&&quotaFail){
+   if(!issues[i]){
+    issues[i]={since:day,resolution:null};
+    signals.push({type:curRel[i]<prevRel[i]?"decline":"stuck",i:i,day:day,from:prevRel[i],to:curRel[i]});
+   }
+  } else if(curRel[i]>prevRel[i]&&issues[i]){
+   signals.push({type:"recover",i:i,day:day,from:prevRel[i],to:curRel[i]});
+   issues[i]=null;
+  }
+ }
+ FF.setIssue(issues);
+ FF.setSignal(signals);
+}
 })(window.FF,window.FV);
 </script>
 <script id="src-engine">
 (function(FF,FV){
-FF.reset=function(seed){FF.SIG.fin.value=false;FF.SIG.manual.value=false;FF.SIG.newGame.value=false;FF.EVENT.value=null;FF.PENDING.value=null;FF.PHASE.value="play";FF.resetRecover();FF.setContract(0);FF.setCover(FF.C.cover);FF.setRel(FF.C.channels.map(function(){return FF.C.rel.start}));FF.setAlloc(null);FF.setStance(null);FF.setAr([]);FF.setWorld(FF.World(seed));FF.setLots([]);FF.resetEngineState();FF.setMarket(FF.world().phase().supply,FF.world().phase().demand);FF.setTilt(FF.world().tilt());FF.resetLedger();FF.resetLog();FF.resetPlant();FF.resetRun(seed);
+FF.reset=function(seed){FF.SIG.fin.value=false;FF.SIG.manual.value=false;FF.SIG.newGame.value=false;FF.EVENT.value=null;FF.PENDING.value=null;FF.PHASE.value="play";FF.resetRecover();FF.setContract(0);FF.setCover(FF.C.cover);FF.setRel(FF.C.channels.map(function(){return FF.C.rel.start}));FF.setAlloc(null);FF.setStance(null);FF.setIssue(null);FF.setSignal([]);FF.setAr([]);FF.setWorld(FF.World(seed));FF.setLots([]);FF.resetEngineState();FF.setMarket(FF.world().phase().supply,FF.world().phase().demand);FF.setTilt(FF.world().tilt());FF.resetLedger();FF.resetLog();FF.resetPlant();FF.resetRun(seed);
 FF.setQueue([]);
  FF.setClock(false);
  FF.commit();FF.repaint()}
@@ -1172,8 +1216,10 @@ FF.stepDay=function(cmd,path){
    :((cmd.type==="sell"||cmd.type==="policy")?cmd:FF.Cmd.wait());
  var out=FF.transition(s,send,FF.world().next());
  var r=out.result;
+ var prevRel=FF.relOf();
  FF.applyKernelState(s,r,pend);
  FF.recordDay(r,out.events);
+ FF.recordIssues(prevRel,r);
  FF.advanceDay(s);
  if(FF.ledger().cash<=0){FF.setPhase("bust")}
  else if(FF.run().day>FF.C.days){
@@ -1896,6 +1942,30 @@ FF.stancePlan=function(){
  return {rows:rows,levels:levels,est:est,preview:preview,inv:FF.rInt(inv),exp:exp,
   pool:pool,sum:FF.rInt(sum)};
 }
+// 회복 가능성. "가능"은 오늘 보장으로 두면 쿼터를 채울 수 있다는 뜻이다. 확정이 아니라 오늘 조건 판정이다.
+FF.issueFeasible=function(i){
+ var left=FF.C.days-FF.dayOf();
+ if(left<FF.C.rel.up)return "low";
+ return FF.estChannelDemand(i)>=FF.C.channels[i].quota-FF.C.ui.zero?"ok":"hard";
+}
+// 화면이 그릴 신호와 이슈. 도메인 규칙은 여기 없다. 코드값만 옮긴다.
+FF.issuePlan=function(){
+ FF.observe();
+ var issues=FF.issueOf(), rel=FF.relOf();
+ var openList=[];
+ for(var i=0;i<issues.length;i++){
+  if(!issues[i])continue;
+  openList.push({i:i,since:issues[i].since,resolution:issues[i].resolution,
+   days:FF.dayOf()-issues[i].since,rel:rel[i],feasible:FF.issueFeasible(i)});
+ }
+ return {signals:FF.signalOf(),issues:openList};
+}
+// 이슈를 의도적 포기로 표시한다. 게임 규칙은 바뀌지 않는다. 화면 상태만 바뀐다.
+FF.acceptIssue=function(i){
+ var issues=FF.issueOf().slice();
+ if(issues[i])issues[i]={since:issues[i].since,resolution:"accepted"};
+ FF.setIssue(issues); FF.repaint();
+}
 })(window.FF,window.FV);
 </script>
 <script id="src-debug">
@@ -1997,6 +2067,8 @@ FV.WORD={
  channel:{online:"온라인",fran:"프랜차이즈",whole:"도매"},
  relword:{0:"끊김",1:"보통",2:"좋음",3:"최상"},
  stance:{0:"양보",1:"보통",2:"우선",3:"보장"},
+ signal:{decline:"관계 하락",stuck:"관계 정체",recover:"관계 회복"},
+ feasible:{ok:"회복 가능",hard:"현재 회복 곤란",low:"남은 기간상 실익 낮음"},
  policy:{lean:"적게",mid:"보통",full:"넉넉히"},
  verdictSupply:{high:"평년보다 많겠음",mostlyHigh:"평년보다 대체로 많겠음",
    similar:"평년과 비슷하겠음",mostlyLow:"평년보다 대체로 적겠음",low:"평년보다 적겠음"},
@@ -2835,6 +2907,31 @@ FV.ContractOption=function(props){
   ]);
 }
 
+// 신호는 방금 무엇이 바뀌었는지, 이슈는 지금 무엇이 열려 있는지다. 평소엔 아무것도 그리지 않는다.
+FV.IssueBar=function(){
+ FF.observe();
+ if(FF.isOver())return null;
+ var P=FF.issuePlan();
+ if(!P.signals.length&&!P.issues.length)return null;
+ var chName=function(i){return FV.say("channel",FF.C.channels[i].key)};
+ var relWord=function(v){return FV.say("relword",String(v))};
+ var sigRows=P.signals.map(function(s){
+  return FV._h("div",{class:"sig sig-"+s.type},
+   chName(s.i)+" "+FV.say("signal",s.type)+" · "+relWord(s.from)+" → "+relWord(s.to));
+ });
+ var issueRows=P.issues.map(function(is){
+  var accepted=is.resolution==="accepted";
+  return FV._h("div",{class:"issue"+(accepted?" issue-accepted":"")},[
+   FV._h("div",{class:"issue-text"},
+    chName(is.i)+" 관계 악화 · "+is.days+"일째 · 현재 "+relWord(is.rel)+" · "+FV.say("feasible",is.feasible)),
+   accepted
+    ?FV._h("span",{class:"issue-ack"},"의도적 포기")
+    :FV._h("button",{class:"issue-btn",onClick:function(){FF.acceptIssue(is.i)}},"포기")
+  ]);
+ });
+ return FV._h("div",{id:"kissue",class:"issuebar"},sigRows.concat(issueRows));
+}
+
 FV.ChannelBar=function(){
  FF.observe();
  if(FF.isOver())return null;
@@ -3022,6 +3119,7 @@ FV.DockView=function(){
   <div class="dock">
    <${FV.ClockBar} />
    <${FV.TrendStrip} />
+   <${FV.IssueBar} />
    <${FV.ChannelBar} />
    <button id="kgo" class="btn-full"
     style=${{borderColor:over?"var(--border)":"var(--border-strong)",color:over?"var(--text-muted)":"var(--text-primary)"}}

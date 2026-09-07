@@ -210,6 +210,17 @@ body{font-variant-numeric:tabular-nums}
  color:var(--text-secondary);margin-top:5px;padding-top:5px;
  border-top:1px solid var(--border)}
 .chan-rest{color:var(--text-warning)}
+.issuebar{margin:4px 0 10px;display:flex;flex-direction:column;gap:6px}
+.sig{font-size:12px;padding:6px 9px;border-radius:var(--radius);border:1px solid var(--border)}
+.sig-decline{color:var(--text-warning);border-color:var(--border-warning);background:var(--bg-warning)}
+.sig-stuck{color:var(--text-warning);border-color:var(--border-warning);background:var(--bg-warning)}
+.sig-recover{color:var(--text-success);border-color:var(--text-success)}
+.issue{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 9px;
+ border-radius:var(--radius);border:1px solid var(--border-strong);color:var(--text-secondary)}
+.issue-text{flex:1;min-width:0}
+.issue-accepted{opacity:.6}
+.issue-btn{flex:0 0 auto;padding:4px 10px;font-size:11px}
+.issue-ack{flex:0 0 auto;font-size:11px;color:var(--text-muted)}
 </style>
 </head>
 <body><div class="wrap"><div id="app"></div>

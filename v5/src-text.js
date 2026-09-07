@@ -5,6 +5,8 @@ FV.WORD={
  channel:{online:"온라인",fran:"프랜차이즈",whole:"도매"},
  relword:{0:"끊김",1:"보통",2:"좋음",3:"최상"},
  stance:{0:"양보",1:"보통",2:"우선",3:"보장"},
+ signal:{decline:"관계 하락",stuck:"관계 정체",recover:"관계 회복"},
+ feasible:{ok:"회복 가능",hard:"현재 회복 곤란",low:"남은 기간상 실익 낮음"},
  policy:{lean:"적게",mid:"보통",full:"넉넉히"},
  verdictSupply:{high:"평년보다 많겠음",mostlyHigh:"평년보다 대체로 많겠음",
    similar:"평년과 비슷하겠음",mostlyLow:"평년보다 대체로 적겠음",low:"평년보다 적겠음"},
