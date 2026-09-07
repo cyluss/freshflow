@@ -121,7 +121,7 @@ FF.stepState=function(s,prod,dem,rules){
  if(short>R.ui.zero){ stored=payable; wS+=short; }
  if(stored>0)s.lots.push({q:stored,a:0});
  var sellable=tot();
- // 판로 배분. s.alloc 은 판로별 비중이고 없으면 비싼 곳부터 채운다.
+ // 판로 배분. s.alloc 은 판로별 비중, s.stance 는 판로별 태도(양보/보통/우선/보장)다. 없으면 비싼 곳부터 채운다.
  var CHS=R.channels, nch=CHS.length;
  var relv=s.rel||[], sold=0, rev=0, ageMix=[], toCh=[];
  var chDem=[];
@@ -135,18 +135,50 @@ FF.stepState=function(s,prod,dem,rules){
   var fl=CHS[ci].quota*R.rel.floor[rl2];
   chDem[ci]=Math.min(cap2,Math.max(d0,(CHS[ci].key==="fran")?fl:0));
  }
- // 나이가 오래된 lot 부터 본다. 각 lot 를 배분에 따라 판로에 넣는다.
+ // 나이가 오래된 lot 부터 본다. 한 판로에 팔고 대금을 잡는 공통 처리다.
  s.lots.sort(function(a,b){return b.a-a.a});
+ var sellUnit=function(c2,age){
+  var rl3=relv[c2]===undefined?R.rel.start:relv[c2];
+  return CHS[c2].price[age]*R.rel.price[rl3]*R.q[Math.min(age,R.ttl-1)];
+ };
+ var settleSale=function(c2,amt){
+  rev+=amt;                        // 손익은 발생 시점에 잡는다
+  var lag=CHS[c2].settle;
+  if(lag>0){ s.ar=s.ar||[]; s.ar.push({at:s.day+lag,amt:amt}); }
+  else s.cash+=amt;                // 당일 정산은 즉시 현금
+ };
+ var hasStance=s.stance&&s.stance.length===nch;
+ // 보장 확보: 우선순위 채우기 전에 그 판로부터 최소량을 뗀다. 나머지 판로는 건드리지 않는다.
+ if(hasStance){
+  for(ci=0;ci<nch;ci++){
+   var lvl=s.stance[ci];
+   var want=CHS[ci].quota*R.stance.min[lvl];
+   var need=Math.min(want,chDem[ci]);
+   for(var lj=0;lj<s.lots.length&&need>R.ui.zero;lj++){
+    var glot=s.lots[lj];
+    if(glot.q<=R.ui.zero)continue;
+    var gage=Math.min(glot.a,R.ttl-1);
+    var gtake=Math.min(glot.q,need);
+    glot.q-=gtake; chDem[ci]-=gtake; sold+=gtake; toCh[ci]+=gtake; need-=gtake;
+    ageMix.push({a:glot.a,q:gtake});
+    settleSale(ci,gtake*sellUnit(ci,gage));
+   }
+  }
+  sellable=tot();
+ }
+ // 확보하고 남은 물량을 나눌 비중: 명시 배분이 있으면 그것, 아니면 태도에서 끌어온다, 둘 다 없으면 null(단가 순).
+ var effAlloc=(s.alloc&&s.alloc.length===nch)?s.alloc
+   :(hasStance?s.stance.map(function(lv){return R.stance.weight[lv]}):null);
  var order=[];
  for(ci=0;ci<nch;ci++)order.push(ci);
  for(var li=0;li<s.lots.length;li++){
   var lot=s.lots[li];
   if(lot.q<=R.ui.zero)continue;
   var age=Math.min(lot.a,R.ttl-1);
-  // 이 lot 를 어느 판로에 넣을지: 배분 가중치가 있으면 그 순서, 없으면 단가 순
+  // 이 lot 를 어느 판로에 넣을지: 비중이 있으면 그 순서, 없으면 단가 순
   var seq=order.slice();
-  if(s.alloc&&s.alloc.length===nch){
-   seq.sort(function(a,b){return s.alloc[b]-s.alloc[a]});
+  if(effAlloc){
+   seq.sort(function(a,b){return effAlloc[b]-effAlloc[a]});
   } else {
    seq.sort(function(a,b){
     var ra=relv[a]===undefined?R.rel.start:relv[a], rb=relv[b]===undefined?R.rel.start:relv[b];
@@ -155,26 +187,21 @@ FF.stepState=function(s,prod,dem,rules){
   }
   for(var si2=0;si2<seq.length&&lot.q>R.ui.zero;si2++){
    var c2=seq[si2];
-   // 배분이 있으면 그 판로에 배정된 몫을 넘지 않는다.
+   // 비중이 있으면 그 판로에 배정된 몫을 넘지 않는다.
    var quotaLeft=chDem[c2];
-   if(s.alloc&&s.alloc.length===nch){
-    var wsum=0; for(var wi=0;wi<nch;wi++)wsum+=s.alloc[wi];
+   if(effAlloc){
+    var wsum=0; for(var wi=0;wi<nch;wi++)wsum+=effAlloc[wi];
     if(wsum>0){
-     var share=sellable*s.alloc[c2]/wsum;
+     var share=sellable*effAlloc[c2]/wsum;
      quotaLeft=Math.min(quotaLeft,Math.max(0,share-toCh[c2]));
     }
    }
    var take=Math.min(lot.q,quotaLeft);
    if(take<=R.ui.zero)continue;
-   var rl3=relv[c2]===undefined?R.rel.start:relv[c2];
-   var unit=CHS[c2].price[age]*R.rel.price[rl3]*R.q[Math.min(lot.a,R.ttl-1)];
    lot.q-=take; chDem[c2]-=take; sold+=take; toCh[c2]+=take;
    ageMix.push({a:lot.a,q:take});
-   var amt=take*unit;
-   rev+=amt;                       // 손익은 발생 시점에 잡는다
-   var lag=CHS[c2].settle;
-   if(lag>0){ s.ar=s.ar||[]; s.ar.push({at:s.day+lag,amt:amt}); }
-   else s.cash+=amt;               // 당일 정산은 즉시 현금
+   var amt=take*sellUnit(c2,age);
+   settleSale(c2,amt);
   }
  }
  // 관계 갱신. 쿼터를 채우면 오르고 절반도 못 넣으면 내린다.
@@ -244,6 +271,10 @@ FF.transition=function(state,command,world,rules){
  if(C.type==="sell"&&C.alloc&&C.alloc.length===R.channels.length){
   s.alloc=C.alloc.slice();
  }
+ // 판로 태도: 판로마다 0~3 단계다. 보장 단계는 확보를, 나머지는 남는 물량의 비중을 정한다.
+ if(C.type==="sell"&&C.stance&&C.stance.length===R.channels.length){
+  s.stance=C.stance.slice();
+ }
  if(C.type==="policy"){
   var ok=false;
   for(var pi=0;pi<R.policy.length;pi++)if(R.policy[pi].v===C.cover)ok=true;
@@ -296,7 +327,7 @@ FF.initialState=function(world,rules){
   cash:R.cash,lots:[],
   cap:{intake:R.cap.intake,storage:R.cap.storage,sales:R.cap.sales},
   pend:null,spent:0,contract:0,cover:R.cover,ar:[],
-  rel:R.channels.map(function(){return R.rel.start}),alloc:null,
+  rel:R.channels.map(function(){return R.rel.start}),alloc:null,stance:null,
   buys:{sales:0,contract:0},
   recent:[]};
 }
@@ -315,7 +346,8 @@ FF.forkState=function(s){
   cap:{intake:s.cap.intake,storage:s.cap.storage,sales:s.cap.sales},
   pend:s.pend,spent:s.spent,contract:s.contract||0,cover:s.cover,
   ar:(s.ar||[]).map(function(x){return {at:x.at,amt:x.amt}}),
-  rel:(s.rel||[]).slice(),alloc:s.alloc?s.alloc.slice():null,dead:false,
+  rel:(s.rel||[]).slice(),alloc:s.alloc?s.alloc.slice():null,
+  stance:s.stance?s.stance.slice():null,dead:false,
   recent:s.recent?s.recent.slice():[],
   buys:s.buys?{sales:s.buys.sales,contract:s.buys.contract||0}:undefined};
 }

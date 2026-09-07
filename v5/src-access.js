@@ -4,6 +4,7 @@ FF.arOf=function(){FF.VERSION.value;return FF.AR.value||[]}
 FF.relOf=function(){FF.VERSION.value;
  return FF.REL.value||FF.C.channels.map(function(){return FF.C.rel.start})}
 FF.allocOf=function(){FF.VERSION.value;return FF.ALLOC.value}
+FF.stanceOf=function(){FF.VERSION.value;return FF.STANCE.value}
 FF.coverOf=function(){FF.VERSION.value;return FF.COVER.value===null?FF.C.cover:FF.COVER.value}
 FF.dayOf=function(){FF.VERSION.value;return FF.RUN.value?FF.run().day:1}
 FF.started=function(){FF.VERSION.value;return !!(FF.RUN.value&&FF.histOf().length)}
@@ -25,6 +26,7 @@ FF.Cmd={
  contract:function(size){return {type:"contract",size:size}},
  policy:function(cover){return {type:"policy",cover:cover}},
  sell:function(alloc){return {type:"sell",alloc:alloc}},
+ stance:function(levels){return {type:"sell",stance:levels}},
  finish:function(){return {type:"finish"}}
 };
 // 계획표의 한 칸을 명령으로 바꾼다. "sales" 또는 "contract:1.5" 또는 빈 값이다.
@@ -44,6 +46,7 @@ FF.applyKernelState=function(s,r,pendBefore){
  FF.setRel((s.rel||[]).slice());
  FF.setAr((s.ar||[]).slice());
  if(s.alloc)FF.setAlloc(s.alloc.slice());
+ if(s.stance)FF.setStance(s.stance.slice());
  if(r.bought==="contract"){FF.spend(r.cost);FF.setContract(s.contract);FF.countBuy("contract")}
  else if(r.bought){FF.spend(r.cost);FF.countBuy(r.bought)}
  // 커널이 계산한 현금을 그대로 옮긴다. 매출채권은 따로 남는다.
@@ -59,7 +62,7 @@ FF.toKernelState=function(){
  return {day:FF.run().day,si:M.si,di:M.di,cash:L.cash,lots:FF.lotsOf().slice(),
   cap:{intake:P.cap.intake,storage:P.cap.storage,sales:P.cap.sales},
   pend:FF.PENDING.value,spent:L.spent,contract:FF.CONTRACT.value,cover:FF.coverOf(),
-  rel:FF.relOf().slice(),alloc:FF.allocOf(),ar:(FF.arOf()||[]).slice(),
+  rel:FF.relOf().slice(),alloc:FF.allocOf(),stance:FF.stanceOf(),ar:(FF.arOf()||[]).slice(),
   buys:{sales:P.buys.sales,contract:P.buys.contract||0}};
 
 }

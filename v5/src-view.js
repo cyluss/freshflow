@@ -47,14 +47,9 @@ FV.ContractOption=function(props){
 FV.ChannelBar=function(){
  FF.observe();
  if(FF.isOver())return null;
- var P=FF.allocPlan(), eps=FF.C.ui.zero;
- var stepBtn=function(i,dir,on){
-  return FV._h("button",{class:"cs",disabled:!on,
-   onClick:function(){if(on)FF.bumpChannel(i,dir)}},dir>0?"+":"\u2212");
- };
+ var P=FF.stancePlan();
  var rows=P.rows.map(function(r,i){
-  var t=P.tons[i];
-  var descTxt="오늘 "+r.price+"원 · 최대 "+r.cap+"t"+(r.floor>0?(" · 보장 "+r.floor+"t"):"");
+  var descTxt="예상 "+FF.fInt(P.preview[i])+"t · 오늘 "+r.price+"원 · 최대 "+r.cap+"t";
   return FV._h("div",{class:"chan-card"},[
    FV._h("div",{class:"chan-row2"},[
     FV._h("div",{class:"chan-id"},[
@@ -62,28 +57,20 @@ FV.ChannelBar=function(){
      FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel)))
     ]),
     FV._h("div",{class:"chan-desc"},descTxt),
-    FV._h("div",{class:"chan-step"},[
-     stepBtn(i,-1,t>eps),
-     FV._h("input",{class:"cn",inputmode:"numeric",value:FF.fInt(t),
-      onChange:function(e){FF.setChannelTons(i,parseFloat(e.target.value))}}),
-     FV._h("span",{class:"cn-unit"},"t"),
-     stepBtn(i,1,t<r.cap-eps&&P.rest>eps)
-    ])
+    FV._h("button",{class:"stc",onClick:function(){FF.cycleStance(i)}},
+     FV.say("stance",String(P.levels[i])))
    ])
   ]);
  });
- var restTxt=(P.rest>eps)?("남은 물량 "+FF.fInt(P.rest)+"t")
-   :((P.rest<-eps)?("초과 "+FF.fInt(-P.rest)+"t"):"남은 물량 0t");
  return FV._h("div",{id:"kchan",class:"chan"},[
   FV._h("div",{class:"chan-head"},[
-   FV._h("div",{class:"chan-head-num"},"오늘 배분할 재고 "+FF.fInt(P.target)+"t"),
-   FV._h("div",{class:"chan-head-note"},"이월 "+FF.fInt(P.inv)+"t + 입고 예상 "+FF.fInt(P.exp)+"t")
+   FV._h("div",{class:"chan-head-num"},"오늘 배분할 재고 "+FF.fInt(P.pool)+"t"),
+   FV._h("div",{class:"chan-head-note"},"이월 "+FF.fInt(P.inv)+"t + 입고 예상 "+FF.fInt(P.exp)+"t · 태도별 미리보기 합 "+FF.fInt(P.sum)+"t")
   ]),
   rows,
   FV._h("div",{class:"chan-sum"},[
-   FV._h("span",{},restTxt),
-   FV._h("button",{class:"cs cs-auto"+(P.auto?" cw-on":""),
-    onClick:function(){FF.clearAlloc()}},"자동")
+   FV._h("span",{},"보장 판로부터 확보한 뒤 나머지를 태도 비중으로 나눈다"),
+   FV._h("button",{class:"cs cs-auto",onClick:function(){FF.clearStance()}},"초기화")
   ])
  ]);
 }

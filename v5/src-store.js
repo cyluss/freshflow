@@ -101,6 +101,9 @@ FF.AR=FF._signal([]);
 FF.setAr=function(a){FF.AR.value=a}
 FF.ALLOC=FF._signal(null);
 FF.setAlloc=function(a){FF.ALLOC.value=a}
+// 판로 태도. 판로마다 0~3 단계. 최소 확보량과 나머지 가중치를 core 의 stance 표가 정한다.
+FF.STANCE=FF._signal(null);
+FF.setStance=function(a){FF.STANCE.value=a}
 
 // 이번 달 성향. 판 시작에 정해지고 끝까지 유지된다. 전망 계산이 이것을 쓴다.
 // 매입 정책. 며칠치를 목표로 들고 갈지. 플레이 중 바뀐다.

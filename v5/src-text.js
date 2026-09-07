@@ -4,6 +4,7 @@ FV.EVENT_TEXT={intake:"입고 한도 부족",store:"창고 공간 부족",
 FV.WORD={
  channel:{online:"온라인",fran:"프랜차이즈",whole:"도매"},
  relword:{0:"끊김",1:"보통",2:"좋음",3:"최상"},
+ stance:{0:"양보",1:"보통",2:"우선",3:"보장"},
  policy:{lean:"적게",mid:"보통",full:"넉넉히"},
  verdictSupply:{high:"평년보다 많겠음",mostlyHigh:"평년보다 대체로 많겠음",
    similar:"평년과 비슷하겠음",mostlyLow:"평년보다 대체로 적겠음",low:"평년보다 적겠음"},

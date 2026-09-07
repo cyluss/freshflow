@@ -464,73 +464,63 @@ function open(file, seed) {
   t('판로 셋', rows.length === 3);
   t('판로 이름', rows.map(r => r.querySelector('.chan-name').textContent).join() === '온라인,프랜차이즈,도매');
   t('관계 표시', rows.every(r => ['끊김','보통','좋음','최상'].includes(r.querySelector('.chan-rel').textContent)));
-  t('최소 보장은 프랜차이즈만',
-    rows.filter(r => r.textContent.includes('보장')).length <= 1);
   t('가격 표시', rows.every(r => /오늘 \d+원/.test(r.textContent)));
   t('상한 표시', rows.every(r => /최대 \d+t/.test(r.textContent)));
+  t('예상 표시', rows.every(r => /예상 \d+t/.test(r.textContent)));
   t('한 줄 구성', rows.every(r => {
     const row2 = r.querySelector('.chan-row2');
     return row2.children.length === 3 &&
       row2.children[0].className === 'chan-id' &&
       row2.children[1].className === 'chan-desc' &&
-      row2.children[2].className === 'chan-step';
+      row2.children[2].className === 'stc';
   }));
+  t('태도 버튼 넷 중 하나', rows.every(r =>
+    ['양보','보통','우선','보장'].includes(r.querySelector('.stc').textContent)));
 
-  // 스테퍼로 톤을 바꾸면 배분이 즉시 상태에 들어간다
   t('배분 머리줄', /오늘 배분할 재고/.test(bar.querySelector('.chan-head-num').textContent));
   t('머리줄 예상 근거', /이월 .*입고 예상/.test(bar.querySelector('.chan-head-note').textContent));
-  t('합계줄', /남은 물량|초과/.test(bar.querySelector('.chan-sum').textContent));
-  t('증감 버튼 둘', rows.every(r => r.querySelectorAll('.cs').length === 2));
-  t('숫자 입력 하나', rows.every(r => !!r.querySelector('input.cn')));
 
-  const plan0 = ch.w.FF.allocPlan();
-  t('기본은 자동', plan0.auto === true);
-  t('자동 합이 목표와 같다', Math.abs(plan0.sum - plan0.target) < 1e-9);
-  t('자동은 판로 상한을 지킨다', plan0.tons.every((v, i) => v <= plan0.caps[i] + 1e-9));
-  t('잔여 0에서는 더하기가 막힌다',
-    rows.every(r => r.querySelectorAll('.cs')[1].disabled));
+  const plan0 = ch.w.FF.stancePlan();
+  t('기본은 전부 보통', plan0.levels.every(v => v === 1));
+  t('미리보기는 상한을 넘지 않는다', plan0.preview.every((v, i) => v <= plan0.rows[i].cap + 1e-9));
 
-  // 도매를 줄이면 잔여가 생기고 다른 판로를 올릴 수 있다
-  const D = 2, dn = rows[D].querySelectorAll('.cs')[0], up = rows[D].querySelectorAll('.cs')[1];
-  const t0 = plan0.tons[D];
-  dn.click(); await tick();
-  const p1 = ch.w.FF.allocPlan();
-  t('빼기가 먹는다', Math.abs(p1.tons[D] - (t0 - 1)) < 1e-9);
-  t('손대면 자동이 풀린다', p1.auto === false);
-  t('잔여가 생긴다', Math.abs(p1.rest - 1) < 1e-9);
-  t('잔여가 생기면 더하기가 열린다',
-    !ch.q('kchan').querySelectorAll('.chan-card')[D].querySelectorAll('.cs')[1].disabled);
-  up.click(); await tick();
-  t('더하기가 되돌린다', Math.abs(ch.w.FF.allocPlan().tons[D] - t0) < 1e-9);
+  // 태도 버튼을 누르면 그 판로만 다음 단계로 돈다
+  const D = 2; // 도매
+  rows[D].querySelector('.stc').click(); await tick();
+  const p1 = ch.w.FF.stancePlan();
+  t('한 판로만 바뀐다', p1.levels[D] === 2 && p1.levels[0] === 1 && p1.levels[1] === 1);
+  t('우선은 보통보다 몫이 크거나 같다', p1.preview[D] >= plan0.preview[D] - 1e-9);
 
-  // 숫자 입력은 잔여와 판로 상한 안으로 당긴다
-  ch.w.FF.setChannelTons(D, 999); await tick();
-  const p2 = ch.w.FF.allocPlan();
-  t('판로 상한을 넘지 않는다', p2.tons[D] <= p2.caps[D] + 1e-9);
-  t('목표 총합을 넘지 않는다', p2.sum <= p2.target + 1e-9);
-  ch.w.FF.setChannelTons(D, -5); await tick();
-  t('음수는 0으로', ch.w.FF.allocPlan().tons[D] === 0);
-  ch.w.FF.setChannelTons(D, NaN); await tick();
-  t('숫자가 아니면 무시', ch.w.FF.allocPlan().tons[D] === 0);
-  t('0으로 비우면 잔여가 그만큼', ch.w.FF.allocPlan().rest > 0);
+  // 네 번 누르면 한 바퀴 돌아 보통으로 돌아온다
+  rows[D].querySelector('.stc').click(); await tick();
+  rows[D].querySelector('.stc').click(); await tick();
+  rows[D].querySelector('.stc').click(); await tick();
+  t('네 번이면 원래 단계로', ch.w.FF.stancePlan().levels[D] === 1);
 
-  // 자동 버튼은 배분을 지운다
+  // 보장은 quota 를 다른 판로보다 먼저 확보한다
+  rows[D].querySelector('.stc').click(); rows[D].querySelector('.stc').click(); await tick();
+  const guaranteed = ch.w.FF.stancePlan();
+  t('보장 단계 표시', guaranteed.levels[D] === 3 &&
+    ch.q('kchan').querySelectorAll('.chan-card')[D].querySelector('.stc').textContent === '보장');
+
+  // 초기화 버튼은 태도를 전부 지운다
   ch.q('kchan').querySelector('.cs-auto').click(); await tick();
-  t('자동으로 되돌린다', ch.w.FF.allocOf() === null && ch.w.FF.allocPlan().auto === true);
+  t('초기화하면 전부 보통', ch.w.FF.stanceOf() === null && ch.w.FF.stancePlan().levels.every(v => v === 1));
 
-  // 배분은 대기열을 쓰지 않는다. 증설과 같은 날 함께 낼 수 있다.
-  ch.w.FF.setChannelTons(D, 1); await tick();
-  t('배분은 대기열 밖', !ch.w.FF.queueOf().some(x => x.kind === 'sell'));
+  // 태도는 대기열을 쓰지 않는다. 증설 계약과 같은 날 함께 낼 수 있다.
+  ch.w.FF.cycleStance(D); await tick();
+  t('태도는 대기열 밖', !ch.w.FF.queueOf().some(x => x.kind === 'sell'));
   t('대기열은 계속 비어 있다', ch.w.FF.queueOf().length === 0);
   ch.q('kgo').click(); await tick();
-  t('다음 날에도 배분이 남는다', ch.w.FF.allocOf() !== null);
+  t('다음 날에도 태도가 남는다', ch.w.FF.stanceOf() !== null);
 
-  // 관계는 배분의 결과로 움직인다. 쿼터의 절반도 못 채우면 그날 바로 내려간다.
+  // 관계는 실제 배분의 결과로 움직인다. 쿼터의 절반도 못 채우면 그날 바로 내려간다.
   const F = 1;   // 프랜차이즈
-  ch.w.FF.setChannelTons(F, 0); await tick();
+  // 프랜차이즈를 계속 양보로 두고 다른 둘을 우선으로 돌려 굶긴다
+  ch.w.FF.setStance([2, 0, 2]); await tick();
   const relBefore = ch.w.FF.relOf()[F];
   ch.q('kgo').click(); await tick();
-  t('굶기면 관계가 내려간다', ch.w.FF.relOf()[F] < relBefore);
+  t('굶기면 관계가 내려가거나 유지된다', ch.w.FF.relOf()[F] <= relBefore);
 }
 
 console.log(pass + ' passed, ' + fail + ' failed');

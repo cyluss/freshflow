@@ -28,6 +28,10 @@ channels:[
 // 단가와 보장만 나빠지고, 물량 자체는 항상 넣을 수 있어야 회복 경로가 산다.
 rel:{price:[0.64,1,1.30,1.60],cap:[1,1,1.4,1.8],floor:[0,0.5,1,1.5],
      up:4,start:1},
+// 판로 태도 0~3 단계: 양보 · 보통 · 우선 · 보장.
+// weight 는 확보 뒤 남는 물량을 나눌 때 쓰는 비중이다. min 은 quota 배수로, 그만큼을 다른 판로보다 먼저 확보한다.
+// 보장은 weight 를 올리지 않는다. 최소 확보만 약속하고 그 이상은 보통과 같다.
+stance:{weight:[0.6,1,1.6,1],min:[0,0,0,1],start:1},
 settlePlan:[],price:900,farm:380,hold:22,waste:45,fixed:1400,cover:1.5,
 // 매입 정책. 며칠치를 목표로 들고 갈지 플레이 중 바꾼다.
 policy:[{v:1,key:"lean"},{v:1.5,key:"mid"},{v:2,key:"full"}],alpha:.5,mid:4,noise:.35,tilt:0.5,tiltP:[0.25,0.5,0.25],autoMax:3,salvage:0.2};
