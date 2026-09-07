@@ -381,13 +381,21 @@ FF.stanceLevel=function(i){
  return (s2&&s2.length===FF.C.channels.length)?s2[i]:FF.C.stance.start;
 }
 // 한 판로의 태도를 한 단계 돌린다. 다른 판로는 지금 값을 그대로 지킨다.
-FF.cycleStance=function(i){
+// 판로 하나의 태도를 직접 정한다. 순환이 아니라 원하는 단계로 바로 간다.
+FF.setChannelStance=function(i,level){
  var n=FF.C.channels.length, cur=[];
  for(var k=0;k<n;k++)cur.push(FF.stanceLevel(k));
- cur[i]=(cur[i]+1)%4;
+ cur[i]=level;
  FF.setStance(cur); FF.repaint();
 }
 FF.clearStance=function(){FF.setStance(null);FF.repaint()}
+// 오래된 재고. ttl(부패까지 날수)의 절반을 넘긴 lot 을 오래된 것으로 본다.
+FF.oldStock=function(){
+ FF.VERSION.value;
+ var lots=FF.lotsOf(), th=Math.floor(FF.C.ttl/2), t=0;
+ for(var i=0;i<lots.length;i++)if(lots[i].a>=th)t+=lots[i].q;
+ return FF.rInt(t);
+}
 // 오늘 배분 미리보기. 보장부터 확보하고 남는 물량을 태도 비중으로 나눈다.
 // 커널과 같은 두 단계 규칙이지만 하루치 물량을 한 덩어리로 보는 근사다. 실제는 lot 단위로 갈라져 조금 다를 수 있다.
 FF.stancePlan=function(){
@@ -395,9 +403,9 @@ FF.stancePlan=function(){
  var rows=FF.channelRows(), n=rows.length;
  var levels=rows.map(function(r,i){return FF.stanceLevel(i)});
  var est=rows.map(function(r,i){return FF.rInt(FF.estChannelDemand(i))});
- var inv=FF.inventory(), exp=FF.expectedIntake();
+ var inv=FF.inventory(), exp=FF.expectedIntake(), caps=FF.capsOf();
  var totCap=0, i; for(i=0;i<n;i++)totCap+=rows[i].cap;
- var pool=FF.rInt(Math.min(inv+exp,totCap));
+ var pool=FF.rInt(Math.min(inv+exp,totCap,caps?caps.sales:totCap));
  var left=pool, remain=est.slice(), preview=rows.map(function(){return 0});
  // 1단계: 보장 확보
  for(i=0;i<n;i++){
@@ -429,11 +437,13 @@ FF.issueFeasible=function(i){
 FF.issuePlan=function(){
  FF.observe();
  var issues=FF.issueOf(), rel=FF.relOf();
+ var P=FF.stancePlan();
  var openList=[];
  for(var i=0;i<issues.length;i++){
   if(!issues[i])continue;
   openList.push({i:i,since:issues[i].since,resolution:issues[i].resolution,
-   days:FF.dayOf()-issues[i].since,rel:rel[i],feasible:FF.issueFeasible(i)});
+   days:FF.dayOf()-issues[i].since,rel:rel[i],feasible:FF.issueFeasible(i),
+   level:P.levels[i],preview:P.preview[i],quota:P.rows[i].quota});
  }
  return {signals:FF.signalOf(),issues:openList};
 }

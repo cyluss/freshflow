@@ -52,7 +52,8 @@ function open(file, seed) {
     if (s.q('kgo') && !s.q('kchan')) { always = false; break }
   }
   t('배분 막대 상시 노출', always);
-  t('구매 카드 제거', !s.q('kacts') && !s.q('kbs') && !s.q('kbw'));
+  t('옛 구매 카드 제거', !s.q('kacts') && !s.q('kbw'));
+  t('판매 한도 버튼 있음', !!s.q('kbs'));
   t('설비 관리 버튼 없음', !s.q('kopen'));
   t('매입 목표 제거', !s.q('kpolicy'));
   t('비교 근거 없음', !s.q('kcmp'));
@@ -72,7 +73,7 @@ function open(file, seed) {
   const s = open(FILE, 31236);
   // 첫날은 계약 여부만 고른다
   t('선택지 넷', [0,1,2,3].every(i => !!s.q('kbc' + i)));
-  t('첫날 판매 카드 없음', !s.q('kbs'));
+  t('첫날 판매 한도 버튼 없음', !s.q('kbs'));
   s.q('kbc2').click(); await tick();
   t('선택 후 대기열 1', s.w.FF.queueOf().length === 1 && s.w.FF.queueOf()[0].size === 1);
   s.q('kbc3').click(); await tick();
@@ -464,51 +465,44 @@ function open(file, seed) {
   t('판로 셋', rows.length === 3);
   t('판로 이름', rows.map(r => r.querySelector('.chan-name').textContent).join() === '온라인,프랜차이즈,도매');
   t('관계 표시', rows.every(r => ['끊김','보통','좋음','최상'].includes(r.querySelector('.chan-rel').textContent)));
-  t('가격 표시', rows.every(r => /오늘 \d+원/.test(r.textContent)));
-  t('상한 표시', rows.every(r => /최대 \d+t/.test(r.textContent)));
-  t('예상 표시', rows.every(r => /예상 \d+t/.test(r.textContent)));
-  t('한 줄 구성', rows.every(r => {
-    const row2 = r.querySelector('.chan-row2');
-    return row2.children.length === 3 &&
-      row2.children[0].className === 'chan-id' &&
-      row2.children[1].className === 'chan-desc' &&
-      row2.children[2].className === 'stc';
-  }));
-  t('태도 버튼 넷 중 하나', rows.every(r =>
-    ['양보','보통','우선','보장'].includes(r.querySelector('.stc').textContent)));
+  t('가격 표시', rows.every(r => /\d+원/.test(r.querySelector('.chan-cond').textContent)));
+  t('주문량 표시', rows.every(r => /주문 \d+t/.test(r.querySelector('.chan-cond').textContent)));
+  t('상한 표시', rows.every(r => /최대 \d+t/.test(r.querySelector('.chan-cond').textContent)));
+  t('예상 표시', rows.every(r => /예상 \d+t/.test(r.querySelector('.chan-preview').textContent)));
+  t('정책 버튼 넷', rows.every(r => r.querySelectorAll('.pol').length === 4));
+  t('정책 버튼 이름', rows.every(r =>
+    [...r.querySelectorAll('.pol')].map(b => b.textContent).join() === '양보,보통,우선,보장'));
+  t('기본은 보통이 켜져 있다', rows.every(r => r.querySelector('.pol-on').textContent === '보통'));
 
-  t('배분 머리줄', /오늘 배분할 재고/.test(bar.querySelector('.chan-head-num').textContent));
-  t('머리줄 예상 근거', /이월 .*입고 예상/.test(bar.querySelector('.chan-head-note').textContent));
+  t('머리줄에 재고', /재고 \d+t/.test(bar.querySelector('.chan-head-num').textContent));
+  t('머리줄에 오래된 재고', /오래된 재고 \d+t/.test(bar.querySelector('.chan-head-num').textContent));
+  t('머리줄에 판매 한도', /판매 한도 \d+t/.test(bar.querySelector('.chan-head-note').textContent));
 
   const plan0 = ch.w.FF.stancePlan();
   t('기본은 전부 보통', plan0.levels.every(v => v === 1));
   t('미리보기는 상한을 넘지 않는다', plan0.preview.every((v, i) => v <= plan0.rows[i].cap + 1e-9));
 
-  // 태도 버튼을 누르면 그 판로만 다음 단계로 돈다
+  // 정책 버튼은 직접 그 단계로 간다. 순환이 아니다.
   const D = 2; // 도매
-  rows[D].querySelector('.stc').click(); await tick();
+  rows[D].querySelectorAll('.pol')[2].click(); await tick(); // 우선
   const p1 = ch.w.FF.stancePlan();
   t('한 판로만 바뀐다', p1.levels[D] === 2 && p1.levels[0] === 1 && p1.levels[1] === 1);
   t('우선은 보통보다 몫이 크거나 같다', p1.preview[D] >= plan0.preview[D] - 1e-9);
-
-  // 네 번 누르면 한 바퀴 돌아 보통으로 돌아온다
-  rows[D].querySelector('.stc').click(); await tick();
-  rows[D].querySelector('.stc').click(); await tick();
-  rows[D].querySelector('.stc').click(); await tick();
-  t('네 번이면 원래 단계로', ch.w.FF.stancePlan().levels[D] === 1);
+  t('켜진 버튼이 바뀐다',
+    ch.q('kchan').querySelectorAll('.chan-card')[D].querySelector('.pol-on').textContent === '우선');
 
   // 보장은 quota 를 다른 판로보다 먼저 확보한다
-  rows[D].querySelector('.stc').click(); rows[D].querySelector('.stc').click(); await tick();
+  rows[D].querySelectorAll('.pol')[3].click(); await tick(); // 보장
   const guaranteed = ch.w.FF.stancePlan();
   t('보장 단계 표시', guaranteed.levels[D] === 3 &&
-    ch.q('kchan').querySelectorAll('.chan-card')[D].querySelector('.stc').textContent === '보장');
+    ch.q('kchan').querySelectorAll('.chan-card')[D].querySelector('.pol-on').textContent === '보장');
 
   // 초기화 버튼은 태도를 전부 지운다
   ch.q('kchan').querySelector('.cs-auto').click(); await tick();
   t('초기화하면 전부 보통', ch.w.FF.stanceOf() === null && ch.w.FF.stancePlan().levels.every(v => v === 1));
 
   // 태도는 대기열을 쓰지 않는다. 증설 계약과 같은 날 함께 낼 수 있다.
-  ch.w.FF.cycleStance(D); await tick();
+  ch.w.FF.setChannelStance(D, 2); await tick();
   t('태도는 대기열 밖', !ch.w.FF.queueOf().some(x => x.kind === 'sell'));
   t('대기열은 계속 비어 있다', ch.w.FF.queueOf().length === 0);
   ch.q('kgo').click(); await tick();

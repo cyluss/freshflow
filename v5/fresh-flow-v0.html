@@ -86,21 +86,18 @@ body{font-variant-numeric:tabular-nums}
 .opt-note{font-size:10px;color:var(--text-muted);line-height:1.4}
 .opt-on{border-color:var(--border-accent)}
 .chan{margin:4px 0 2px}
-.chan-card{padding:6px 0;border-top:1px solid var(--border)}
+.chan-card{padding:8px 0;border-top:1px solid var(--border)}
 .chan-card:first-of-type{border-top:0}
-.chan-row2{display:flex;align-items:center;gap:8px}
-.chan-id{flex:0 0 auto;display:flex;align-items:baseline;gap:6px;font-size:13px;white-space:nowrap}
+.chan-id{display:flex;align-items:baseline;gap:6px;font-size:14px}
 .chan-name{color:var(--text-primary)}
-.chan-rel{color:var(--text-secondary);font-size:11px}
-.chan-desc{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
- font-size:11px;color:var(--text-muted)}
-.policy{display:flex;align-items:center;gap:5px;margin:4px 0 2px}
-.policy-name{font-size:12px;color:var(--text-muted);min-width:62px}
-.pol{padding:3px 10px;font-size:12px;font-family:inherit;background:none;
- border:0.5px solid var(--border-strong);border-radius:var(--radius);
+.chan-rel{color:var(--text-secondary);font-size:12px}
+.chan-cond{font-size:12px;color:var(--text-secondary);margin-top:2px}
+.chan-policy{display:flex;gap:5px;margin-top:5px}
+.pol{flex:1;padding:6px 0;font-size:12px;font-family:inherit;background:none;
+ border:1px solid var(--border-strong);border-radius:var(--radius);
  color:var(--text-secondary);cursor:pointer}
-.pol-on{border-color:var(--border-accent);color:var(--text-primary)}
-.pol-now{color:var(--text-primary)}
+.pol-on{border-color:var(--border-accent);color:var(--text-primary);background:var(--surface-1)}
+.chan-preview{font-size:12px;color:var(--text-muted);margin-top:4px}
 .clockbar{display:flex;align-items:center;gap:6px;margin:10px 0 4px}
 .clk{padding:4px 10px;font-size:12px;font-family:inherit;background:none;
  border:0.5px solid var(--border-strong);border-radius:var(--radius);
@@ -153,21 +150,18 @@ body{font-variant-numeric:tabular-nums}
 .opt-note{font-size:10px;color:var(--text-muted);line-height:1.4}
 .opt-on{border-color:var(--border-accent)}
 .chan{margin:4px 0 2px}
-.chan-card{padding:6px 0;border-top:1px solid var(--border)}
+.chan-card{padding:8px 0;border-top:1px solid var(--border)}
 .chan-card:first-of-type{border-top:0}
-.chan-row2{display:flex;align-items:center;gap:8px}
-.chan-id{flex:0 0 auto;display:flex;align-items:baseline;gap:6px;font-size:13px;white-space:nowrap}
+.chan-id{display:flex;align-items:baseline;gap:6px;font-size:14px}
 .chan-name{color:var(--text-primary)}
-.chan-rel{color:var(--text-secondary);font-size:11px}
-.chan-desc{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
- font-size:11px;color:var(--text-muted)}
-.policy{display:flex;align-items:center;gap:5px;margin:4px 0 2px}
-.policy-name{font-size:12px;color:var(--text-muted);min-width:62px}
-.pol{padding:3px 10px;font-size:12px;font-family:inherit;background:none;
- border:0.5px solid var(--border-strong);border-radius:var(--radius);
+.chan-rel{color:var(--text-secondary);font-size:12px}
+.chan-cond{font-size:12px;color:var(--text-secondary);margin-top:2px}
+.chan-policy{display:flex;gap:5px;margin-top:5px}
+.pol{flex:1;padding:6px 0;font-size:12px;font-family:inherit;background:none;
+ border:1px solid var(--border-strong);border-radius:var(--radius);
  color:var(--text-secondary);cursor:pointer}
-.pol-on{border-color:var(--border-accent);color:var(--text-primary)}
-.pol-now{color:var(--text-primary)}
+.pol-on{border-color:var(--border-accent);color:var(--text-primary);background:var(--surface-1)}
+.chan-preview{font-size:12px;color:var(--text-muted);margin-top:4px}
 .clockbar{display:flex;align-items:center;gap:6px;margin:10px 0 4px}
 .clk{padding:4px 10px;font-size:12px;font-family:inherit;background:none;
  border:0.5px solid var(--border-strong);border-radius:var(--radius);
@@ -203,24 +197,23 @@ body{font-variant-numeric:tabular-nums}
  color:var(--text-secondary);cursor:pointer;flex:0 0 auto}
 .cs:disabled{opacity:.3;cursor:default}
 .cs-auto{width:auto;height:32px;padding:0 10px;font-size:11px;margin-left:auto}
-.stc{width:auto;min-width:64px;height:40px;padding:0 14px;font-size:14px;font-family:inherit;
- background:none;border:1px solid var(--border-strong);border-radius:var(--radius);
- color:var(--text-primary);cursor:pointer;flex:0 0 auto}
 .chan-sum{display:flex;align-items:center;gap:8px;font-size:11px;
  color:var(--text-secondary);margin-top:5px;padding-top:5px;
  border-top:1px solid var(--border)}
 .chan-rest{color:var(--text-warning)}
-.issuebar{margin:4px 0 10px;display:flex;flex-direction:column;gap:6px}
+.issuebar{margin:4px 0 10px;display:flex;flex-direction:column;gap:8px}
 .sig{font-size:12px;padding:6px 9px;border-radius:var(--radius);border:1px solid var(--border)}
 .sig-decline{color:var(--text-warning);border-color:var(--border-warning);background:var(--bg-warning)}
 .sig-stuck{color:var(--text-warning);border-color:var(--border-warning);background:var(--bg-warning)}
 .sig-recover{color:var(--text-success);border-color:var(--text-success)}
-.issue{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 9px;
- border-radius:var(--radius);border:1px solid var(--border-strong);color:var(--text-secondary)}
-.issue-text{flex:1;min-width:0}
+.issue{padding:8px 9px;border-radius:var(--radius);border:1px solid var(--border-strong)}
+.issue-head{font-size:12px;color:var(--text-primary)}
+.issue-nums{font-size:11px;color:var(--text-secondary);margin-top:2px}
+.issue-verdict{font-size:11px;color:var(--text-warning);margin-top:2px}
 .issue-accepted{opacity:.6}
-.issue-btn{flex:0 0 auto;padding:4px 10px;font-size:11px}
-.issue-ack{flex:0 0 auto;font-size:11px;color:var(--text-muted)}
+.issue-accepted .issue-verdict{color:var(--text-muted)}
+.issue-btn{margin-top:5px;padding:4px 10px;font-size:11px}
+.issue-ack{display:block;margin-top:5px;font-size:11px;color:var(--text-muted)}
 </style>
 </head>
 <body><div class="wrap"><div id="app"></div>
@@ -670,6 +663,7 @@ FF.stepState=function(s,prod,dem,rules){
  if(stored>0)s.lots.push({q:stored,a:0});
  var sellable=tot();
  // 판로 배분. s.alloc 은 판로별 비중, s.stance 는 판로별 태도(양보/보통/우선/보장)다. 없으면 비싼 곳부터 채운다.
+ // s.cap.sales 는 판로 상한과 별개로 하루 전체 판매량의 총상한이다. sold 가 거기 닿으면 더 못 판다.
  var CHS=R.channels, nch=CHS.length;
  var relv=s.rel||[], sold=0, rev=0, ageMix=[], toCh=[];
  var chDem=[];
@@ -706,7 +700,7 @@ FF.stepState=function(s,prod,dem,rules){
     var glot=s.lots[lj];
     if(glot.q<=R.ui.zero)continue;
     var gage=Math.min(glot.a,R.ttl-1);
-    var gtake=Math.min(glot.q,need);
+    var gtake=Math.min(glot.q,need,Math.max(0,s.cap.sales-sold));
     glot.q-=gtake; chDem[ci]-=gtake; sold+=gtake; toCh[ci]+=gtake; need-=gtake;
     ageMix.push({a:glot.a,q:gtake});
     settleSale(ci,gtake*sellUnit(ci,gage));
@@ -744,7 +738,7 @@ FF.stepState=function(s,prod,dem,rules){
      quotaLeft=Math.min(quotaLeft,Math.max(0,share-toCh[c2]));
     }
    }
-   var take=Math.min(lot.q,quotaLeft);
+   var take=Math.min(lot.q,quotaLeft,Math.max(0,s.cap.sales-sold));
    if(take<=R.ui.zero)continue;
    lot.q-=take; chDem[c2]-=take; sold+=take; toCh[c2]+=take;
    ageMix.push({a:lot.a,q:take});
@@ -1904,13 +1898,21 @@ FF.stanceLevel=function(i){
  return (s2&&s2.length===FF.C.channels.length)?s2[i]:FF.C.stance.start;
 }
 // 한 판로의 태도를 한 단계 돌린다. 다른 판로는 지금 값을 그대로 지킨다.
-FF.cycleStance=function(i){
+// 판로 하나의 태도를 직접 정한다. 순환이 아니라 원하는 단계로 바로 간다.
+FF.setChannelStance=function(i,level){
  var n=FF.C.channels.length, cur=[];
  for(var k=0;k<n;k++)cur.push(FF.stanceLevel(k));
- cur[i]=(cur[i]+1)%4;
+ cur[i]=level;
  FF.setStance(cur); FF.repaint();
 }
 FF.clearStance=function(){FF.setStance(null);FF.repaint()}
+// 오래된 재고. ttl(부패까지 날수)의 절반을 넘긴 lot 을 오래된 것으로 본다.
+FF.oldStock=function(){
+ FF.VERSION.value;
+ var lots=FF.lotsOf(), th=Math.floor(FF.C.ttl/2), t=0;
+ for(var i=0;i<lots.length;i++)if(lots[i].a>=th)t+=lots[i].q;
+ return FF.rInt(t);
+}
 // 오늘 배분 미리보기. 보장부터 확보하고 남는 물량을 태도 비중으로 나눈다.
 // 커널과 같은 두 단계 규칙이지만 하루치 물량을 한 덩어리로 보는 근사다. 실제는 lot 단위로 갈라져 조금 다를 수 있다.
 FF.stancePlan=function(){
@@ -1918,9 +1920,9 @@ FF.stancePlan=function(){
  var rows=FF.channelRows(), n=rows.length;
  var levels=rows.map(function(r,i){return FF.stanceLevel(i)});
  var est=rows.map(function(r,i){return FF.rInt(FF.estChannelDemand(i))});
- var inv=FF.inventory(), exp=FF.expectedIntake();
+ var inv=FF.inventory(), exp=FF.expectedIntake(), caps=FF.capsOf();
  var totCap=0, i; for(i=0;i<n;i++)totCap+=rows[i].cap;
- var pool=FF.rInt(Math.min(inv+exp,totCap));
+ var pool=FF.rInt(Math.min(inv+exp,totCap,caps?caps.sales:totCap));
  var left=pool, remain=est.slice(), preview=rows.map(function(){return 0});
  // 1단계: 보장 확보
  for(i=0;i<n;i++){
@@ -1952,11 +1954,13 @@ FF.issueFeasible=function(i){
 FF.issuePlan=function(){
  FF.observe();
  var issues=FF.issueOf(), rel=FF.relOf();
+ var P=FF.stancePlan();
  var openList=[];
  for(var i=0;i<issues.length;i++){
   if(!issues[i])continue;
   openList.push({i:i,since:issues[i].since,resolution:issues[i].resolution,
-   days:FF.dayOf()-issues[i].since,rel:rel[i],feasible:FF.issueFeasible(i)});
+   days:FF.dayOf()-issues[i].since,rel:rel[i],feasible:FF.issueFeasible(i),
+   level:P.levels[i],preview:P.preview[i],quota:P.rows[i].quota});
  }
  return {signals:FF.signalOf(),issues:openList};
 }
@@ -2922,8 +2926,11 @@ FV.IssueBar=function(){
  var issueRows=P.issues.map(function(is){
   var accepted=is.resolution==="accepted";
   return FV._h("div",{class:"issue"+(accepted?" issue-accepted":"")},[
-   FV._h("div",{class:"issue-text"},
-    chName(is.i)+" 관계 악화 · "+is.days+"일째 · 현재 "+relWord(is.rel)+" · "+FV.say("feasible",is.feasible)),
+   FV._h("div",{class:"issue-head"},
+    chName(is.i)+" 정책: "+FV.say("stance",String(is.level))+" · "+is.days+"일째 · 현재 "+relWord(is.rel)),
+   FV._h("div",{class:"issue-nums"},
+    "예상 판매 "+FF.fInt(is.preview)+"t · 관계 유지 기준 "+FF.fInt(is.quota)+"t"),
+   FV._h("div",{class:"issue-verdict"},FV.say("feasible",is.feasible)),
    accepted
     ?FV._h("span",{class:"issue-ack"},"의도적 포기")
     :FV._h("button",{class:"issue-btn",onClick:function(){FF.acceptIssue(is.i)}},"포기")
@@ -2935,25 +2942,34 @@ FV.IssueBar=function(){
 FV.ChannelBar=function(){
  FF.observe();
  if(FF.isOver())return null;
- var P=FF.stancePlan();
+ var P=FF.stancePlan(), IP=FF.issuePlan();
+ var issueOf=function(i){
+  for(var k=0;k<IP.issues.length;k++)if(IP.issues[k].i===i)return IP.issues[k];
+  return null;
+ };
+ var STANCE_LEVELS=[0,1,2,3];
  var rows=P.rows.map(function(r,i){
-  var descTxt="예상 "+FF.fInt(P.preview[i])+"t · 오늘 "+r.price+"원 · 최대 "+r.cap+"t";
+  var issue=issueOf(i);
+  var statusTxt=issue?(" · "+(issue.resolution==="accepted"?"포기함":"회복 중")):"";
+  var condTxt=r.price+"원 · 주문 "+FF.fInt(P.est[i])+"t · 최대 "+r.cap+"t"+
+   (r.floor>0?(" · 보장 "+r.floor+"t"):"");
   return FV._h("div",{class:"chan-card"},[
-   FV._h("div",{class:"chan-row2"},[
-    FV._h("div",{class:"chan-id"},[
-     FV._h("span",{class:"chan-name"},FV.say("channel",r.key)),
-     FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel)))
-    ]),
-    FV._h("div",{class:"chan-desc"},descTxt),
-    FV._h("button",{class:"stc",onClick:function(){FF.cycleStance(i)}},
-     FV.say("stance",String(P.levels[i])))
-   ])
+   FV._h("div",{class:"chan-id"},[
+    FV._h("span",{class:"chan-name"},FV.say("channel",r.key)),
+    FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel)))
+   ]),
+   FV._h("div",{class:"chan-cond"},condTxt),
+   FV._h("div",{class:"chan-policy"},STANCE_LEVELS.map(function(lv){
+    return FV._h("button",{class:"pol"+(P.levels[i]===lv?" pol-on":""),
+     onClick:function(){FF.setChannelStance(i,lv)}},FV.say("stance",String(lv)));
+   })),
+   FV._h("div",{class:"chan-preview"},"예상 "+FF.fInt(P.preview[i])+"t"+statusTxt)
   ]);
  });
  return FV._h("div",{id:"kchan",class:"chan"},[
   FV._h("div",{class:"chan-head"},[
-   FV._h("div",{class:"chan-head-num"},"오늘 배분할 재고 "+FF.fInt(P.pool)+"t"),
-   FV._h("div",{class:"chan-head-note"},"이월 "+FF.fInt(P.inv)+"t + 입고 예상 "+FF.fInt(P.exp)+"t · 태도별 미리보기 합 "+FF.fInt(P.sum)+"t")
+   FV._h("div",{class:"chan-head-num"},"재고 "+FF.fInt(P.inv)+"t · 오래된 재고 "+FF.fInt(FF.oldStock())+"t"),
+   FV._h("div",{class:"chan-head-note"},"입고 예상 "+FF.fInt(P.exp)+"t · 판매 한도 "+FF.capsOf().sales+"t")
   ]),
   rows,
   FV._h("div",{class:"chan-sum"},[
@@ -2962,6 +2978,21 @@ FV.ChannelBar=function(){
   ])
  ]);
 }
+
+// 판매 한도 증설. 표시는 항상, 값은 커널의 하루 총 판매 상한이다.
+FV.CapacityButton=function(){
+ FF.observe();
+ if(FF.isOver()||!FF.started())return null;
+ var on=FF.queued("sales"), opt=FF.optionOf("sales");
+ return FV._h("button",{id:"kbs",class:"btn-cell"+(on?" opt-on":""),
+   style:{borderColor:on?"var(--border-accent)":"var(--border-strong)",
+     background:"transparent",opacity:(opt.affordable||on)?"1":"0.4"},
+   onClick:function(){if(!FF.isOver())FF.toggleBuy("sales")}},[
+  FV._h("div",{},"판매 한도 늘리기"),
+  FV._h("div",{class:"opt-price"},FV.capShift("sales")+" · "+mo(opt.cost)+"원")
+ ]);
+}
+
 
 FV.FirstDayPrompt=function(){
  
@@ -3002,8 +3033,14 @@ FV.NavBarView=function(){
  var label=function(){
   if(FF.isOver())return "운영 종료";
   if(!FF.started())return null;
+  var sig=FF.signalOf();
+  if(sig.length){
+   var s0=sig[0];
+   var name=FV.say("channel",FF.C.channels[s0.i].key);
+   return "최근 사건: "+name+" 관계가 "+(s0.type==="recover"?"회복되었습니다":"악화되었습니다");
+  }
   var ev=FF.evt();
-  return (ev?FV.EVENT_TEXT[ev.b]:"특이사항 없이 운영 중")+" · 남은 "+(FF.C.days-FF.dayOf()+1)+"일";
+  return ev?FV.EVENT_TEXT[ev.b]:"특이사항 없이 운영 중";
  }();
  var newGame=function(){
   var m=!FF.isOver()&&FF.started();
@@ -3121,6 +3158,7 @@ FV.DockView=function(){
    <${FV.TrendStrip} />
    <${FV.IssueBar} />
    <${FV.ChannelBar} />
+   <${FV.CapacityButton} />
    <button id="kgo" class="btn-full"
     style=${{borderColor:over?"var(--border)":"var(--border-strong)",color:over?"var(--text-muted)":"var(--text-primary)"}}
     onClick=${function(){if(!FF.isOver())FF.tickDay()}}>${goText}</button>

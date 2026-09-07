@@ -122,6 +122,7 @@ FF.stepState=function(s,prod,dem,rules){
  if(stored>0)s.lots.push({q:stored,a:0});
  var sellable=tot();
  // 판로 배분. s.alloc 은 판로별 비중, s.stance 는 판로별 태도(양보/보통/우선/보장)다. 없으면 비싼 곳부터 채운다.
+ // s.cap.sales 는 판로 상한과 별개로 하루 전체 판매량의 총상한이다. sold 가 거기 닿으면 더 못 판다.
  var CHS=R.channels, nch=CHS.length;
  var relv=s.rel||[], sold=0, rev=0, ageMix=[], toCh=[];
  var chDem=[];
@@ -158,7 +159,7 @@ FF.stepState=function(s,prod,dem,rules){
     var glot=s.lots[lj];
     if(glot.q<=R.ui.zero)continue;
     var gage=Math.min(glot.a,R.ttl-1);
-    var gtake=Math.min(glot.q,need);
+    var gtake=Math.min(glot.q,need,Math.max(0,s.cap.sales-sold));
     glot.q-=gtake; chDem[ci]-=gtake; sold+=gtake; toCh[ci]+=gtake; need-=gtake;
     ageMix.push({a:glot.a,q:gtake});
     settleSale(ci,gtake*sellUnit(ci,gage));
@@ -196,7 +197,7 @@ FF.stepState=function(s,prod,dem,rules){
      quotaLeft=Math.min(quotaLeft,Math.max(0,share-toCh[c2]));
     }
    }
-   var take=Math.min(lot.q,quotaLeft);
+   var take=Math.min(lot.q,quotaLeft,Math.max(0,s.cap.sales-sold));
    if(take<=R.ui.zero)continue;
    lot.q-=take; chDem[c2]-=take; sold+=take; toCh[c2]+=take;
    ageMix.push({a:lot.a,q:take});

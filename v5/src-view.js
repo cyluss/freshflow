@@ -59,8 +59,11 @@ FV.IssueBar=function(){
  var issueRows=P.issues.map(function(is){
   var accepted=is.resolution==="accepted";
   return FV._h("div",{class:"issue"+(accepted?" issue-accepted":"")},[
-   FV._h("div",{class:"issue-text"},
-    chName(is.i)+" 관계 악화 · "+is.days+"일째 · 현재 "+relWord(is.rel)+" · "+FV.say("feasible",is.feasible)),
+   FV._h("div",{class:"issue-head"},
+    chName(is.i)+" 정책: "+FV.say("stance",String(is.level))+" · "+is.days+"일째 · 현재 "+relWord(is.rel)),
+   FV._h("div",{class:"issue-nums"},
+    "예상 판매 "+FF.fInt(is.preview)+"t · 관계 유지 기준 "+FF.fInt(is.quota)+"t"),
+   FV._h("div",{class:"issue-verdict"},FV.say("feasible",is.feasible)),
    accepted
     ?FV._h("span",{class:"issue-ack"},"의도적 포기")
     :FV._h("button",{class:"issue-btn",onClick:function(){FF.acceptIssue(is.i)}},"포기")
@@ -72,25 +75,34 @@ FV.IssueBar=function(){
 FV.ChannelBar=function(){
  FF.observe();
  if(FF.isOver())return null;
- var P=FF.stancePlan();
+ var P=FF.stancePlan(), IP=FF.issuePlan();
+ var issueOf=function(i){
+  for(var k=0;k<IP.issues.length;k++)if(IP.issues[k].i===i)return IP.issues[k];
+  return null;
+ };
+ var STANCE_LEVELS=[0,1,2,3];
  var rows=P.rows.map(function(r,i){
-  var descTxt="예상 "+FF.fInt(P.preview[i])+"t · 오늘 "+r.price+"원 · 최대 "+r.cap+"t";
+  var issue=issueOf(i);
+  var statusTxt=issue?(" · "+(issue.resolution==="accepted"?"포기함":"회복 중")):"";
+  var condTxt=r.price+"원 · 주문 "+FF.fInt(P.est[i])+"t · 최대 "+r.cap+"t"+
+   (r.floor>0?(" · 보장 "+r.floor+"t"):"");
   return FV._h("div",{class:"chan-card"},[
-   FV._h("div",{class:"chan-row2"},[
-    FV._h("div",{class:"chan-id"},[
-     FV._h("span",{class:"chan-name"},FV.say("channel",r.key)),
-     FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel)))
-    ]),
-    FV._h("div",{class:"chan-desc"},descTxt),
-    FV._h("button",{class:"stc",onClick:function(){FF.cycleStance(i)}},
-     FV.say("stance",String(P.levels[i])))
-   ])
+   FV._h("div",{class:"chan-id"},[
+    FV._h("span",{class:"chan-name"},FV.say("channel",r.key)),
+    FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel)))
+   ]),
+   FV._h("div",{class:"chan-cond"},condTxt),
+   FV._h("div",{class:"chan-policy"},STANCE_LEVELS.map(function(lv){
+    return FV._h("button",{class:"pol"+(P.levels[i]===lv?" pol-on":""),
+     onClick:function(){FF.setChannelStance(i,lv)}},FV.say("stance",String(lv)));
+   })),
+   FV._h("div",{class:"chan-preview"},"예상 "+FF.fInt(P.preview[i])+"t"+statusTxt)
   ]);
  });
  return FV._h("div",{id:"kchan",class:"chan"},[
   FV._h("div",{class:"chan-head"},[
-   FV._h("div",{class:"chan-head-num"},"오늘 배분할 재고 "+FF.fInt(P.pool)+"t"),
-   FV._h("div",{class:"chan-head-note"},"이월 "+FF.fInt(P.inv)+"t + 입고 예상 "+FF.fInt(P.exp)+"t · 태도별 미리보기 합 "+FF.fInt(P.sum)+"t")
+   FV._h("div",{class:"chan-head-num"},"재고 "+FF.fInt(P.inv)+"t · 오래된 재고 "+FF.fInt(FF.oldStock())+"t"),
+   FV._h("div",{class:"chan-head-note"},"입고 예상 "+FF.fInt(P.exp)+"t · 판매 한도 "+FF.capsOf().sales+"t")
   ]),
   rows,
   FV._h("div",{class:"chan-sum"},[
@@ -99,6 +111,21 @@ FV.ChannelBar=function(){
   ])
  ]);
 }
+
+// 판매 한도 증설. 표시는 항상, 값은 커널의 하루 총 판매 상한이다.
+FV.CapacityButton=function(){
+ FF.observe();
+ if(FF.isOver()||!FF.started())return null;
+ var on=FF.queued("sales"), opt=FF.optionOf("sales");
+ return FV._h("button",{id:"kbs",class:"btn-cell"+(on?" opt-on":""),
+   style:{borderColor:on?"var(--border-accent)":"var(--border-strong)",
+     background:"transparent",opacity:(opt.affordable||on)?"1":"0.4"},
+   onClick:function(){if(!FF.isOver())FF.toggleBuy("sales")}},[
+  FV._h("div",{},"판매 한도 늘리기"),
+  FV._h("div",{class:"opt-price"},FV.capShift("sales")+" · "+mo(opt.cost)+"원")
+ ]);
+}
+
 
 FV.FirstDayPrompt=function(){
  
@@ -139,8 +166,14 @@ FV.NavBarView=function(){
  var label=function(){
   if(FF.isOver())return "운영 종료";
   if(!FF.started())return null;
+  var sig=FF.signalOf();
+  if(sig.length){
+   var s0=sig[0];
+   var name=FV.say("channel",FF.C.channels[s0.i].key);
+   return "최근 사건: "+name+" 관계가 "+(s0.type==="recover"?"회복되었습니다":"악화되었습니다");
+  }
   var ev=FF.evt();
-  return (ev?FV.EVENT_TEXT[ev.b]:"특이사항 없이 운영 중")+" · 남은 "+(FF.C.days-FF.dayOf()+1)+"일";
+  return ev?FV.EVENT_TEXT[ev.b]:"특이사항 없이 운영 중";
  }();
  var newGame=function(){
   var m=!FF.isOver()&&FF.started();
@@ -258,6 +291,7 @@ FV.DockView=function(){
    <${FV.TrendStrip} />
    <${FV.IssueBar} />
    <${FV.ChannelBar} />
+   <${FV.CapacityButton} />
    <button id="kgo" class="btn-full"
     style=${{borderColor:over?"var(--border)":"var(--border-strong)",color:over?"var(--text-muted)":"var(--text-primary)"}}
     onClick=${function(){if(!FF.isOver())FF.tickDay()}}>${goText}</button>
