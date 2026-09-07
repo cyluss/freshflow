@@ -86,13 +86,13 @@ body{font-variant-numeric:tabular-nums}
 .opt-note{font-size:10px;color:var(--text-muted);line-height:1.4}
 .opt-on{border-color:var(--border-accent)}
 .chan{margin:4px 0 2px}
-.chan-card{padding:8px 0;border-top:1px solid var(--border)}
+.chan-card{padding:6px 0;border-top:1px solid var(--border)}
 .chan-card:first-of-type{border-top:0}
-.chan-top{display:flex;justify-content:space-between;align-items:baseline;font-size:13px}
+.chan-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.chan-id{display:flex;align-items:baseline;gap:6px;font-size:13px}
 .chan-name{color:var(--text-primary)}
 .chan-rel{color:var(--text-secondary);font-size:11px}
-.chan-cond{font-size:11px;color:var(--text-muted);margin-top:2px}
-.chan-price{font-size:12px;color:var(--text-secondary);margin-top:2px}
+.chan-info{font-size:11px;color:var(--text-muted);margin-top:3px}
 .policy{display:flex;align-items:center;gap:5px;margin:4px 0 2px}
 .policy-name{font-size:12px;color:var(--text-muted);min-width:62px}
 .pol{padding:3px 10px;font-size:12px;font-family:inherit;background:none;
@@ -152,13 +152,13 @@ body{font-variant-numeric:tabular-nums}
 .opt-note{font-size:10px;color:var(--text-muted);line-height:1.4}
 .opt-on{border-color:var(--border-accent)}
 .chan{margin:4px 0 2px}
-.chan-card{padding:8px 0;border-top:1px solid var(--border)}
+.chan-card{padding:6px 0;border-top:1px solid var(--border)}
 .chan-card:first-of-type{border-top:0}
-.chan-top{display:flex;justify-content:space-between;align-items:baseline;font-size:13px}
+.chan-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.chan-id{display:flex;align-items:baseline;gap:6px;font-size:13px}
 .chan-name{color:var(--text-primary)}
 .chan-rel{color:var(--text-secondary);font-size:11px}
-.chan-cond{font-size:11px;color:var(--text-muted);margin-top:2px}
-.chan-price{font-size:12px;color:var(--text-secondary);margin-top:2px}
+.chan-info{font-size:11px;color:var(--text-muted);margin-top:3px}
 .policy{display:flex;align-items:center;gap:5px;margin:4px 0 2px}
 .policy-name{font-size:12px;color:var(--text-muted);min-width:62px}
 .pol{padding:3px 10px;font-size:12px;font-family:inherit;background:none;
@@ -196,7 +196,7 @@ body{font-variant-numeric:tabular-nums}
 .chan-head{margin-bottom:5px}
 .chan-head-num{font-size:14px;color:var(--text-primary);font-weight:500}
 .chan-head-note{font-size:11px;color:var(--text-muted);margin-top:1px}
-.chan-step{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px}
+.chan-step{display:flex;align-items:center;gap:8px}
 .cs{width:40px;height:40px;padding:0;font-size:20px;line-height:1;font-family:inherit;background:none;
  border:1px solid var(--border-strong);border-radius:var(--radius);
  color:var(--text-secondary);cursor:pointer;flex:0 0 auto}
@@ -2791,21 +2791,23 @@ FV.ChannelBar=function(){
  var rows=P.rows.map(function(r,i){
   var t=P.tons[i];
   var settleTxt=r.settle===0?"당일 정산":(r.settle+"일 뒤 정산");
-  var condTxt="최대 "+r.cap+"t"+(r.floor>0?(" · 보장 "+r.floor+"t"):"")+" · "+settleTxt;
+  var infoTxt="최대 "+r.cap+"t"+(r.floor>0?(" · 보장 "+r.floor+"t"):"")+" · "+settleTxt+
+   " · 오늘 "+r.price+"원 · "+r.quota+"t 채우면 관계 상승";
   return FV._h("div",{class:"chan-card"},[
    FV._h("div",{class:"chan-top"},[
-    FV._h("span",{class:"chan-name"},FV.say("channel",r.key)),
-    FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel)))
+    FV._h("div",{class:"chan-id"},[
+     FV._h("span",{class:"chan-name"},FV.say("channel",r.key)),
+     FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel)))
+    ]),
+    FV._h("div",{class:"chan-step"},[
+     stepBtn(i,-1,t>eps),
+     FV._h("input",{class:"cn",inputmode:"numeric",value:FF.fInt(t),
+      onChange:function(e){FF.setChannelTons(i,parseFloat(e.target.value))}}),
+     FV._h("span",{class:"cn-unit"},"t"),
+     stepBtn(i,1,t<r.cap-eps&&P.rest>eps)
+    ])
    ]),
-   FV._h("div",{class:"chan-cond"},condTxt),
-   FV._h("div",{class:"chan-price"},"오늘 "+r.price+"원 · "+r.quota+"t 채우면 관계 상승"),
-   FV._h("div",{class:"chan-step"},[
-    stepBtn(i,-1,t>eps),
-    FV._h("input",{class:"cn",inputmode:"numeric",value:FF.fInt(t),
-     onChange:function(e){FF.setChannelTons(i,parseFloat(e.target.value))}}),
-    FV._h("span",{class:"cn-unit"},"t"),
-    stepBtn(i,1,t<r.cap-eps&&P.rest>eps)
-   ])
+   FV._h("div",{class:"chan-info"},infoTxt)
   ]);
  });
  var restTxt=(P.rest>eps)?("남은 물량 "+FF.fInt(P.rest)+"t")
