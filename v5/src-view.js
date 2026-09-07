@@ -46,7 +46,7 @@ FV.ContractOption=function(props){
 
 FV.ChannelBar=function(){
  FF.observe();
- if(!FF.started()||FF.isOver())return null;
+ if(FF.isOver())return null;
  var P=FF.allocPlan(), eps=FF.C.ui.zero;
  var stepBtn=function(i,dir,on){
   return FV._h("button",{class:"cs",disabled:!on,
@@ -74,7 +74,7 @@ FV.ChannelBar=function(){
    :((P.rest<-eps)?FV._h("span",{class:"chan-rest"},"초과 "+FF.f1(-P.rest)+"t"):null);
  return FV._h("div",{id:"kchan",class:"chan"},[
   FV._h("div",{class:"chan-head"},
-   "오늘 재고 "+FF.f1(P.inv)+"t · 판로가 받는 최대 "+FF.f1(P.target)+"t"),
+   "이월 "+FF.f1(P.inv)+"t + 오늘 입고 예상 "+FF.f1(P.exp)+"t · 판로가 받는 최대 "+FF.f1(P.target)+"t"),
   rows,
   FV._h("div",{class:"chan-sum"},[
    FV._h("span",{},"합계 "+FF.f1(P.sum)+" / "+FF.f1(P.target)+"t"),

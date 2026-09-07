@@ -471,7 +471,7 @@ function open(file, seed) {
   t('쿼터 표시', rows.every(r => /\dt 넣으면 관계 상승/.test(r.textContent)));
 
   // 스테퍼로 톤을 바꾸면 배분이 즉시 상태에 들어간다
-  t('배분 머리줄', /오늘 재고 .*판로가 받는 최대/.test(bar.querySelector('.chan-head').textContent));
+  t('배분 머리줄', /이월 .*입고 예상 .*판로가 받는 최대/.test(bar.querySelector('.chan-head').textContent));
   t('합계줄', /합계 .* \/ .*t/.test(bar.querySelector('.chan-sum').textContent));
   t('증감 버튼 둘', rows.every(r => r.querySelectorAll('.cs').length === 2));
   t('숫자 입력 하나', rows.every(r => !!r.querySelector('input.cn')));
@@ -492,7 +492,7 @@ function open(file, seed) {
   t('손대면 자동이 풀린다', p1.auto === false);
   t('잔여가 생긴다', Math.abs(p1.rest - 0.5) < 1e-9);
   t('잔여가 생기면 더하기가 열린다',
-    !ch.q('kchan').querySelectorAll('.chan-row')[0].querySelectorAll('.cs')[1].disabled);
+    !ch.q('kchan').querySelectorAll('.chan-row')[D].querySelectorAll('.cs')[1].disabled);
   up.click(); await tick();
   t('더하기가 되돌린다', Math.abs(ch.w.FF.allocPlan().tons[D] - t0) < 1e-9);
 
@@ -518,10 +518,12 @@ function open(file, seed) {
   ch.q('kgo').click(); await tick();
   t('다음 날에도 배분이 남는다', ch.w.FF.allocOf() !== null);
 
-  // 관계는 배분의 결과로 움직인다
-  const before = ch.w.FF.relOf().join('');
-  for (let i = 0; i < 8; i++) { ch.q('kgo').click(); await tick() }
-  t('관계가 변한다', ch.w.FF.relOf().join('') !== before);
+  // 관계는 배분의 결과로 움직인다. 쿼터의 절반도 못 채우면 그날 바로 내려간다.
+  const F = 1;   // 프랜차이즈
+  ch.w.FF.setChannelTons(F, 0); await tick();
+  const relBefore = ch.w.FF.relOf()[F];
+  ch.q('kgo').click(); await tick();
+  t('굶기면 관계가 내려간다', ch.w.FF.relOf()[F] < relBefore);
 }
 
 console.log(pass + ' passed, ' + fail + ' failed');

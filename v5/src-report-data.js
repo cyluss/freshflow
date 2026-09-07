@@ -371,19 +371,26 @@ FF.autoAlloc=function(rows,target){
  }
  return out;
 }
+// 오늘 판로가 받을 수 있는 양은 이월 재고뿐 아니라 오늘 입고분도 포함한다.
+// 입고는 배분을 정한 뒤에 들어오므로 국면 평균으로 예상치만 낸다. 실제 입고와는 다를 수 있다.
+FF.expectedIntake=function(){
+ var M=FF.marketOf(), caps=FF.capsOf();
+ if(!M||!caps)return 0;
+ return FF.r1(Math.min(FF.C.sm[M.si],caps.intake));
+}
 // 오늘 배분 화면 모형. 판로 상한 합이 실제 천장이라 판매 한도는 여기 없다.
 FF.allocPlan=function(){
  FF.observe();
- var rows=FF.channelRows(), inv=FF.inventory();
+ var rows=FF.channelRows(), inv=FF.inventory(), exp=FF.expectedIntake();
  var caps=rows.map(function(r){return r.cap});
  var totCap=0, i;
  for(i=0;i<caps.length;i++)totCap+=caps[i];
- var target=FF.r1(Math.min(inv,totCap));
+ var target=FF.r1(Math.min(inv+exp,totCap));
  var raw=FF.allocOf(), auto=!raw||raw.length!==rows.length;
  var tons=auto?FF.autoAlloc(rows,target):raw.slice();
  var sum=0;
  for(i=0;i<tons.length;i++)sum+=tons[i];
- return {rows:rows,caps:caps,tons:tons,inv:FF.r1(inv),target:target,
+ return {rows:rows,caps:caps,tons:tons,inv:FF.r1(inv),exp:exp,target:target,
   sum:FF.r1(sum),rest:FF.r1(target-sum),auto:auto};
 }
 // 한 판로의 톤을 정한다. 잔여와 판로 상한 안으로 즉시 당긴다.
