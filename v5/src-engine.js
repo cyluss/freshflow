@@ -67,7 +67,6 @@ FF.tickDay=function(){
   var head=q[0];
   cmd=(head.kind==="contract")?FF.Cmd.contract(head.size)
     :(head.kind==="policy")?FF.Cmd.policy(head.cover)
-    :(head.kind==="sell")?FF.Cmd.sell(head.alloc)
     :FF.Cmd.buy(head.kind);
   path=head.path||"manual";
   FF.setQueue(q.slice(1));

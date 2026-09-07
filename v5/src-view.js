@@ -77,24 +77,42 @@ FV.WatchCard=function(props){
 FV.ChannelBar=function(){
  FF.observe();
  if(!FF.started()||FF.isOver())return null;
- var rows=FF.channelRows();
- var al=FF.plannedAlloc();
- return FV._h("div",{id:"kchan",class:"chan"},
-  rows.map(function(r,i){
-   var w=al?al[i]:1;
-   return FV._h("div",{class:"chan-row"},[
-    FV._h("span",{class:"chan-name"},FV.say("channel",r.key)),
-    FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel))),
-    FV._h("div",{class:"chan-btns"},[0,1,2,3].map(function(n){
-      return FV._h("button",{class:"cw"+(w===n?" cw-on":""),
-        onClick:function(){FF.setChannelWeight(i,n)}}, String(n));
-    })),
-    FV._h("span",{class:"chan-info"},
-      r.price+"원 · 하루 "+r.cap+"t"+(r.floor>0?(" · 보장 "+r.floor+"t"):"")),
-    FV._h("span",{class:"chan-term"},
-      (r.settle===0?"당일 정산":(r.settle+"일 뒤 정산"))+" · "+r.quota+"t 넣으면 관계 상승")
-   ]);
-  }));
+ var P=FF.allocPlan(), eps=FF.C.ui.zero;
+ var stepBtn=function(i,dir,on){
+  return FV._h("button",{class:"cs",disabled:!on,
+   onClick:function(){if(on)FF.bumpChannel(i,dir)}},dir>0?"+":"\u2212");
+ };
+ var rows=P.rows.map(function(r,i){
+  var t=P.tons[i];
+  return FV._h("div",{class:"chan-row"},[
+   FV._h("span",{class:"chan-name"},FV.say("channel",r.key)),
+   FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel))),
+   FV._h("div",{class:"chan-step"},[
+    stepBtn(i,-1,t>eps),
+    FV._h("input",{class:"cn",inputmode:"decimal",value:FF.f1(t),
+     onChange:function(e){FF.setChannelTons(i,parseFloat(e.target.value))}}),
+    FV._h("span",{class:"cn-unit"},"t"),
+    stepBtn(i,1,t<r.cap-eps&&P.rest>eps)
+   ]),
+   FV._h("span",{class:"chan-info"},
+    r.price+"원 · 최대 "+r.cap+"t"+(r.floor>0?(" · 보장 "+r.floor+"t"):"")),
+   FV._h("span",{class:"chan-term"},
+    (r.settle===0?"당일 정산":(r.settle+"일 뒤 정산"))+" · "+r.quota+"t 넣으면 관계 상승")
+  ]);
+ });
+ var note=(P.rest>eps)?FV._h("span",{class:"chan-rest"},"남김 "+FF.f1(P.rest)+"t")
+   :((P.rest<-eps)?FV._h("span",{class:"chan-rest"},"초과 "+FF.f1(-P.rest)+"t"):null);
+ return FV._h("div",{id:"kchan",class:"chan"},[
+  FV._h("div",{class:"chan-head"},
+   "오늘 재고 "+FF.f1(P.inv)+"t · 판로가 받는 최대 "+FF.f1(P.target)+"t"),
+  rows,
+  FV._h("div",{class:"chan-sum"},[
+   FV._h("span",{},"합계 "+FF.f1(P.sum)+" / "+FF.f1(P.target)+"t"),
+   note,
+   FV._h("button",{class:"cs cs-auto"+(P.auto?" cw-on":""),
+    onClick:function(){FF.clearAlloc()}},"자동")
+  ])
+ ]);
 }
 
 

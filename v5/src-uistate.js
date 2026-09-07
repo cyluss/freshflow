@@ -40,21 +40,3 @@ FF.clockOf=function(){return FF.CLOCK.value}
 FF.setClock=function(running){FF.CLOCK.value={running:!!running}}
 
 
-// 판로 배분. 오늘부터 적용된다. 대기열에 하나만 둔다.
-FF.setAllocPlan=function(a){
- var q=FF.QUEUE_S.value.filter(function(x){return x.kind!=="sell"});
- FF.setQueue(a?q.concat([{kind:"sell",alloc:a.slice(),path:"manual"}]):q);
-}
-// 지금 화면에 표시할 배분. 대기열에 있으면 그것을 쓴다.
-FF.plannedAlloc=function(){
- var q=FF.queueOf();
- for(var i=0;i<q.length;i++)if(q[i].kind==="sell")return q[i].alloc;
- return FF.allocOf()||FF.C.channels.map(function(){return 1});
-}
-// 판로 가중치 하나를 바꾼다.
-FF.setChannelWeight=function(i,n){
- var a=FF.plannedAlloc().slice();
- a[i]=n;
- var sum=0; for(var k=0;k<a.length;k++)sum+=a[k];
- FF.setAllocPlan(sum>0?a:null);
-}

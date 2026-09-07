@@ -355,3 +355,48 @@ FF.channelRows=function(){
     floor:(c.key==="fran")?Math.round(c.quota*FF.C.rel.floor[rel[i]]*10)/10:0};
  });
 }
+
+// 판로 배분. 화면은 톤으로 다루고 커널은 비중으로 읽는다.
+// 합이 목표 총합과 같으면 톤과 비중이 같은 값을 가리킨다.
+FF.ALLOC_STEP=0.5;
+FF.r1=function(n){return Math.round(n*10)/10}
+// 배분을 두지 않았을 때 커널이 하는 일이다. 단가 높은 판로부터 상한까지 채운다.
+FF.autoAlloc=function(rows,target){
+ var out=rows.map(function(){return 0}), left=target;
+ var idx=rows.map(function(r,i){return i});
+ idx.sort(function(a,b){return rows[b].price-rows[a].price});
+ for(var k=0;k<idx.length;k++){
+  var i=idx[k], t=Math.min(left,rows[i].cap);
+  out[i]=FF.r1(t); left-=t;
+ }
+ return out;
+}
+// 오늘 배분 화면 모형. 판로 상한 합이 실제 천장이라 판매 한도는 여기 없다.
+FF.allocPlan=function(){
+ FF.observe();
+ var rows=FF.channelRows(), inv=FF.inventory();
+ var caps=rows.map(function(r){return r.cap});
+ var totCap=0, i;
+ for(i=0;i<caps.length;i++)totCap+=caps[i];
+ var target=FF.r1(Math.min(inv,totCap));
+ var raw=FF.allocOf(), auto=!raw||raw.length!==rows.length;
+ var tons=auto?FF.autoAlloc(rows,target):raw.slice();
+ var sum=0;
+ for(i=0;i<tons.length;i++)sum+=tons[i];
+ return {rows:rows,caps:caps,tons:tons,inv:FF.r1(inv),target:target,
+  sum:FF.r1(sum),rest:FF.r1(target-sum),auto:auto};
+}
+// 한 판로의 톤을 정한다. 잔여와 판로 상한 안으로 즉시 당긴다.
+FF.setChannelTons=function(i,v){
+ if(typeof v!=="number"||isNaN(v))return;
+ var P=FF.allocPlan(), tons=P.tons.slice();
+ var ceil=Math.min(P.caps[i],tons[i]+Math.max(0,P.rest));
+ tons[i]=FF.r1(Math.max(0,Math.min(ceil,v)));
+ FF.setAlloc(tons); FF.repaint();
+}
+FF.bumpChannel=function(i,dir){
+ var P=FF.allocPlan();
+ FF.setChannelTons(i,P.tons[i]+dir*FF.ALLOC_STEP);
+}
+// 배분을 지운다. 커널이 다시 단가 순으로 판다.
+FF.clearAlloc=function(){FF.setAlloc(null);FF.repaint()}

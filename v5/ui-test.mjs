@@ -476,14 +476,54 @@ function open(file, seed) {
     rows.some(r => r.textContent.includes('14일 뒤 정산')));
   t('쿼터 표시', rows.every(r => /\dt 넣으면 관계 상승/.test(r.textContent)));
 
-  // 가중치를 바꾸면 대기열에 들어가고 다음 날 적용된다
-  const btns = [...rows[0].querySelectorAll('.cw')];
-  t('가중치 넷', btns.length === 4);
-  btns[3].click(); await tick();
-  const qd = ch.w.FF.queueOf().find(x => x.kind === 'sell');
-  t('배분이 대기열로', !!qd && qd.alloc[0] === 3);
+  // 스테퍼로 톤을 바꾸면 배분이 즉시 상태에 들어간다
+  t('배분 머리줄', /오늘 재고 .*판로가 받는 최대/.test(bar.querySelector('.chan-head').textContent));
+  t('합계줄', /합계 .* \/ .*t/.test(bar.querySelector('.chan-sum').textContent));
+  t('증감 버튼 둘', rows.every(r => r.querySelectorAll('.cs').length === 2));
+  t('숫자 입력 하나', rows.every(r => !!r.querySelector('input.cn')));
+
+  const plan0 = ch.w.FF.allocPlan();
+  t('기본은 자동', plan0.auto === true);
+  t('자동 합이 목표와 같다', Math.abs(plan0.sum - plan0.target) < 1e-9);
+  t('자동은 판로 상한을 지킨다', plan0.tons.every((v, i) => v <= plan0.caps[i] + 1e-9));
+  t('잔여 0에서는 더하기가 막힌다',
+    rows.every(r => r.querySelectorAll('.cs')[1].disabled));
+
+  // 도매를 줄이면 잔여가 생기고 다른 판로를 올릴 수 있다
+  const D = 2, dn = rows[D].querySelectorAll('.cs')[0], up = rows[D].querySelectorAll('.cs')[1];
+  const t0 = plan0.tons[D];
+  dn.click(); await tick();
+  const p1 = ch.w.FF.allocPlan();
+  t('빼기가 먹는다', Math.abs(p1.tons[D] - (t0 - 0.5)) < 1e-9);
+  t('손대면 자동이 풀린다', p1.auto === false);
+  t('잔여가 생긴다', Math.abs(p1.rest - 0.5) < 1e-9);
+  t('잔여가 생기면 더하기가 열린다',
+    !ch.q('kchan').querySelectorAll('.chan-row')[0].querySelectorAll('.cs')[1].disabled);
+  up.click(); await tick();
+  t('더하기가 되돌린다', Math.abs(ch.w.FF.allocPlan().tons[D] - t0) < 1e-9);
+
+  // 숫자 입력은 잔여와 판로 상한 안으로 당긴다
+  ch.w.FF.setChannelTons(D, 999); await tick();
+  const p2 = ch.w.FF.allocPlan();
+  t('판로 상한을 넘지 않는다', p2.tons[D] <= p2.caps[D] + 1e-9);
+  t('목표 총합을 넘지 않는다', p2.sum <= p2.target + 1e-9);
+  ch.w.FF.setChannelTons(D, -5); await tick();
+  t('음수는 0으로', ch.w.FF.allocPlan().tons[D] === 0);
+  ch.w.FF.setChannelTons(D, NaN); await tick();
+  t('숫자가 아니면 무시', ch.w.FF.allocPlan().tons[D] === 0);
+  t('0으로 비우면 잔여가 그만큼', ch.w.FF.allocPlan().rest > 0);
+
+  // 자동 버튼은 배분을 지운다
+  ch.q('kchan').querySelector('.cs-auto').click(); await tick();
+  t('자동으로 되돌린다', ch.w.FF.allocOf() === null && ch.w.FF.allocPlan().auto === true);
+
+  // 배분은 대기열을 쓰지 않는다. 증설과 같은 날 함께 낼 수 있다.
+  ch.w.FF.setChannelTons(D, 1); await tick();
+  t('배분은 대기열 밖', !ch.w.FF.queueOf().some(x => x.kind === 'sell'));
+  ch.q('kbs').click(); await tick();
+  t('증설과 공존', ch.w.FF.queueOf().length === 1 && ch.w.FF.allocOf()[D] === 1);
   ch.q('kgo').click(); await tick();
-  t('다음 날 적용', ch.w.FF.allocOf()[0] === 3);
+  t('다음 날에도 배분이 남는다', ch.w.FF.allocOf() !== null);
 
   // 관계는 배분의 결과로 움직인다
   const before = ch.w.FF.relOf().join('');
