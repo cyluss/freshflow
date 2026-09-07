@@ -118,25 +118,17 @@ FV.FlowView=function(){
 }
 
 
-// 이번 판에 산 것들. 진행 중에만 보인다.
-FV.HistoryView=function(){
- if(!FF.started()||FF.isOver())return null;
- var modRows=FF.modRows();
- if(!modRows.length)return null;
- return FV._html`
-  <div>
-   ${modRows.map(function(m){
-     return FV._html`<div class="card-note">${m.day}일 ${FV.lblOf(m.kind)}</div>`;
-   })}
-  </div>`;
-}
-
-
 FV.NavBarView=function(){
  FF.observe(); FF.SIG.newGame.value;
  var mid=!FF.isOver()&&FF.started(), done=FF.isOver(), arm=FF.SIG.newGame.value;
  var S=FF.status();
  var d=S?S.day:1, pf=S?S.profit:null;
+ var label=function(){
+  if(FF.isOver())return "운영 종료";
+  if(!FF.started())return null;
+  var ev=FF.evt();
+  return (ev?FV.EVENT_TEXT[ev.b]:"특이사항 없이 운영 중")+" · 남은 "+(FF.C.days-FF.dayOf()+1)+"일";
+ }();
  var newGame=function(){
   var m=!FF.isOver()&&FF.started();
   if(m&&!FF.SIG.newGame.value){
@@ -168,6 +160,7 @@ FV.NavBarView=function(){
     <div style=${{fontSize:"13px",color:"var(--text-secondary)"}}>어제 손익 <span id="kp" style=${{fontWeight:"500",color:pf===null?"var(--text-primary)":(pf>=0?"var(--text-success)":"var(--text-danger)")}}>${pf===null?"—":((pf>=0?"+":"-")+mo(Math.abs(pf)))}</span></div>
     <div style=${{fontSize:"13px",color:"var(--text-secondary)"}}>시드 <span id="ks" style=${{color:"var(--text-primary)"}}>${S.seed}</span></div>
    </div>
+   ${label?FV._html`<div id="klabel" class="lbl">${label}</div>`:null}
   <//>`;
 }
 
@@ -175,17 +168,6 @@ FV.NavBarView=function(){
 FV.OpeningView=function(){
  FF.observe(); if(FF.isOver()||FF.started())return null;
  return FV._html`<${FV.FirstDayPrompt} />`;
-}
-
-// 진행 중 결정. 독 안에 들어간다.
-FV.DecisionView=function(){
- FF.observe(); FF.SIG.manual.value;
- if(FF.isOver())return FV._html`<div id="klabel" class="lbl">운영 종료</div>`;
- if(!FF.started())return null;
- var ev=FF.evt();
- var evTxt=ev?FV.EVENT_TEXT[ev.b]:"특이사항 없이 운영 중";
- return FV._html`
-  <div id="klabel" class="lbl">${evTxt} · 남은 ${FF.C.days-FF.dayOf()+1}일</div>`;
 }
 
 FV.ForecastView=function(){
@@ -262,7 +244,6 @@ FV.DockView=function(){
    <${FV.ClockBar} />
    <${FV.TrendStrip} />
    <${FV.ChannelBar} />
-   <${FV.DecisionView} />
    <button id="kgo" class="btn-full"
     style=${{borderColor:over?"var(--border)":"var(--border-strong)",color:over?"var(--text-muted)":"var(--text-primary)"}}
     onClick=${function(){if(!FF.isOver())FF.tickDay()}}>${goText}</button>
@@ -290,13 +271,11 @@ FV.PlayPager=function(){
  return FV._html`
   <nav class="tabs">
    <a href="#p0">어제 흐름</a>
-   <a href="#p1">일별 기록</a>
-   <a href="#p2">월간 전망</a>
+   <a href="#p1">월간 전망</a>
   </nav>
   <div class="pager">
    <section class="pane" id="p0"><${FV.FlowView} /></section>
-   <section class="pane" id="p1"><${FV.HistoryView} /></section>
-   <section class="pane" id="p2"><${FV.OutlookView} /></section>
+   <section class="pane" id="p1"><${FV.OutlookView} /></section>
   </div>`;
 }
 

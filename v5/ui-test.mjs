@@ -211,13 +211,13 @@ function open(file, seed) {
   const s7 = open(FILE, 58207);
   for (let i = 0; i < 3; i++) { s7.q('kgo').click(); await tick() }
   const panes = [...s7.d.querySelectorAll('.pane')];
-  t('페이지 셋', panes.length === 3);
-  t('페이지 id', panes.map(p => p.id).join() === 'p0,p1,p2');
+  t('페이지 둘', panes.length === 2);
+  t('페이지 id', panes.map(p => p.id).join() === 'p0,p1');
   const links = [...s7.d.querySelectorAll('.tabs a')];
-  t('탭이 앵커 링크', links.length === 3 && links.every((a, i) => a.getAttribute('href') === '#p' + i));
-  t('세 번째 면은 월간 전망', links[2].textContent === '월간 전망');
-  t('세 번째 면 내용', s7.d.getElementById('p2').textContent.includes('초순'));
-  t('전망은 남은 기간', s7.d.getElementById('p2').textContent.includes('남은'));
+  t('탭이 앵커 링크', links.length === 2 && links.every((a, i) => a.getAttribute('href') === '#p' + i));
+  t('두 번째 면은 월간 전망', links[1].textContent === '월간 전망');
+  t('두 번째 면 내용', s7.d.getElementById('p1').textContent.includes('초순'));
+  t('전망은 남은 기간', s7.d.getElementById('p1').textContent.includes('남은'));
   const pager = s7.d.querySelector('.pager');
   t('스크롤 핸들러 없음', !pager.onscroll);
   t('캐러셀 상태 변수 없음', s7.w.FF.PANE === undefined && s7.w.FF.goPane === undefined);
