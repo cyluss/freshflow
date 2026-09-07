@@ -488,9 +488,9 @@ function open(file, seed) {
   const t0 = plan0.tons[D];
   dn.click(); await tick();
   const p1 = ch.w.FF.allocPlan();
-  t('빼기가 먹는다', Math.abs(p1.tons[D] - (t0 - 0.5)) < 1e-9);
+  t('빼기가 먹는다', Math.abs(p1.tons[D] - (t0 - 1)) < 1e-9);
   t('손대면 자동이 풀린다', p1.auto === false);
-  t('잔여가 생긴다', Math.abs(p1.rest - 0.5) < 1e-9);
+  t('잔여가 생긴다', Math.abs(p1.rest - 1) < 1e-9);
   t('잔여가 생기면 더하기가 열린다',
     !ch.q('kchan').querySelectorAll('.chan-row')[D].querySelectorAll('.cs')[1].disabled);
   up.click(); await tick();

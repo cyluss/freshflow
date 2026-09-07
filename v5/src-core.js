@@ -29,7 +29,7 @@ settlePlan:[],price:900,farm:380,hold:22,waste:45,fixed:1400,cover:1.5,
 // 매입 정책. 며칠치를 목표로 들고 갈지 플레이 중 바꾼다.
 policy:[{v:1,key:"lean"},{v:1.5,key:"mid"},{v:2,key:"full"}],alpha:.5,mid:4,noise:.35,tilt:0.5,tiltP:[0.25,0.5,0.25],autoMax:3,salvage:0.2};
 
-FF.f1=function(n){return n.toFixed(1)},mo=function(n){return Math.round(n).toLocaleString("ko-KR")};
+FF.fInt=function(n){return String(Math.round(n))},mo=function(n){return Math.round(n).toLocaleString("ko-KR")};
 
 // 계약 선택지를 찾는다. 없는 값이면 null 이다.
 FF.contractOption=function(x,rules){

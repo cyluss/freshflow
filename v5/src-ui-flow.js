@@ -34,7 +34,7 @@ FV.FlowConnector=function(props){
  return FV._html`
   <div style=${{display:"flex",alignItems:"center",gap:"6px",height:"12px",paddingLeft:"38px"}}>
    <div style=${{width:width+"px",height:"12px",background:"var(--border-strong)",opacity:"0.7"}}></div>
-   <span style=${{fontSize:"10px",color:"var(--text-muted)"}}>${FF.f1(props.value)}t</span>
+   <span style=${{fontSize:"10px",color:"var(--text-muted)"}}>${FF.fInt(props.value)}t</span>
   </div>`;
 }
 
@@ -51,10 +51,10 @@ FV.FlowDiagram=function(props){
  var d=props.day;
  var iv=props.inventory;
  var li=FF.lostInflow(d);
- var prod=d?d.prod:0, acc=d?d.acc:0, dem=d?d.dem:0, sold=d?d.sold:0, miss=d?d.missed:0;
+ var prod=d?d.prod:0, acc=d?d.acc:0, sold=d?d.sold:0;
  var caps=FF.capsOf();
  var flowMax=Math.max(caps.intake,caps.sales,FF.C.cap.storage);
- var lossText=li?li.parts.map(function(p){return FV.say("cause",p.cause)+" "+FF.f1(p.amt)}).join(" / "):"";
+ var lossText=li?li.parts.map(function(p){return FV.say("cause",p.cause)+" "+FF.fInt(p.amt)}).join(" / "):"";
 
  var invNote=function(){
   var st=FF.invStats();
@@ -73,30 +73,24 @@ FV.FlowDiagram=function(props){
  return FV._html`
   <div style=${{border:"1px solid var(--border)",borderRadius:"var(--radius)",overflow:"hidden"}}>
    <${FV.FlowStage} hot=${!!(d&&d.b==="supply")} loss=${lossText}>
-    <${FV.FlowMetric} name="농가" value=${d?FF.f1(prod)+"t":"—"} hot=${!!(d&&d.b==="supply")} sub=${"매입 "+mo(FF.C.farm)+"원/t"} />
-    ${d?FV._html`<${FV.SplitBar} a=${acc} b=${prod-acc} labelA=${"입고 "+FF.f1(acc)} labelB=${"미입고 "+FF.f1(prod-acc)} />`:null}
+    <${FV.FlowMetric} name="농가" value=${d?FF.fInt(prod)+"t":"—"} hot=${!!(d&&d.b==="supply")} sub=${"매입 "+mo(FF.C.farm)+"원/t"} />
+    ${d?FV._html`<${FV.SplitBar} a=${acc} b=${prod-acc} labelA=${"입고 "+FF.fInt(acc)} labelB=${"미입고 "+FF.fInt(prod-acc)} />`:null}
    <//>
    <${FV.FlowConnector} visible=${!!d} value=${acc} max=${flowMax} />
 
    <${FV.FlowStage} hot=${!!(d&&d.b==="intake")} note=${recNote("intake")}>
-    <${FV.FlowMetric} name="입고" value=${d?FF.f1(acc)+"t":"—"} hot=${!!(d&&d.b==="intake")} sub=${"하루 한도 "+caps.intake+"t"} />
+    <${FV.FlowMetric} name="입고" value=${d?FF.fInt(acc)+"t":"—"} hot=${!!(d&&d.b==="intake")} sub=${"하루 한도 "+caps.intake+"t"} />
    <//>
    <${FV.FlowConnector} visible=${!!d} value=${acc} max=${flowMax} />
 
-   <${FV.FlowStage} hot=${!!(d&&(d.b==="store"||d.b==="stock"))} note=${invNote()} loss=${(d&&d.wT>FF.C.ui.eps)?("보관 중 상함 "+FF.f1(d.wT)+"t"):""}>
-    <${FV.FlowMetric} name="창고" value=${FF.f1(iv)+"t"} hot=${!!(d&&(d.b==="store"||d.b==="stock"))} sub=${"용량 "+FF.C.cap.storage+"t"} />
+   <${FV.FlowStage} hot=${!!(d&&(d.b==="store"||d.b==="stock"))} note=${invNote()} loss=${(d&&d.wT>FF.C.ui.eps)?("보관 중 상함 "+FF.fInt(d.wT)+"t"):""}>
+    <${FV.FlowMetric} name="창고" value=${FF.fInt(iv)+"t"} hot=${!!(d&&(d.b==="store"||d.b==="stock"))} sub=${"용량 "+FF.C.cap.storage+"t"} />
     <${FV.FillBar} value=${iv} cap=${caps.storage} />
    <//>
    <${FV.FlowConnector} visible=${!!d} value=${sold} max=${flowMax} />
 
    <${FV.FlowStage} hot=${!!(d&&d.b==="ship")} note=${recNote("sales")}>
-    <${FV.FlowMetric} name="판매" value=${d?FF.f1(sold)+"t":"—"} hot=${!!(d&&d.b==="ship")} sub=${"하루 한도 "+caps.sales+"t"} />
-   <//>
-   <${FV.FlowConnector} visible=${!!d} value=${sold} max=${flowMax} />
-
-   <${FV.FlowStage} hot=${!!(d&&d.b==="demand")}>
-    <${FV.FlowMetric} name="시장" value=${d?FF.f1(dem)+"t":"—"} hot=${!!(d&&d.b==="demand")} sub=${"경락 "+mo(FF.C.price)+"원/t"} />
-    ${d?FV._html`<${FV.SplitBar} a=${sold} b=${miss} labelA=${"판매 "+FF.f1(sold)} labelB=${"못 판 "+FF.f1(miss)} />`:null}
+    <${FV.FlowMetric} name="판매" value=${d?FF.fInt(sold)+"t":"—"} hot=${!!(d&&d.b==="ship")} sub=${"하루 한도 "+caps.sales+"t"} />
    <//>
   </div>`;
 }

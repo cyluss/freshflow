@@ -33,7 +33,7 @@ window.ffCheck=function(){
 window.ffOption=function(k){var o=FF.optionOf(k);return o};
 window.ffTrace=function(){return FF.histOf().map(function(r){
  return{day:r.day,daily:r.b,trend3:FF.trend3(r.day),drift:+(r.acc-r.sold).toFixed(2),
-  sold:+r.sold.toFixed(1),missed:+r.missed.toFixed(1),profit:Math.round(r.profit)}})};
+  sold:Math.round(r.sold),missed:Math.round(r.missed),profit:Math.round(r.profit)}})};
 window.ffEvents=function(){
  var NAME={intake:"입고 한도",store:"창고 공간",ship:"판매 한도",stock:"판매할 재고"};
  var out=FF.logOf().evlog.map(function(e){
@@ -66,7 +66,7 @@ window.ffModules=function(){
   var step=m.kind==="intake"?FF.C.step.intake:FF.C.step.sales;
   var ex=m.extra||0, days=m.use.length;
   return{설비:m.kind==="intake"?"입고":"판매",순번:m.idx,구매일:m.day,보유일:days,
-   추가용량사용:+ex.toFixed(1),
+   추가용량사용:Math.round(ex),
    여력비율:days?Math.round(ex/(days*step)*100)+"%":"-",
    반사실기여:contrib[i]===undefined?null:contrib[i],
    legacy_이후평균가동:Math.round(u)+"%",

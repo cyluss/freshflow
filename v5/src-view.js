@@ -59,7 +59,7 @@ FV.ChannelBar=function(){
    FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel))),
    FV._h("div",{class:"chan-step"},[
     stepBtn(i,-1,t>eps),
-    FV._h("input",{class:"cn",inputmode:"decimal",value:FF.f1(t),
+    FV._h("input",{class:"cn",inputmode:"numeric",value:FF.fInt(t),
      onChange:function(e){FF.setChannelTons(i,parseFloat(e.target.value))}}),
     FV._h("span",{class:"cn-unit"},"t"),
     stepBtn(i,1,t<r.cap-eps&&P.rest>eps)
@@ -70,14 +70,14 @@ FV.ChannelBar=function(){
     (r.settle===0?"당일 정산":(r.settle+"일 뒤 정산"))+" · "+r.quota+"t 넣으면 관계 상승")
   ]);
  });
- var note=(P.rest>eps)?FV._h("span",{class:"chan-rest"},"남김 "+FF.f1(P.rest)+"t")
-   :((P.rest<-eps)?FV._h("span",{class:"chan-rest"},"초과 "+FF.f1(-P.rest)+"t"):null);
+ var note=(P.rest>eps)?FV._h("span",{class:"chan-rest"},"남김 "+FF.fInt(P.rest)+"t")
+   :((P.rest<-eps)?FV._h("span",{class:"chan-rest"},"초과 "+FF.fInt(-P.rest)+"t"):null);
  return FV._h("div",{id:"kchan",class:"chan"},[
   FV._h("div",{class:"chan-head"},
-   "이월 "+FF.f1(P.inv)+"t + 오늘 입고 예상 "+FF.f1(P.exp)+"t · 판로가 받는 최대 "+FF.f1(P.target)+"t"),
+   "이월 "+FF.fInt(P.inv)+"t + 오늘 입고 예상 "+FF.fInt(P.exp)+"t · 판로가 받는 최대 "+FF.fInt(P.target)+"t"),
   rows,
   FV._h("div",{class:"chan-sum"},[
-   FV._h("span",{},"합계 "+FF.f1(P.sum)+" / "+FF.f1(P.target)+"t"),
+   FV._h("span",{},"합계 "+FF.fInt(P.sum)+" / "+FF.fInt(P.target)+"t"),
    note,
    FV._h("button",{class:"cs cs-auto"+(P.auto?" cw-on":""),
     onClick:function(){FF.clearAlloc()}},"자동")
@@ -221,8 +221,8 @@ FV.TrendStrip=function(){
  var last=function(a){return a[a.length-1]};
  return FV._html`
   <div id="ktrend" class="trendstrip">
-   <${FV.Spark} label="재고" values=${S.stock} now=${FF.f1(last(S.stock))+"t"} floor=${8} day=${last(S.days)} />
-   <${FV.Spark} label="못 판 주문" values=${S.missed} now=${FF.f1(last(S.missed))+"t"} floor=${2} day=${last(S.days)} />
+   <${FV.Spark} label="재고" values=${S.stock} now=${FF.fInt(last(S.stock))+"t"} floor=${8} day=${last(S.days)} />
+   <${FV.Spark} label="못 판 주문" values=${S.missed} now=${FF.fInt(last(S.missed))+"t"} floor=${2} day=${last(S.days)} />
   </div>`;
 }
 

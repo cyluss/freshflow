@@ -57,7 +57,7 @@ FV.worldNote=function(){
 FV.causeLine=function(d){
  var c=FF.causeFacts(d);
  if(!c)return "아직 관측이 없다";
- var f=function(n){return n.toFixed(1)};
+ var f=function(n){return String(Math.round(n))};
  switch(c.b){
   case "intake": return "하루 입고 한도 "+c.capI+"t을 다 써 "+f(c.wIcap)+"t을 못 받았다";
   case "store":  return "창고가 차서 "+f(c.wIstore+c.wS)+"t을 못 받았다";
@@ -88,7 +88,7 @@ FV.optionText=function(o){
  return{
   past:o.window<3?("관측 "+o.window+"일"):(o.hits>0?(o.hits+"/"+o.window+"일"):(o.lastHit?"어제만":"없음")),
   usable:o.usable+"일",
-  payback:o.payback===null?"—":(o.payback.toFixed(1)+"일")
+  payback:o.payback===null?"—":(String(Math.round(o.payback))+"일")
  };
 }
 

@@ -207,7 +207,7 @@ FV.OperationResult=function(props){
  var E=props.data;
  return FV._html`
   <${FV._F}>
-   <${FV.StatRow} label="최종 재고" value=${FF.f1(E.inv)+" t"} note=${"저장 "+FF.C.cap.storage+" t"} />
+   <${FV.StatRow} label="최종 재고" value=${FF.fInt(E.inv)+" t"} note=${"저장 "+FF.C.cap.storage+" t"} />
    <${FV.StatRow} label="최종 용량" value=${"입고 "+E.capIntake+" / 판매 "+E.capShipping} note=${"시작 "+FF.C.cap.intake+" / "+FF.C.cap.sales} />
    <${FV.StatRow} label="총 투자비" value=${mo(E.spent)} note=${E.buysContract+E.buysSales+"회"} />
    <${FV.StatRow} label="종료 시 처분가치" value=${mo(E.salvaged)} note=${"취득비의 "+Math.round(FF.C.salvage*100)+"%"} />
@@ -234,7 +234,7 @@ FV.InvestmentRow=function(props){
   <div style=${{fontSize:"12px",color:"var(--text-secondary)",padding:"4px 0"}}>
    <div>${r.day}일 ${lbl} · ${r.days}일 보유</div>
    <div style=${{paddingLeft:"10px"}}>
-    추가 용량 사용 ${r.extra.toFixed(1)}t (여력의 ${Math.round(r.fill*100)}%) · 들인 돈 ${mo(r.cost)} ·
+    추가 용량 사용 ${Math.round(r.extra)}t (여력의 ${Math.round(r.fill*100)}%) · 들인 돈 ${mo(r.cost)} ·
     <span style=${{color:r.contrib>=0?"var(--text-success)":"var(--text-warning)"}}>
      ${zero}이 증설의 기여 ${(r.contrib>=0?"+":"")+mo(r.contrib)}
     </span>
@@ -335,8 +335,8 @@ FV.DailyLog=function(props){
    </div>
    ${rows.map(function(r){return FV._html`
     <div style=${Object.assign({},grid,{padding:"3px 0",borderBottom:"0.5px solid var(--border)",color:"var(--text-primary)"})}>
-     ${cell(String(r.day),false)}${cell(FF.f1(r.prod),true)}${cell(FF.f1(r.dem),true)}${cell(FF.f1(r.sold),true)}
-     ${cell(FF.f1(r.wI+r.wS),true)}${cell(FF.f1(r.wT),true)}${cell(FF.f1(r.missed),true)}
+     ${cell(String(r.day),false)}${cell(FF.fInt(r.prod),true)}${cell(FF.fInt(r.dem),true)}${cell(FF.fInt(r.sold),true)}
+     ${cell(FF.fInt(r.wI+r.wS),true)}${cell(FF.fInt(r.wT),true)}${cell(FF.fInt(r.missed),true)}
      ${cell(mo(r.profit),true,r.profit>=0?"var(--text-success)":"var(--text-danger)")}
     </div>`;})}
   <//>`;
