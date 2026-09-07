@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>양파 · 30일 운영</title>
+<style>
+:root{
+ --surface-0:#f4f1e9;--surface-1:#e9e4d7;--surface-2:#fbf9f4;
+ --text-primary:#211d16;--text-secondary:#5a5346;--text-muted:#8d8574;
+ --text-success:#2f6b4f;--text-danger:#9c3312;--text-warning:#8a5a08;
+ --bg-warning:#f2e3c4;--bg-danger:#f6ded4;--border:rgba(33,29,22,.16);--border-strong:rgba(33,29,22,.34);
+ --border-warning:#b4780c;--border-accent:#9c3312;--radius:2px;
+ font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Segoe UI","Malgun Gothic",ui-sans-serif,system-ui,sans-serif;
+ --font-num:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+ :root{
+  --surface-0:#131210;--surface-1:#1e1c17;--surface-2:#262219;
+  --text-primary:#f5f1e8;--text-secondary:#c4bba6;--text-muted:#9c9382;
+  --text-success:#8fd4a8;--text-danger:#f0a077;--text-warning:#f0c674;
+  --bg-warning:#4a3410;--bg-danger:#3d1f12;--border:rgba(245,241,232,.22);--border-strong:rgba(245,241,232,.42);
+  --border-warning:#f0c674;--border-accent:#f0a077;
+ }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-0);color:var(--text-primary)}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px 0}
+button{background:transparent;color:var(--text-primary);border:1px solid var(--border-strong);
+ border-radius:var(--radius);cursor:pointer;font-family:inherit;letter-spacing:-.01em;
+ transition:background .12s ease,border-color .12s ease}
+button:hover{background:var(--surface-1);border-color:var(--text-secondary)}
+button:active{background:var(--surface-2)}
+body{font-variant-numeric:tabular-nums}
+#kd,#kc,#kp,#ks{font-family:var(--font-num)}
+
+.card{background:var(--surface-1);border-radius:var(--radius);padding:14px;margin-bottom:1rem}
+.card-sm{background:var(--surface-1);border-radius:var(--radius);padding:10px 12px;margin-bottom:1rem}
+.card-note{background:var(--surface-1);border-radius:var(--radius);padding:9px 11px;margin-bottom:10px;font-size:12px;color:var(--text-secondary)}
+.btn-full{width:100%;padding:11px 8px;font-size:13px;line-height:1.4;margin-bottom:8px}
+.btn-sub{width:100%;padding:10px 8px;font-size:13px;margin-bottom:6px}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-cell{padding:10px 4px;font-size:12px;line-height:1.4}
+.btn-plain{width:100%;padding:8px;font-size:12px;margin-bottom:8px;border:0;background:transparent;color:var(--text-muted)}
+.acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px}
+.note{font-size:11px;color:var(--text-muted);margin-bottom:6px}
+.note-b{font-size:11px;color:var(--text-muted);margin-bottom:1rem}
+.lbl{font-size:12px;color:var(--text-muted);margin:0 0 6px}
+.sub{font-size:12px;color:var(--text-secondary);margin-bottom:8px}
+.sub-b{font-size:12px;color:var(--text-secondary);margin-bottom:1rem}
+.sub-p{font-size:13px;color:var(--text-secondary);margin-bottom:8px}
+.gap-s{margin-bottom:8px}
+.gap-m{margin-bottom:12px}
+.frame{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
+/* 캐러셀: CSS scroll-snap 만 쓴다. 탭은 앵커 링크다. */
+.pager{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;
+ scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.pager::-webkit-scrollbar{display:none}
+/* 한 면은 컨테이너 폭 그대로. 넘치는 내용은 면 안에서 처리한다. */
+.pane{flex:0 0 100%;min-width:0;max-width:100%;scroll-snap-align:start;
+ box-sizing:border-box;overflow-x:hidden}
+.pane>*{max-width:100%}
+/* 결과 보고서 */
+.section-title{font-size:11px;color:var(--text-muted);letter-spacing:.04em;margin:14px 0 4px}
+.stat-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0}
+.stat-label{font-size:12px;color:var(--text-secondary);min-width:76px}
+.stat-value{font-size:14px;color:var(--text-primary);flex:1}
+.stat-note{font-size:11px;color:var(--text-muted);text-align:right}
+.fold{border-top:0.5px solid var(--border);margin-top:10px;padding-top:8px}
+.fold-head{cursor:pointer;font-size:12px;color:var(--text-secondary);list-style:none;
+ padding:2px 0}
+.fold-head::-webkit-details-marker{display:none}
+.fold-head::before{content:"\25b8 ";color:var(--text-muted)}
+.fold[open]>.fold-head::before{content:"\25be "}
+.fold-body{margin-top:6px}
+.trendstrip{margin:2px 0 6px}
+.spark{display:flex;align-items:baseline;gap:8px;font-size:12px;padding:1px 0}
+.spark-name{color:var(--text-muted);min-width:62px}
+.spark-new{display:inline-block;animation:spark-in 260ms ease-out}
+@keyframes spark-in{from{opacity:0;transform:translateX(4px)}to{opacity:1;transform:none}}
+.spark-bars{font-family:monospace;letter-spacing:1px;color:var(--text-secondary)}
+.spark-now{margin-left:auto;color:var(--text-primary)}
+.opts{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px}
+.opt-size{font-size:13px;color:var(--text-primary)}
+.opt-price{font-size:11px;color:var(--text-primary);padding:2px 0 4px}
+.opt-note{font-size:10px;color:var(--text-muted);line-height:1.4}
+.opt-on{border-color:var(--border-accent)}
+.chan{margin:4px 0 2px}
+.chan-row{display:grid;grid-template-columns:62px 34px auto 1fr;gap:6px;
+ align-items:center;font-size:12px;padding:3px 0}
+.chan-name{min-width:62px;color:var(--text-primary)}
+.chan-rel{min-width:34px;color:var(--text-secondary);font-size:11px}
+.chan-btns{display:flex;gap:3px}
+.cw{width:22px;padding:2px 0;font-size:11px;font-family:inherit;background:none;
+ border:0.5px solid var(--border-strong);border-radius:var(--radius);
+ color:var(--text-muted);cursor:pointer}
+.cw-on{border-color:var(--border-accent);color:var(--text-primary)}
+.chan-info{margin-left:auto;font-size:11px;color:var(--text-secondary);text-align:right}
+.chan-term{grid-column:3 / -1;font-size:10px;color:var(--text-muted);margin-top:-2px}
+.policy{display:flex;align-items:center;gap:5px;margin:4px 0 2px}
+.policy-name{font-size:12px;color:var(--text-muted);min-width:62px}
+.pol{padding:3px 10px;font-size:12px;font-family:inherit;background:none;
+ border:0.5px solid var(--border-strong);border-radius:var(--radius);
+ color:var(--text-secondary);cursor:pointer}
+.pol-on{border-color:var(--border-accent);color:var(--text-primary)}
+.pol-now{color:var(--text-primary)}
+.clockbar{display:flex;align-items:center;gap:6px;margin:10px 0 4px}
+.clk{padding:4px 10px;font-size:12px;font-family:inherit;background:none;
+ border:0.5px solid var(--border-strong);border-radius:var(--radius);
+ color:var(--text-secondary);cursor:pointer}
+.clk-on{border-color:var(--border-accent);color:var(--text-primary)}
+.clk-day{margin-left:auto;font-size:12px;color:var(--text-muted)}
+.outlook-head{font-size:12px;color:var(--text-secondary);margin:8px 0 4px}
+.ospans{display:flex;gap:6px}
+.ospan{flex:1;min-width:0}
+.ospan-head{display:flex;justify-content:space-between;align-items:baseline;gap:4px}
+.ospan-name{font-size:11px;color:var(--text-primary)}
+.ospan-days{font-size:10px;color:var(--text-muted)}
+.ospan-bars{display:flex;align-items:flex-end;gap:3px;height:52px;margin:2px 0 0}
+.ob{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px}
+.ob-pct{font-size:10px;color:var(--text-secondary)}
+.ob-bar{width:100%;border-radius:2px 2px 0 0}
+.ob-low{background:var(--text-warning);opacity:.75}
+.ob-mid{background:var(--border-strong)}
+.ob-high{background:var(--text-success);opacity:.8}
+.ob-name{font-size:9px;color:var(--text-muted)}
+.ospan-verdict{font-size:11px;color:var(--text-primary);line-height:1.35;margin:3px 0 1px}
+.tabs{display:flex;gap:14px;font-size:12px;margin:0 0 8px}
+.tabs a{color:var(--text-muted);text-decoration:none;padding-bottom:2px}
+.tabs a:active{color:var(--text-primary)}
+/* 지원 브라우저에서는 위치 표시 점을 붙인다. */
+@supports selector(::scroll-marker){
+ /* 결과 보고서 */
+.section-title{font-size:11px;color:var(--text-muted);letter-spacing:.04em;margin:14px 0 4px}
+.stat-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0}
+.stat-label{font-size:12px;color:var(--text-secondary);min-width:76px}
+.stat-value{font-size:14px;color:var(--text-primary);flex:1}
+.stat-note{font-size:11px;color:var(--text-muted);text-align:right}
+.fold{border-top:0.5px solid var(--border);margin-top:10px;padding-top:8px}
+.fold-head{cursor:pointer;font-size:12px;color:var(--text-secondary);list-style:none;
+ padding:2px 0}
+.fold-head::-webkit-details-marker{display:none}
+.fold-head::before{content:"\25b8 ";color:var(--text-muted)}
+.fold[open]>.fold-head::before{content:"\25be "}
+.fold-body{margin-top:6px}
+.trendstrip{margin:2px 0 6px}
+.spark{display:flex;align-items:baseline;gap:8px;font-size:12px;padding:1px 0}
+.spark-name{color:var(--text-muted);min-width:62px}
+.spark-new{display:inline-block;animation:spark-in 260ms ease-out}
+@keyframes spark-in{from{opacity:0;transform:translateX(4px)}to{opacity:1;transform:none}}
+.spark-bars{font-family:monospace;letter-spacing:1px;color:var(--text-secondary)}
+.spark-now{margin-left:auto;color:var(--text-primary)}
+.opts{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px}
+.opt-size{font-size:13px;color:var(--text-primary)}
+.opt-price{font-size:11px;color:var(--text-primary);padding:2px 0 4px}
+.opt-note{font-size:10px;color:var(--text-muted);line-height:1.4}
+.opt-on{border-color:var(--border-accent)}
+.chan{margin:4px 0 2px}
+.chan-row{display:grid;grid-template-columns:62px 34px auto 1fr;gap:6px;
+ align-items:center;font-size:12px;padding:3px 0}
+.chan-name{min-width:62px;color:var(--text-primary)}
+.chan-rel{min-width:34px;color:var(--text-secondary);font-size:11px}
+.chan-btns{display:flex;gap:3px}
+.cw{width:22px;padding:2px 0;font-size:11px;font-family:inherit;background:none;
+ border:0.5px solid var(--border-strong);border-radius:var(--radius);
+ color:var(--text-muted);cursor:pointer}
+.cw-on{border-color:var(--border-accent);color:var(--text-primary)}
+.chan-info{margin-left:auto;font-size:11px;color:var(--text-secondary);text-align:right}
+.chan-term{grid-column:3 / -1;font-size:10px;color:var(--text-muted);margin-top:-2px}
+.policy{display:flex;align-items:center;gap:5px;margin:4px 0 2px}
+.policy-name{font-size:12px;color:var(--text-muted);min-width:62px}
+.pol{padding:3px 10px;font-size:12px;font-family:inherit;background:none;
+ border:0.5px solid var(--border-strong);border-radius:var(--radius);
+ color:var(--text-secondary);cursor:pointer}
+.pol-on{border-color:var(--border-accent);color:var(--text-primary)}
+.pol-now{color:var(--text-primary)}
+.clockbar{display:flex;align-items:center;gap:6px;margin:10px 0 4px}
+.clk{padding:4px 10px;font-size:12px;font-family:inherit;background:none;
+ border:0.5px solid var(--border-strong);border-radius:var(--radius);
+ color:var(--text-secondary);cursor:pointer}
+.clk-on{border-color:var(--border-accent);color:var(--text-primary)}
+.clk-day{margin-left:auto;font-size:12px;color:var(--text-muted)}
+.outlook-head{font-size:12px;color:var(--text-secondary);margin:6px 0 2px}
+.outlook-row{display:grid;grid-template-columns:56px repeat(3,1fr);gap:4px;padding:3px 0}
+.outlook-label{font-size:12px;color:var(--text-secondary);display:flex;flex-direction:column}
+.outlook-sub{font-size:10px;color:var(--text-muted)}
+.outlook-cell{display:flex;justify-content:space-between;gap:4px;font-size:12px}
+.outlook-name{color:var(--text-muted);font-size:11px}
+.outlook-pct{color:var(--text-primary)}
+.tabs{display:none}
+ .pager{scroll-marker-group:before}
+ .pager::scroll-marker-group{display:flex;gap:8px;justify-content:center;padding:0 0 8px}
+ .pane::scroll-marker{content:"";width:7px;height:7px;border-radius:50%;
+  background:var(--border-strong);cursor:pointer}
+ .pane::scroll-marker:target-current{background:var(--text-primary)}
+}
+.dock-space{height:12px}
+.dock{max-height:72vh;overflow-y:auto;position:sticky;bottom:0;z-index:5;background:var(--surface-0);
+ border-top:1px solid var(--border);
+ padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px));
+ margin:0 -20px;padding-left:20px;padding-right:20px}
+.dock .btn-full,.dock .btn-sub{margin-bottom:6px}
+.dock > :last-child{margin-bottom:0}
+</style>
+</head>
+<body><div class="wrap"><div id="app"></div>

@@ -1,0 +1,3099 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>양파 · 30일 운영</title>
+<style>
+:root{
+ --surface-0:#f4f1e9;--surface-1:#e9e4d7;--surface-2:#fbf9f4;
+ --text-primary:#211d16;--text-secondary:#5a5346;--text-muted:#8d8574;
+ --text-success:#2f6b4f;--text-danger:#9c3312;--text-warning:#8a5a08;
+ --bg-warning:#f2e3c4;--bg-danger:#f6ded4;--border:rgba(33,29,22,.16);--border-strong:rgba(33,29,22,.34);
+ --border-warning:#b4780c;--border-accent:#9c3312;--radius:2px;
+ font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Segoe UI","Malgun Gothic",ui-sans-serif,system-ui,sans-serif;
+ --font-num:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+ :root{
+  --surface-0:#131210;--surface-1:#1e1c17;--surface-2:#262219;
+  --text-primary:#f5f1e8;--text-secondary:#c4bba6;--text-muted:#9c9382;
+  --text-success:#8fd4a8;--text-danger:#f0a077;--text-warning:#f0c674;
+  --bg-warning:#4a3410;--bg-danger:#3d1f12;--border:rgba(245,241,232,.22);--border-strong:rgba(245,241,232,.42);
+  --border-warning:#f0c674;--border-accent:#f0a077;
+ }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-0);color:var(--text-primary)}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px 0}
+button{background:transparent;color:var(--text-primary);border:1px solid var(--border-strong);
+ border-radius:var(--radius);cursor:pointer;font-family:inherit;letter-spacing:-.01em;
+ transition:background .12s ease,border-color .12s ease}
+button:hover{background:var(--surface-1);border-color:var(--text-secondary)}
+button:active{background:var(--surface-2)}
+body{font-variant-numeric:tabular-nums}
+#kd,#kc,#kp,#ks{font-family:var(--font-num)}
+
+.card{background:var(--surface-1);border-radius:var(--radius);padding:14px;margin-bottom:1rem}
+.card-sm{background:var(--surface-1);border-radius:var(--radius);padding:10px 12px;margin-bottom:1rem}
+.card-note{background:var(--surface-1);border-radius:var(--radius);padding:9px 11px;margin-bottom:10px;font-size:12px;color:var(--text-secondary)}
+.btn-full{width:100%;padding:11px 8px;font-size:13px;line-height:1.4;margin-bottom:8px}
+.btn-sub{width:100%;padding:10px 8px;font-size:13px;margin-bottom:6px}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-cell{padding:10px 4px;font-size:12px;line-height:1.4}
+.btn-plain{width:100%;padding:8px;font-size:12px;margin-bottom:8px;border:0;background:transparent;color:var(--text-muted)}
+.acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px}
+.note{font-size:11px;color:var(--text-muted);margin-bottom:6px}
+.note-b{font-size:11px;color:var(--text-muted);margin-bottom:1rem}
+.lbl{font-size:12px;color:var(--text-muted);margin:0 0 6px}
+.sub{font-size:12px;color:var(--text-secondary);margin-bottom:8px}
+.sub-b{font-size:12px;color:var(--text-secondary);margin-bottom:1rem}
+.sub-p{font-size:13px;color:var(--text-secondary);margin-bottom:8px}
+.gap-s{margin-bottom:8px}
+.gap-m{margin-bottom:12px}
+.frame{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
+/* 캐러셀: CSS scroll-snap 만 쓴다. 탭은 앵커 링크다. */
+.pager{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;
+ scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.pager::-webkit-scrollbar{display:none}
+/* 한 면은 컨테이너 폭 그대로. 넘치는 내용은 면 안에서 처리한다. */
+.pane{flex:0 0 100%;min-width:0;max-width:100%;scroll-snap-align:start;
+ box-sizing:border-box;overflow-x:hidden}
+.pane>*{max-width:100%}
+/* 결과 보고서 */
+.section-title{font-size:11px;color:var(--text-muted);letter-spacing:.04em;margin:14px 0 4px}
+.stat-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0}
+.stat-label{font-size:12px;color:var(--text-secondary);min-width:76px}
+.stat-value{font-size:14px;color:var(--text-primary);flex:1}
+.stat-note{font-size:11px;color:var(--text-muted);text-align:right}
+.fold{border-top:0.5px solid var(--border);margin-top:10px;padding-top:8px}
+.fold-head{cursor:pointer;font-size:12px;color:var(--text-secondary);list-style:none;
+ padding:2px 0}
+.fold-head::-webkit-details-marker{display:none}
+.fold-head::before{content:"\25b8 ";color:var(--text-muted)}
+.fold[open]>.fold-head::before{content:"\25be "}
+.fold-body{margin-top:6px}
+.trendstrip{margin:2px 0 6px}
+.spark{display:flex;align-items:baseline;gap:8px;font-size:12px;padding:1px 0}
+.spark-name{color:var(--text-muted);min-width:62px}
+.spark-new{display:inline-block;animation:spark-in 260ms ease-out}
+@keyframes spark-in{from{opacity:0;transform:translateX(4px)}to{opacity:1;transform:none}}
+.spark-bars{font-family:monospace;letter-spacing:1px;color:var(--text-secondary)}
+.spark-now{margin-left:auto;color:var(--text-primary)}
+.opts{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px}
+.opt-size{font-size:13px;color:var(--text-primary)}
+.opt-price{font-size:11px;color:var(--text-primary);padding:2px 0 4px}
+.opt-note{font-size:10px;color:var(--text-muted);line-height:1.4}
+.opt-on{border-color:var(--border-accent)}
+.chan{margin:4px 0 2px}
+.chan-row{display:grid;grid-template-columns:62px 34px auto 1fr;gap:6px;
+ align-items:center;font-size:12px;padding:3px 0}
+.chan-name{min-width:62px;color:var(--text-primary)}
+.chan-rel{min-width:34px;color:var(--text-secondary);font-size:11px}
+.chan-btns{display:flex;gap:3px}
+.cw{width:22px;padding:2px 0;font-size:11px;font-family:inherit;background:none;
+ border:0.5px solid var(--border-strong);border-radius:var(--radius);
+ color:var(--text-muted);cursor:pointer}
+.cw-on{border-color:var(--border-accent);color:var(--text-primary)}
+.chan-info{margin-left:auto;font-size:11px;color:var(--text-secondary);text-align:right}
+.chan-term{grid-column:3 / -1;font-size:10px;color:var(--text-muted);margin-top:-2px}
+.policy{display:flex;align-items:center;gap:5px;margin:4px 0 2px}
+.policy-name{font-size:12px;color:var(--text-muted);min-width:62px}
+.pol{padding:3px 10px;font-size:12px;font-family:inherit;background:none;
+ border:0.5px solid var(--border-strong);border-radius:var(--radius);
+ color:var(--text-secondary);cursor:pointer}
+.pol-on{border-color:var(--border-accent);color:var(--text-primary)}
+.pol-now{color:var(--text-primary)}
+.clockbar{display:flex;align-items:center;gap:6px;margin:10px 0 4px}
+.clk{padding:4px 10px;font-size:12px;font-family:inherit;background:none;
+ border:0.5px solid var(--border-strong);border-radius:var(--radius);
+ color:var(--text-secondary);cursor:pointer}
+.clk-on{border-color:var(--border-accent);color:var(--text-primary)}
+.clk-day{margin-left:auto;font-size:12px;color:var(--text-muted)}
+.outlook-head{font-size:12px;color:var(--text-secondary);margin:8px 0 4px}
+.ospans{display:flex;gap:6px}
+.ospan{flex:1;min-width:0}
+.ospan-head{display:flex;justify-content:space-between;align-items:baseline;gap:4px}
+.ospan-name{font-size:11px;color:var(--text-primary)}
+.ospan-days{font-size:10px;color:var(--text-muted)}
+.ospan-bars{display:flex;align-items:flex-end;gap:3px;height:52px;margin:2px 0 0}
+.ob{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px}
+.ob-pct{font-size:10px;color:var(--text-secondary)}
+.ob-bar{width:100%;border-radius:2px 2px 0 0}
+.ob-low{background:var(--text-warning);opacity:.75}
+.ob-mid{background:var(--border-strong)}
+.ob-high{background:var(--text-success);opacity:.8}
+.ob-name{font-size:9px;color:var(--text-muted)}
+.ospan-verdict{font-size:11px;color:var(--text-primary);line-height:1.35;margin:3px 0 1px}
+.tabs{display:flex;gap:14px;font-size:12px;margin:0 0 8px}
+.tabs a{color:var(--text-muted);text-decoration:none;padding-bottom:2px}
+.tabs a:active{color:var(--text-primary)}
+/* 지원 브라우저에서는 위치 표시 점을 붙인다. */
+@supports selector(::scroll-marker){
+ /* 결과 보고서 */
+.section-title{font-size:11px;color:var(--text-muted);letter-spacing:.04em;margin:14px 0 4px}
+.stat-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0}
+.stat-label{font-size:12px;color:var(--text-secondary);min-width:76px}
+.stat-value{font-size:14px;color:var(--text-primary);flex:1}
+.stat-note{font-size:11px;color:var(--text-muted);text-align:right}
+.fold{border-top:0.5px solid var(--border);margin-top:10px;padding-top:8px}
+.fold-head{cursor:pointer;font-size:12px;color:var(--text-secondary);list-style:none;
+ padding:2px 0}
+.fold-head::-webkit-details-marker{display:none}
+.fold-head::before{content:"\25b8 ";color:var(--text-muted)}
+.fold[open]>.fold-head::before{content:"\25be "}
+.fold-body{margin-top:6px}
+.trendstrip{margin:2px 0 6px}
+.spark{display:flex;align-items:baseline;gap:8px;font-size:12px;padding:1px 0}
+.spark-name{color:var(--text-muted);min-width:62px}
+.spark-new{display:inline-block;animation:spark-in 260ms ease-out}
+@keyframes spark-in{from{opacity:0;transform:translateX(4px)}to{opacity:1;transform:none}}
+.spark-bars{font-family:monospace;letter-spacing:1px;color:var(--text-secondary)}
+.spark-now{margin-left:auto;color:var(--text-primary)}
+.opts{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px}
+.opt-size{font-size:13px;color:var(--text-primary)}
+.opt-price{font-size:11px;color:var(--text-primary);padding:2px 0 4px}
+.opt-note{font-size:10px;color:var(--text-muted);line-height:1.4}
+.opt-on{border-color:var(--border-accent)}
+.chan{margin:4px 0 2px}
+.chan-row{display:grid;grid-template-columns:62px 34px auto 1fr;gap:6px;
+ align-items:center;font-size:12px;padding:3px 0}
+.chan-name{min-width:62px;color:var(--text-primary)}
+.chan-rel{min-width:34px;color:var(--text-secondary);font-size:11px}
+.chan-btns{display:flex;gap:3px}
+.cw{width:22px;padding:2px 0;font-size:11px;font-family:inherit;background:none;
+ border:0.5px solid var(--border-strong);border-radius:var(--radius);
+ color:var(--text-muted);cursor:pointer}
+.cw-on{border-color:var(--border-accent);color:var(--text-primary)}
+.chan-info{margin-left:auto;font-size:11px;color:var(--text-secondary);text-align:right}
+.chan-term{grid-column:3 / -1;font-size:10px;color:var(--text-muted);margin-top:-2px}
+.policy{display:flex;align-items:center;gap:5px;margin:4px 0 2px}
+.policy-name{font-size:12px;color:var(--text-muted);min-width:62px}
+.pol{padding:3px 10px;font-size:12px;font-family:inherit;background:none;
+ border:0.5px solid var(--border-strong);border-radius:var(--radius);
+ color:var(--text-secondary);cursor:pointer}
+.pol-on{border-color:var(--border-accent);color:var(--text-primary)}
+.pol-now{color:var(--text-primary)}
+.clockbar{display:flex;align-items:center;gap:6px;margin:10px 0 4px}
+.clk{padding:4px 10px;font-size:12px;font-family:inherit;background:none;
+ border:0.5px solid var(--border-strong);border-radius:var(--radius);
+ color:var(--text-secondary);cursor:pointer}
+.clk-on{border-color:var(--border-accent);color:var(--text-primary)}
+.clk-day{margin-left:auto;font-size:12px;color:var(--text-muted)}
+.outlook-head{font-size:12px;color:var(--text-secondary);margin:6px 0 2px}
+.outlook-row{display:grid;grid-template-columns:56px repeat(3,1fr);gap:4px;padding:3px 0}
+.outlook-label{font-size:12px;color:var(--text-secondary);display:flex;flex-direction:column}
+.outlook-sub{font-size:10px;color:var(--text-muted)}
+.outlook-cell{display:flex;justify-content:space-between;gap:4px;font-size:12px}
+.outlook-name{color:var(--text-muted);font-size:11px}
+.outlook-pct{color:var(--text-primary)}
+.tabs{display:none}
+ .pager{scroll-marker-group:before}
+ .pager::scroll-marker-group{display:flex;gap:8px;justify-content:center;padding:0 0 8px}
+ .pane::scroll-marker{content:"";width:7px;height:7px;border-radius:50%;
+  background:var(--border-strong);cursor:pointer}
+ .pane::scroll-marker:target-current{background:var(--text-primary)}
+}
+.dock-space{height:12px}
+.dock{max-height:72vh;overflow-y:auto;position:sticky;bottom:0;z-index:5;background:var(--surface-0);
+ border-top:1px solid var(--border);
+ padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px));
+ margin:0 -20px;padding-left:20px;padding-right:20px}
+.dock .btn-full,.dock .btn-sub{margin-bottom:6px}
+.dock > :last-child{margin-bottom:0}
+</style>
+</head>
+<body><div class="wrap"><div id="app"></div>
+<script id="lib">
+!function(n,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports):"function"==typeof define&&define.amd?define(["exports"],t):t((n||self).preact={})}(this,function(n){var t,i,e,r,f,o,u,c,s,a,h,l,p,y,v,d,w="http://www.w3.org/2000/svg",_="http://www.w3.org/1999/xhtml",g=null,m=void 0,b={},k=[],x=/acit|ex(?:s|g|n|p|$)|rph|grid|ows|mnc|ntw|ine[ch]|zoo|^ord|itera/i,M=Array.isArray;function S(n,t){for(var i in t)n[i]=t[i];return n}function T(n){n&&n.parentNode&&n.parentNode.removeChild(n)}function $(n,i,e){var r,f,o,u={};for(o in i)"key"==o?r=i[o]:"ref"==o?f=i[o]:u[o]=i[o];if(arguments.length>2&&(u.children=arguments.length>3?t.call(arguments,2):e),"function"==typeof n&&n.defaultProps!=g)for(o in n.defaultProps)u[o]===m&&(u[o]=n.defaultProps[o]);return C(n,u,r,f,g)}function C(n,t,r,f,o){var u={type:n,props:t,key:r,ref:f,__k:g,__:g,__b:0,__e:g,__c:g,constructor:m,__v:o==g?++e:o,__i:-1,__u:0};return o==g&&i.vnode!=g&&i.vnode(u),u}function I(n){return n.children}function P(n,t){this.props=n,this.context=t}function j(n,t){if(t==g)return n.__?j(n.__,n.__i+1):g;for(var i;t<n.__k.length;t++)if((i=n.__k[t])!=g&&i.__e!=g)return i.__e;return"function"==typeof n.type?j(n):g}function A(n){if(n.__P&&n.__d){var t=n.__v,e=t.__e,r=[],f=[],o=S({},t);o.__v=t.__v+1,i.vnode&&i.vnode(o),E(n.__P,o,t,n.__n,n.__P.namespaceURI,32&t.__u?[e]:g,r,e==g?j(t):e,!!(32&t.__u),f),o.__v=t.__v,o.__.__k[o.__i]=o,J(r,o,f),t.__e=t.__=null,o.__e!=e&&H(o)}}function H(n){if((n=n.__)!=g&&n.__c!=g)return n.__e=n.__c.base=g,n.__k.some(function(t){if(t!=g&&t.__e!=g)return n.__e=n.__c.base=t.__e}),H(n)}function L(n){(!n.__d&&(n.__d=!0)&&f.push(n)&&!F.__r++||o!=i.debounceRendering)&&((o=i.debounceRendering)||u)(F)}function F(){try{for(var n,t=1;f.length;)f.length>t&&f.sort(c),n=f.shift(),t=f.length,A(n)}finally{f.length=F.__r=0}}function O(n,t,i,e,r,f,o,u,c,s,a){var h,l,p,y,v,d,w=e&&e.__k||k,_=t.length;for(c=z(i,t,w,c,_),h=0;h<_;h++)(p=i.__k[h])!=g&&(l=-1!=p.__i&&w[p.__i]||b,p.__i=h,d=E(n,p,l,r,f,o,u,c,s,a),y=p.__e,p.ref&&l.ref!=p.ref&&(l.ref&&R(l.ref,g,p),a.push(p.ref,p.__c||y,p)),v==g&&y!=g&&(v=y),4&p.__u?(c=N(p,c,n),l.__e&&(l.__e=g)):"function"==typeof p.type&&d!==m?c=d:y&&(c=y.nextSibling),p.__u&=-7);return i.__e=v,c}function z(n,t,i,e,r){var f,o,u,c,s,a=i.length,h=a,l=0;for(n.__k=new Array(r),f=0;f<r;f++)(o=t[f])!=g&&"boolean"!=typeof o&&"function"!=typeof o?("string"==typeof o||"number"==typeof o||"bigint"==typeof o||o.constructor==String?o=n.__k[f]=C(g,o,g,g,g):M(o)?o=n.__k[f]=C(I,{children:o},g,g,g):o.constructor===m&&o.__b>0?o=n.__k[f]=C(o.type,o.props,o.key,o.ref?o.ref:g,o.__v):n.__k[f]=o,c=f+l,o.__=n,o.__b=n.__b+1,s=o.__i=V(o,i,c,h),u=g,-1!=s&&(h--,(u=i[s])&&(u.__u|=2)),u==g||u.__v==g?(-1==s&&(r>a?l--:r<a&&l++),"function"!=typeof o.type&&(o.__u|=4)):s!=c&&(s==c-1?l--:s==c+1?l++:(s>c?l--:l++,o.__u|=4))):n.__k[f]=g;if(h)for(f=0;f<a;f++)(u=i[f])!=g&&0==(2&u.__u)&&(u.__e==e&&(e=j(u)),U(u,u));return e}function N(n,t,i){var e,r;if("function"==typeof n.type){for(e=n.__k,r=0;e&&r<e.length;r++)e[r]&&(e[r].__=n,t=N(e[r],t,i));return t}n.__e!=t&&(t&&n.type&&!t.parentNode&&(t=j(n)),t=i.insertBefore(n.__e,t||g));do{t=t&&t.nextSibling}while(t!=g&&8==t.nodeType);return t}function V(n,t,i,e){var r,f,o,u=n.key,c=n.type,s=t[i],a=s!=g&&0==(2&s.__u);if(s===g&&null==u||a&&u==s.key&&c==s.type)return i;if(e>(a?1:0))for(r=i-1,f=i+1;r>=0||f<t.length;)if((s=t[o=r>=0?r--:f++])!=g&&0==(2&s.__u)&&u==s.key&&c==s.type)return o;return-1}function q(n,t,i){"-"==t[0]?n.setProperty(t,i==g?"":i):n[t]=i==g?"":"number"!=typeof i||x.test(t)?i:i+"px"}function B(n,t,i,e,r){var f,o;n:if("style"==t)if("string"==typeof i)n.style.cssText=i;else{if("string"==typeof e&&(n.style.cssText=e=""),e)for(t in e)i&&t in i||q(n.style,t,"");if(i)for(t in i)e&&i[t]==e[t]||q(n.style,t,i[t])}else if("o"==t[0]&&"n"==t[1])f=t!=(t=t.replace(l,"$1")),o=t.toLowerCase(),t=o in n||"onFocusOut"==t||"onFocusIn"==t?o.slice(2):t.slice(2),n.l||(n.l={}),n.l[t+f]=i,i?e?i[h]=e[h]:(i[h]=p,n.addEventListener(t,f?v:y,f)):n.removeEventListener(t,f?v:y,f);else{if(r==w)t=t.replace(/xlink(H|:h)/,"h").replace(/sName$/,"s");else if("width"!=t&&"height"!=t&&"href"!=t&&"list"!=t&&"form"!=t&&"tabIndex"!=t&&"download"!=t&&"rowSpan"!=t&&"colSpan"!=t&&"role"!=t&&"popover"!=t&&t in n)try{n[t]=i==g?"":i;break n}catch(n){}"function"==typeof i||(i==g||!1===i&&"-"!=t[4]?n.removeAttribute(t):n.setAttribute(t,"popover"==t&&1==i?"":i))}}function D(n){return function(t){if(this.l){var e=this.l[t.type+n];if(t[a]==g)t[a]=p++;else if(t[a]<e[h])return;return e(i.event?i.event(t):t)}}}function E(n,t,e,r,f,o,u,c,s,a){var h,l,p,y,v,d,w,_,b,x,$,C,A,H,L,F,z=t.type;if(t.constructor!==m)return g;128&e.__u&&(s=!!(32&e.__u),o=[c=t.__e=e.__e]),(h=i.__b)&&h(t);n:if("function"==typeof z){l=u.length;try{if(b=t.props,x=z.prototype&&z.prototype.render,$=(h=z.contextType)&&r[h.__c],C=h?$?$.props.value:h.__:r,e.__c?_=(p=t.__c=e.__c).__=p.__E:(x?t.__c=p=new z(b,C):(t.__c=p=new P(b,C),p.constructor=z,p.render=W),$&&$.sub(p),p.state||(p.state={}),p.__n=r,y=p.__d=!0,p.__h=[],p._sb=[]),x&&p.__s==g&&(p.__s=p.state),x&&z.getDerivedStateFromProps!=g&&(p.__s==p.state&&(p.__s=S({},p.__s)),S(p.__s,z.getDerivedStateFromProps(b,p.__s))),v=p.props,d=p.state,p.__v=t,y)x&&z.getDerivedStateFromProps==g&&p.componentWillMount!=g&&p.componentWillMount(),x&&p.componentDidMount!=g&&p.__h.push(p.componentDidMount);else{if(x&&z.getDerivedStateFromProps==g&&b!==v&&p.componentWillReceiveProps!=g&&p.componentWillReceiveProps(b,C),t.__v==e.__v||!p.__e&&p.shouldComponentUpdate!=g&&!1===p.shouldComponentUpdate(b,p.__s,C)){t.__v!=e.__v&&(p.props=b,p.state=p.__s,p.__d=!1),t.__e=e.__e,t.__k=e.__k,t.__k.some(function(n){n&&(n.__=t)}),k.push.apply(p.__h,p._sb),p._sb=[],p.__h.length&&u.push(p),c=j(e);break n}p.componentWillUpdate!=g&&p.componentWillUpdate(b,p.__s,C),x&&p.componentDidUpdate!=g&&p.__h.push(function(){p.componentDidUpdate(v,d,w)})}if(p.context=C,p.props=b,p.__P=n,p.__e=!1,A=i.__r,H=0,x)p.state=p.__s,p.__d=!1,A&&A(t),h=p.render(p.props,p.state,p.context),k.push.apply(p.__h,p._sb),p._sb=[];else do{p.__d=!1,A&&A(t),h=p.render(p.props,p.state,p.context),p.state=p.__s}while(p.__d&&++H<25);p.state=p.__s,p.getChildContext!=g&&(r=S(S({},r),p.getChildContext())),x&&!y&&p.getSnapshotBeforeUpdate!=g&&(w=p.getSnapshotBeforeUpdate(v,d)),L=h!=g&&h.type===I&&h.key==g?K(h.props.children):h,c=O(n,M(L)?L:[L],t,e,r,f,o,u,c,s,a),p.base=t.__e,t.__u&=-161,p.__h.length&&u.push(p),_&&(p.__E=p.__=g)}catch(n){if(u.length=l,t.__v=g,s||o!=g){if(n.then){for(t.__u|=s?160:128;c&&8==c.nodeType&&c.nextSibling;)c=c.nextSibling;o!=g&&(o[o.indexOf(c)]=g),t.__e=c}else if(o!=g)for(F=o.length;F--;)T(o[F])}else t.__e=e.__e;t.__k==g&&(t.__k=e.__k||[]),n.then||G(t),i.__e(n,t,e)}}else o==g&&t.__v==e.__v?(t.__k=e.__k,t.__e=e.__e):c=t.__e=Q(e.__e,t,e,r,f,o,u,s,a);return(h=i.diffed)&&h(t),128&t.__u?void 0:c}function G(n){n&&(n.__c&&(n.__c.__e=!0),n.__k&&n.__k.some(G))}function J(n,t,e){for(var r=0;r<e.length;r++)R(e[r],e[++r],e[++r]);i.__c&&i.__c(t,n),n.some(function(t){try{n=t.__h,t.__h=[],n.some(function(n){n.call(t)})}catch(n){i.__e(n,t.__v)}})}function K(n){return"object"!=typeof n||n==g||n.__b>0?n:M(n)?n.map(K):n.constructor!==m?null:S({},n)}function Q(n,e,r,f,o,u,c,s,a){var h,l,p,y,v,d,k,x=r.props||b,S=e.props,$=e.type;if("svg"==$?o=w:"math"==$?o="http://www.w3.org/1998/Math/MathML":o||(o=_),u!=g)for(h=0;h<u.length;h++)if((v=u[h])&&"setAttribute"in v==!!$&&($?v.localName==$:3==v.nodeType)){n=v,u[h]=g;break}if(n==g){if($==g)return document.createTextNode(S);n=document.createElementNS(o,$,S.is&&S),s&&(i.__m&&i.__m(e,u),s=!1),u=g}if($==g)x===S||s&&n.data==S||(n.data=S);else{if(u="textarea"==$&&S.defaultValue!=g?g:u&&t.call(n.childNodes),!s&&u!=g)for(x={},h=0;h<n.attributes.length;h++)x[(v=n.attributes[h]).name]=v.value;for(h in x)v=x[h],"dangerouslySetInnerHTML"==h?p=v:"children"==h||h in S||"value"==h&&"defaultValue"in S||"checked"==h&&"defaultChecked"in S||B(n,h,g,v,o);for(h in S)v=S[h],"children"==h?y=v:"dangerouslySetInnerHTML"==h?l=v:"value"==h?d=v:"checked"==h?k=v:s&&"function"!=typeof v||x[h]===v||B(n,h,v,x[h],o);if(l)s||p&&(l.__html==p.__html||l.__html==n.innerHTML)||(n.innerHTML=l.__html),e.__k=[];else if(p&&(n.innerHTML=""),O("template"==e.type?n.content:n,M(y)?y:[y],e,r,f,"foreignObject"==$?_:o,u,c,u?u[0]:r.__k&&j(r,0),s,a),u!=g)for(h=u.length;h--;)T(u[h]);s&&"textarea"!=$||(h="value","progress"==$&&d==g?n.removeAttribute("value"):d!=m&&(d!==n[h]||"progress"==$&&!d||"option"==$&&d!=x[h])&&B(n,h,d,x[h],o),h="checked",k!=m&&k!=n[h]&&B(n,h,k,x[h],o))}return n}function R(n,t,e){try{if("function"==typeof n){var r="function"==typeof n.__u;r&&n.__u(),r&&t==g||(n.__u=n(t))}else n.current=t}catch(n){i.__e(n,e)}}function U(n,t,e){var r,f;if(i.unmount&&i.unmount(n),(r=n.ref)&&(r.current&&r.current!=n.__e||R(r,g,t)),(r=n.__c)!=g){if(r.componentWillUnmount)try{r.componentWillUnmount()}catch(n){i.__e(n,t)}r.base=r.__P=r.__n=g}if(r=n.__k)for(f=0;f<r.length;f++)r[f]&&U(r[f],t,e||"function"!=typeof n.type);e||T(n.__e),n.__c=n.__=n.__e=m}function W(n,t,i){return this.constructor(n,i)}function X(n,e,r){var f,o,u,c;e==document&&(e=document.documentElement),i.__&&i.__(n,e),o=(f="function"==typeof r)?g:r&&r.__k||e.__k,u=[],c=[],E(e,n=(!f&&r||e).__k=$(I,g,[n]),o||b,b,e.namespaceURI,!f&&r?[r]:o?g:e.firstChild?t.call(e.childNodes):g,u,!f&&r?r:o?o.__e:e.firstChild,f,c),J(u,n,c),n.props.children=g}t=k.slice,i={__e:function(n,t,i,e){for(var r,f,o;t=t.__;)if((r=t.__c)&&!r.__)try{if((f=r.constructor)&&f.getDerivedStateFromError!=g&&(r.setState(f.getDerivedStateFromError(n)),o=r.__d),r.componentDidCatch!=g&&(r.componentDidCatch(n,e||{}),o=r.__d),o)return r.__E=r}catch(t){n=t}throw n}},e=0,r=function(n){return n!=g&&n.constructor===m},P.prototype.setState=function(n,t){var i;i=this.__s!=g&&this.__s!=this.state?this.__s:this.__s=S({},this.state),"function"==typeof n&&(n=n(S({},i),this.props)),n&&S(i,n),n!=g&&this.__v&&(t&&this._sb.push(t),L(this))},P.prototype.forceUpdate=function(n){this.__v&&(this.__e=!0,n&&this.__h.push(n),L(this))},P.prototype.render=I,f=[],u="function"==typeof Promise?Promise.prototype.then.bind(Promise.resolve()):setTimeout,c=function(n,t){return n.__v.__b-t.__v.__b},F.__r=0,s=Math.random().toString(8),a="__d"+s,h="__a"+s,l=/(PointerCapture)$|Capture$/i,p=0,y=D(!1),v=D(!0),d=0,n.Component=P,n.Fragment=I,n.cloneElement=function(n,i,e){var r,f,o,u,c=S({},n.props);for(o in n.type&&n.type.defaultProps&&(u=n.type.defaultProps),i)"key"==o?r=i[o]:"ref"==o?f=i[o]:c[o]=i[o]===m&&u!=m?u[o]:i[o];return arguments.length>2&&(c.children=arguments.length>3?t.call(arguments,2):e),C(n.type,c,r||n.key,f||n.ref,g)},n.createContext=function(n){function t(n){var i,e;return this.getChildContext||(i=new Set,(e={})[t.__c]=this,this.getChildContext=function(){return e},this.componentWillUnmount=function(){i=g},this.shouldComponentUpdate=function(n){this.props.value!=n.value&&i.forEach(function(n){n.__e=!0,L(n)})},this.sub=function(n){i.add(n);var t=n.componentWillUnmount;n.componentWillUnmount=function(){i&&i.delete(n),t&&t.call(n)}}),n.children}return t.__c="__cC"+d++,t.__=n,t.Provider=t.__l=(t.Consumer=function(n,t){return n.children(t)}).contextType=t,t},n.createElement=$,n.createRef=function(){return{current:g}},n.h=$,n.hydrate=function n(t,i){X(t,i,n)},n.isValidElement=r,n.options=i,n.render=X,n.toChildArray=function n(t,i){return i=i||[],t==g||"boolean"==typeof t||(M(t)?t.some(function(t){n(t,i)}):i.push(t)),i}});
+//# sourceMappingURL=preact.umd.js.map
+!function(n,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports,require("preact")):"function"==typeof define&&define.amd?define(["exports","preact"],t):t((n||self).preactHooks={},n.preact)}(this,function(n,t){var u,i,r,o,f=0,c=[],e=t.options,a=e.__b,v=e.__r,l=e.diffed,d=e.__c,p=e.unmount,s=e.__;function y(n,t){e.__h&&e.__h(i,n,f||t),f=0;var u=i.__H||(i.__H={__:[],__h:[]});return n>=u.__.length&&u.__.push({}),u.__[n]}function h(n){return f=1,m(j,n)}function m(n,t,r){var o=y(u++,2);if(o.t=n,!o.__c&&(o.__=[r?r(t):j(void 0,t),function(n){var t=o.__N?o.__N[0]:o.__[0],u=o.t(t,n);t!==u&&(o.__N=[u,o.__[1]],o.__c.setState({}))}],o.__c=i,!i.__f)){var f=function(n,t,u){if(!o.__c.__H)return!0;var i=!1,r=o.__c.props!==n;if(o.__c.__H.__.some(function(n){if(n.__N){i=!0;var t=n.__[0];n.__=n.__N,n.__N=void 0,t!==n.__[0]&&(r=!0)}}),c){var f=c.call(this,n,t,u);return i?f||r:f}return!i||r};i.__f=!0;var c=i.shouldComponentUpdate,e=i.componentWillUpdate;i.componentWillUpdate=function(n,t,u){if(this.__e){var i=c;c=void 0,f(n,t,u),c=i}e&&e.call(this,n,t,u)},i.shouldComponentUpdate=f}return o.__N||o.__}function T(n,t){var r=y(u++,4);!e.__s&&g(r.__H,t)&&(r.__=n,r.u=t,i.__h.push(r))}function _(n,t){var i=y(u++,7);return g(i.__H,t)&&(i.__=n(),i.__H=t,i.__h=n),i.__}function b(){for(var n;n=c.shift();){var t=n.__H;if(n.__P&&t)try{t.__h.some(A),t.__h.some(F),t.__h=[]}catch(u){t.__h=[],e.__e(u,n.__v)}}}e.__b=function(n){i=null,a&&a(n)},e.__=function(n,t){n&&t.__k&&t.__k.__m&&(n.__m=t.__k.__m),s&&s(n,t)},e.__r=function(n){v&&v(n),u=0;var t=(i=n.__c).__H;t&&(r===i?(t.__h=[],i.__h=[],t.__.some(function(n){n.__N&&(n.__=n.__N),n.u=n.__N=void 0})):(t.__h.some(A),t.__h.some(F),t.__h=[],u=0)),r=i},e.diffed=function(n){l&&l(n);var t=n.__c;t&&t.__H&&(t.__H.__h.length&&(1!==c.push(t)&&o===e.requestAnimationFrame||((o=e.requestAnimationFrame)||x)(b)),t.__H.__.some(function(n){n.u&&(n.__H=n.u,n.u=void 0)})),r=i=null},e.__c=function(n,t){t.some(function(n){try{n.__h.some(A),n.__h=n.__h.filter(function(n){return!n.__||F(n)})}catch(u){t.some(function(n){n.__h&&(n.__h=[])}),t=[],e.__e(u,n.__v)}}),d&&d(n,t)},e.unmount=function(n){p&&p(n);var t,u=n.__c;u&&u.__H&&(u.__H.__.some(function(n){try{A(n)}catch(n){t=n}}),u.__H=void 0,t&&e.__e(t,u.__v))};var q="function"==typeof requestAnimationFrame;function x(n){var t,u=function(){clearTimeout(i),q&&cancelAnimationFrame(t),setTimeout(n)},i=setTimeout(u,35);q&&(t=requestAnimationFrame(u))}function A(n){var t=i,u=n.__c;"function"==typeof u&&(n.__c=void 0,u()),i=t}function F(n){var t=i;n.__c=n.__(),i=t}function g(n,t){return!n||n.length!==t.length||t.some(function(t,u){return t!==n[u]})}function j(n,t){return"function"==typeof t?t(n):t}n.useCallback=function(n,t){return f=8,_(function(){return n},t)},n.useContext=function(n){var t=i.context[n.__c],r=y(u++,9);return r.c=n,t?(null==r.__&&(r.__=!0,t.sub(i)),t.props.value):n.__},n.useDebugValue=function(n,t){e.useDebugValue&&e.useDebugValue(t?t(n):n)},n.useEffect=function(n,t){var r=y(u++,3);!e.__s&&g(r.__H,t)&&(r.__=n,r.u=t,i.__H.__h.push(r))},n.useErrorBoundary=function(n){var t=y(u++,10),r=h();return t.__=n,i.componentDidCatch||(i.componentDidCatch=function(n,u){t.__&&t.__(n,u),r[1](n)}),[r[0],function(){r[1](void 0)}]},n.useId=function(){var n=y(u++,11);if(!n.__){for(var t=i.__v;null!==t&&!t.__m&&null!==t.__;)t=t.__;var r=t.__m||(t.__m=[0,0]);n.__="P"+r[0]+"-"+r[1]++}return n.__},n.useImperativeHandle=function(n,t,u){f=6,T(function(){if("function"==typeof n){var u=n(t());return function(){n(null),u&&"function"==typeof u&&u()}}if(n)return n.current=t(),function(){return n.current=null}},null==u?u:u.concat(n))},n.useLayoutEffect=T,n.useMemo=_,n.useReducer=m,n.useRef=function(n){return f=5,_(function(){return{current:n}},[])},n.useState=h});
+//# sourceMappingURL=hooks.umd.js.map
+!function(i,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports):"function"==typeof define&&define.amd?define(["exports"],t):t((i||self).preactSignalsCore={})}(this,function(i){var t=Symbol.for("preact-signals");function n(){if(!(e>1)){var i,t=!1;!function(){var i=d;d=void 0;while(void 0!==i){var t=i.S;if(t.v===i.v)for(var n=t.t;void 0!==n;n=n.x)if(n.i===i.i)n.i=t.i;i=i.o}}();while(void 0!==s){var n=s;s=void 0;v++;while(void 0!==n){var r=n.u;n.u=void 0;n.f&=-3;if(!(8&n.f)&&w(n))try{n.c()}catch(n){if(!t){i=n;t=!0}}n=r}}v=0;e--;if(t)throw i}else e--}function r(i){if(e>0)return i();c=++u;e++;try{return i()}finally{n()}}var o,f=void 0;function h(i){var t=f,n=o;f=void 0;o=void 0;try{return i()}finally{f=t;o=n}}var s=void 0,e=0,v=0,u=0,c=0,d=void 0,a=0;function l(i){if(void 0!==f){var t=i.n;if(void 0===t||t.t!==f){t={i:0,S:i,p:f.s,n:void 0,t:f,e:void 0,x:void 0,r:t};if(void 0!==f.s)f.s.n=t;f.s=t;i.n=t;if(32&f.f)i.S(t);return t}else if(-1===t.i){t.i=0;if(void 0!==t.n){t.n.p=t.p;if(void 0!==t.p)t.p.n=t.n;t.p=f.s;t.n=void 0;f.s.n=t;f.s=t}return t}}}function y(i,t){this.v=i;this.i=0;this.n=void 0;this.t=void 0;this.l=0;this.W=null==t?void 0:t.watched;this.Z=null==t?void 0:t.unwatched;this.name=null==t?void 0:t.name}y.prototype.brand=t;y.prototype.h=function(){return!0};y.prototype.S=function(i){var t=this,n=this.t;if(n!==i&&void 0===i.e){i.x=n;this.t=i;if(void 0!==n)n.e=i;else h(function(){var i;null==(i=t.W)||i.call(t)})}};y.prototype.U=function(i){var t=this;if(void 0!==this.t){var n=i.e,r=i.x;if(void 0!==n){n.x=r;i.e=void 0}if(void 0!==r){r.e=n;i.x=void 0}if(i===this.t){this.t=r;if(void 0===r)h(function(){var i;null==(i=t.Z)||i.call(t)})}}};y.prototype.subscribe=function(i){var t=this;return j(function(){var n=t.value;h(function(){return i(n)})},{name:"sub"})};y.prototype.valueOf=function(){return this.value};y.prototype.toString=function(){return this.value+""};y.prototype.toJSON=function(){return this.value};y.prototype.peek=function(){var i=this;return h(function(){return i.value})};Object.defineProperty(y.prototype,"value",{get:function(){var i=l(this);if(void 0!==i)i.i=this.i;return this.v},set:function(i){if(i!==this.v){if(v>100)throw new Error("Cycle detected");!function(i){if(0!==e&&0===v)if(i.l!==c){i.l=c;d={S:i,v:i.v,i:i.i,o:d}}}(this);this.v=i;this.i++;a++;e++;try{for(var t=this.t;void 0!==t;t=t.x)t.t.N()}finally{n()}}}});function w(i){for(var t=i.s;void 0!==t;t=t.n)if(t.S.i!==t.i||!t.S.h()||t.S.i!==t.i)return!0;return!1}function p(i){for(var t=i.s;void 0!==t;t=t.n){var n=t.S.n;if(void 0!==n)t.r=n;t.S.n=t;t.i=-1;if(void 0===t.n){i.s=t;break}}}function b(i){var t=i.s,n=void 0;while(void 0!==t){var r=t.p;if(-1===t.i){t.S.U(t);if(void 0!==r)r.n=t.n;if(void 0!==t.n)t.n.p=r}else n=t;t.S.n=t.r;if(void 0!==t.r)t.r=void 0;t=r}i.s=n}function _(i,t){y.call(this,void 0,t);this.x=i;this.s=void 0;this.g=a-1;this.f=4}_.prototype=new y;_.prototype.h=function(){this.f&=-3;if(1&this.f)return!1;if(32==(36&this.f))return!0;this.f&=-5;if(this.g===a)return!0;this.g=a;this.f|=1;if(this.i>0&&!w(this)){this.f&=-2;return!0}var i=f;try{p(this);f=this;var t=this.x();if(16&this.f||this.v!==t||0===this.i){this.v=t;this.f&=-17;this.i++}}catch(i){this.v=i;this.f|=16;this.i++}f=i;b(this);this.f&=-2;return!0};_.prototype.S=function(i){if(void 0===this.t){this.f|=36;for(var t=this.s;void 0!==t;t=t.n)t.S.S(t)}y.prototype.S.call(this,i)};_.prototype.U=function(i){if(void 0!==this.t){y.prototype.U.call(this,i);if(void 0===this.t){this.f&=-33;for(var t=this.s;void 0!==t;t=t.n)t.S.U(t)}}};_.prototype.N=function(){if(!(2&this.f)){this.f|=6;for(var i=this.t;void 0!==i;i=i.x)i.t.N()}};Object.defineProperty(_.prototype,"value",{get:function(){if(1&this.f)throw new Error("Cycle detected");var i=l(this);this.h();if(void 0!==i)i.i=this.i;if(16&this.f)throw this.v;return this.v}});function g(i){var t=i.m;i.m=void 0;if("function"==typeof t){e++;var r=f;f=void 0;try{t()}catch(t){i.f&=-2;i.f|=8;x(i);throw t}finally{f=r;n()}}}function x(i){for(var t=i.s;void 0!==t;t=t.n)t.S.U(t);i.x=void 0;i.s=void 0;g(i)}function m(i){if(f!==this)throw new Error("Out-of-order effect");b(this);f=i;this.f&=-2;if(8&this.f)x(this);n()}function S(i,t){this.x=i;this.m=void 0;this.s=void 0;this.u=void 0;this.f=32;this.name=null==t?void 0:t.name;if(o)o.push(this)}S.prototype.c=function(){var i=this.S();try{if(8&this.f)return;if(void 0===this.x)return;var t=this.x();if("function"==typeof t)this.m=t}finally{i()}};S.prototype.S=function(){if(1&this.f)throw new Error("Cycle detected");this.f|=1;this.f&=-9;g(this);p(this);e++;var i=f;f=this;return m.bind(this,i)};S.prototype.N=function(){if(!(2&this.f)){this.f|=2;this.u=s;s=this}};S.prototype.d=function(){this.f|=8;if(!(1&this.f))x(this)};S.prototype.dispose=function(){this.d()};function j(i,t){var n=new S(i,t);try{n.c()}catch(i){n.d();throw i}var r=n.d.bind(n);r[Symbol.dispose]=r;return r}function E(i){return function(){var t=arguments,n=this;return r(function(){return h(function(){return i.apply(n,[].slice.call(t))})})}}function T(){var i=o;o=[];return function(){var t=o;if(o&&i)i=i.concat(o);o=i;return t}}var C=function(i){for(var t in i){var n=i[t];if("function"==typeof n)i[t]=E(n);else if("object"==typeof n&&null!==n&&!("brand"in n))C(n)}};i.Computed=_;i.Effect=S;i.Signal=y;i.action=E;i.batch=r;i.computed=function(i,t){return new _(i,t)};i.createModel=function(i){return function(){var t,n,r=T();try{n=i.apply(void 0,[].slice.call(arguments))}catch(i){o=void 0;throw i}finally{t=r()}C(n);n[Symbol.dispose]=E(function(){if(t)for(var i=0;i<t.length;i++)t[i].dispose();t=void 0});return n}};i.effect=j;i.signal=function(i,t){return new y(i,t)};i.untracked=h});//# sourceMappingURL=signals-core.min.js.map
+!function(i,n){"object"==typeof exports&&"undefined"!=typeof module?n(exports,require("preact"),require("preact/hooks"),require("@preact/signals-core")):"function"==typeof define&&define.amd?define(["exports","preact","preact/hooks","@preact/signals-core"],n):n((i||self).preactSignals={},i.preact,i.preactHooks,i.preactSignalsCore)}(this,function(i,n,t,r){var e,f,o,u="undefined"!=typeof window&&!!window.__PREACT_SIGNALS_DEVTOOLS__,a=[],c=[];r.effect(function(){e=this.N})();function v(i,t){n.options[i]=t.bind(null,n.options[i]||function(){})}function s(i){if(o){var n=o;o=void 0;n()}o=i&&i.S()}function d(i){var e=this,f=i.data,o=useSignal(f);o.name="ReactiveDom";o.value=f;var u=t.useMemo(function(){var i=e,t=e.__v;while(t=t.__)if(t.__c){t.__c.__$f|=4;break}var f=r.computed(function(){var i=o.value.value;return 0===i?0:!0===i?"":i||""}),u=r.computed(function(){return!Array.isArray(f.value)&&!n.isValidElement(f.value)}),a=r.effect(function(){this.N=b;if(u.value){var n=f.value;if(i.__v&&i.__v.__e&&3===i.__v.__e.nodeType)i.__v.__e.data=n}}),c=e.__$u.d;e.__$u.d=function(){a();c.call(this)};return[u,f]},[]),a=u[0],c=u[1];return a.value?c.peek():c.value}d.displayName="ReactiveTextNode";Object.defineProperties(r.Signal.prototype,{constructor:{configurable:!0,value:void 0},type:{configurable:!0,value:d},props:{configurable:!0,get:function(){var i=this;return{data:{get value(){return i.value}}}}},__b:{configurable:!0,value:1}});v("__b",function(i,n){s();f=void 0;if("string"==typeof n.type){var t,e=n.props;for(var o in e)if("children"!==o){var u=e[o];if(u instanceof r.Signal){if(!t)n.__np=t={};t[o]=u;e[o]=u.peek()}}}i(n)});v("__r",function(i,t){i(t);if(t.type!==n.Fragment){s();var e,o=t.__c;if(o){o.__$f&=-2;if(void 0===(e=o.__$u))o.__$u=e=function(i,n){var t;r.effect(function(){t=this},{name:n});t.c=i;return t}(function(i){return function(){var n;if(u)null==(n=this.y)||n.call(this);i.__$f|=1;i.setState({})}}(o),"function"==typeof t.type?t.type.displayName||t.type.name:"")}f=o;s(e)}});v("__e",function(i,n,t,r){s();f=void 0;i(n,t,r)});v("diffed",function(i,n){s();f=void 0;var t;if("string"==typeof n.type&&(t=n.__e)){var r=n.__np,e=n.props,o=t.U;if(o)for(var u in o){var a=o[u];if(!(void 0===a||r&&u in r)){a.d();o[u]=void 0}}if(r){if(!o){o={};t.U=o}for(var c in r){var v=o[c],d=r[c];if(void 0===v){v=l(t,c,d,e);o[c]=v}else v.o(d,e)}}}i(n)});function l(i,n,t,e){var f=n in i&&void 0===i.ownerSVGElement,o=r.signal(t);return{o:function(i,n){o.value=i;e=n},d:r.effect(function(){this.N=b;var t=o.value.value;if(e[n]!==t){e[n]=t;if(f)i[n]=t;else if(null!=t&&(!1!==t||"-"===n[4]))i.setAttribute(n,t);else i.removeAttribute(n)}})}}v("unmount",function(i,n){if("string"==typeof n.type){var t=n.__e;if(t){var r=t.U;if(r){t.U=void 0;for(var e in r){var f=r[e];if(f)f.d()}}}var o=n.__np;if(o){var u=n.props;for(var a in o)u[a]=o[a]}n.__np=void 0}else{var c=n.__c;if(c){var v=c.__$u;if(v){c.__$u=void 0;v.d()}}}i(n)});v("__h",function(i,n,t,r){if(r<3)n.__$f|=2;i(n,t,r)});n.Component.prototype.shouldComponentUpdate=function(i,n){if(this.__R)return!0;var t=this.__$u,r=t&&void 0!==t.s;for(var e in n)return!0;if(this.__f||"boolean"==typeof this.u&&!0===this.u){var f=2&this.__$f;if(!(r||f||4&this.__$f))return!0;if(1&this.__$f)return!0}else{if(!(r||4&this.__$f))return!0;if(3&this.__$f)return!0}for(var o in i)if("__source"!==o&&i[o]!==this.props[o])return!0;for(var u in this.props)if(!(u in i))return!0;return!1};function useSignal(i,n){return t.useMemo(function(){return r.signal(i,n)},[])}var h="undefined"==typeof requestAnimationFrame?setTimeout:function(i){var n=function(){clearTimeout(t);cancelAnimationFrame(r);i()},t=setTimeout(n,35),r=requestAnimationFrame(n)},p=function(i){queueMicrotask(function(){queueMicrotask(i)})};function m(){r.batch(function(){var i;while(i=a.shift())e.call(i)})}function y(){if(1===a.push(this))(n.options.requestAnimationFrame||h)(m)}function _(){r.batch(function(){var i;while(i=c.shift())e.call(i)})}function b(){if(1===c.push(this))(n.options.requestAnimationFrame||p)(_)}i.Signal=r.Signal;i.action=r.action;i.batch=r.batch;i.computed=r.computed;i.createModel=r.createModel;i.effect=r.effect;i.signal=r.signal;i.untracked=r.untracked;i.useComputed=function(i,n){var e=t.useRef(i);e.current=i;f.__$f|=4;return t.useMemo(function(){return r.computed(function(){return e.current()},n)},[])};i.useModel=function(i){var n=t.useMemo(function(){return i()},[]);t.useEffect(function(){return n[Symbol.dispose]},[n]);return n};i.useSignal=useSignal;i.useSignalEffect=function(i,n){var e=t.useRef(i);e.current=i;t.useEffect(function(){return r.effect(function(){this.N=y;return e.current()},n)},[])}});//# sourceMappingURL=signals.min.js.map
+!function(n,e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):n.htm=e()}(this,function(){var n=function(e,t,u,s){var r;t[0]=0;for(var p=1;p<t.length;p++){var h=t[p++],o=t[p]?(t[0]|=h?1:2,u[t[p++]]):t[++p];3===h?s[0]=o:4===h?s[1]=Object.assign(s[1]||{},o):5===h?(s[1]=s[1]||{})[t[++p]]=o:6===h?s[1][t[++p]]+=o+"":h?(r=e.apply(o,n(e,o,u,["",null])),s.push(r),o[0]?t[0]|=2:(t[p-2]=0,t[p]=r)):s.push(o)}return s},e=new Map;return function(t){var u=e.get(this);return u||(u=new Map,e.set(this,u)),(u=n(this,u.get(t)||(u.set(t,u=function(n){for(var e,t,u=1,s="",r="",p=[0],h=function(n){1===u&&(n||(s=s.replace(/^\s*\n\s*|\s*\n\s*$/g,"")))?p.push(0,n,s):3===u&&(n||s)?(p.push(3,n,s),u=2):2===u&&"..."===s&&n?p.push(4,n,0):2===u&&s&&!n?p.push(5,0,!0,s):u>=5&&((s||!n&&5===u)&&(p.push(u,0,s,t),u=6),n&&(p.push(u,n,0,t),u=6)),s=""},o=0;o<n.length;o++){o&&(1===u&&h(),h(o));for(var f=0;f<n[o].length;f++)e=n[o][f],1===u?"<"===e?(h(),p=[p],u=3):s+=e:4===u?"--"===s&&">"===e?(u=1,s=""):s=e+s[0]:r?e===r?r="":s+=e:'"'===e||"'"===e?r=e:">"===e?(h(),u=1):u&&("="===e?(u=5,t=s,s=""):"/"===e&&(u<5||">"===n[o][f+1])?(h(),3===u&&(p=p[0]),u=p,(p=p[0]).push(2,0,u),u=0):" "===e||"\t"===e||"\n"===e||"\r"===e?(h(),u=2):s+=e),3===u&&"!--"===s&&(u=4,p=p[0])}return h(),p}(t)),u),arguments,[])).length>1?u:u[0]}});
+
+</script>
+<script id="src-ns">
+var FF=window.FF||(window.FF={});
+var FV=window.FV||(window.FV={});
+FF._injected=window.preactSignals.signal;
+FF._injectedComputed=window.preactSignals.computed;
+</script>
+<script id="src-core">
+(function(FF,FV){
+// 경제 기준선 v2. 1000시드 A/B 검증으로 고정했다.
+//   가격 75%   진입비용 완화
+//   유지비 1.3 무조건 선매수 억제
+//   sd 2.5     입고가 값어치 있는 판을 만든다
+//   dd 3       판매가 값어치 있는 판을 만든다
+FF.C={days:30,cash:60000,sm:[14,20,27],sd:2.5,dm:[10,20,32],dd:3,stay:0.8,
+cap:{intake:20,storage:40,sales:21},ui:{nearCap:.8,storeMid:.5,storeFull:.8,dwellFast:1,dwellSlow:2.5,lowDays:2,armMs:6000,newArmMs:4000,recentWin:5,fcDays:3,eps:.05,matrixDays:7,dwellWin:7,logRows:6,nearTop:.9,zero:1e-9},chart:{w:340,h:96,pad:4,barH:22,gap:6},// 증설은 판매 한도만 산다. 상류는 초과분 매입 계약으로 대체했다.
+step:{sales:1},cost:{sales:309},
+// 초과분 매입 계약. 첫날에 크기를 고른다. 한도를 넘은 물량을 하루 최대 X t 더 받는다.
+// 가격은 규모에 따라 완만하게 체감한다. 유지비 없음, 이후 변경 불가.
+contract:{until:1,max:1,options:[
+ {x:0,   price:0},
+ {x:0.5, price:875},
+ {x:1,   price:1625},
+ {x:1.5, price:2250}
+]},
+maint:{intake:26,storage:8,sales:33},ttl:5,q:[1,1,1,1,.8],
+// settle 은 판매 대금이 며칠 뒤 현금이 되는지다. 0 이면 당일이다.
+// 판로 셋. 가격은 나이별이고 관계가 오르면 단가와 주문량과 최소 보장이 오른다.
+channels:[
+ {key:"online", cap:6,  settle:0,  quota:4, price:[955,895,545,0,0]},
+ {key:"fran",   cap:6,  settle:14, quota:5, price:[905,905,875,760,0]},
+ {key:"whole",  cap:14, settle:3,  quota:6, price:[880,873,865,845,820]}
+],
+// 관계 0~3 단계별 배수. 단가 · 주문량 · 최소 보장(쿼터 대비)
+rel:{price:[0.64,1,1.30,1.60],cap:[0.6,1,1.4,1.8],floor:[0,0.5,1,1.5],
+     up:4,start:1},
+settlePlan:[],price:900,farm:380,hold:22,waste:45,fixed:1400,cover:1.5,
+// 매입 정책. 며칠치를 목표로 들고 갈지 플레이 중 바꾼다.
+policy:[{v:1,key:"lean"},{v:1.5,key:"mid"},{v:2,key:"full"}],alpha:.5,mid:4,noise:.35,tilt:0.5,tiltP:[0.25,0.5,0.25],autoMax:3,salvage:0.2};
+
+FF.f1=function(n){return n.toFixed(1)},mo=function(n){return Math.round(n).toLocaleString("ko-KR")};
+
+// 계약 선택지를 찾는다. 없는 값이면 null 이다.
+FF.contractOption=function(x,rules){
+ var R=rules||FF.C, O=R.contract.options;
+ for(var i=0;i<O.length;i++)if(O[i].x===x)return O[i];
+ return null;
+}
+})(window.FF,window.FV);
+</script>
+<script id="src-store">
+(function(FF,FV){
+
+FF.LASTDUMP="";
+// 신호 구현을 주입받는다. 노드에서는 가짜 신호를 넣어 돌린다.
+FF.useSignals=function(signal,computed){FF._signal=signal;FF._computed=computed}
+// 신호 구현은 밖에서 주입한다. 없으면 최소 구현으로 헤드리스 실행한다.
+FF.useSignals(FF._injected||function(v){return {value:v}},
+  FF._injectedComputed||function(f){return {get value(){return f()}}});
+FF.EVENT=FF._signal(null);
+FF.setEvent=function(e){FF.EVENT.value=e}
+FF.evt=function(){FF.VERSION.value;return FF.EVENT.value}
+// 초과분 매입 계약 보유량. 0 이면 미보유.
+FF.CONTRACT=FF._signal(0);
+FF.contractOf=function(){FF.VERSION.value;return FF.CONTRACT.value}
+FF.setContract=function(v){FF.CONTRACT.value=v}
+FF.PENDING=FF._signal(null);
+FF.setPending=function(p){FF.PENDING.value=p}
+FF.PHASE=FF._signal("play");
+FF.isOver=function(){FF.VERSION.value;return FF.PHASE.value!=="play"}
+FF.isBust=function(){FF.VERSION.value;return FF.PHASE.value==="bust"}
+FF.setPhase=function(p){FF.PHASE.value=p}
+FF.RECOVER=FF._signal({prev:{},pending:{}});
+FF.resetRecover=function(){FF.RECOVER.value={prev:{},pending:{}}}
+FF.recoverPrev=function(key){FF.VERSION.value;var r=FF.RECOVER.value.prev;
+ return (key in r)?r[key]:null}
+FF.noteRecover=function(key,val){FF.RECOVER.value.pending[key]=val}
+FF.rollRecover=function(){
+ var R=FF.RECOVER.value, prev={};
+ for(var k in R.prev)prev[k]=R.prev[k];
+ for(k in R.pending)prev[k]=R.pending[k];
+ FF.RECOVER.value={prev:prev,pending:{}};
+}
+FF.VERSION=FF._signal(0);
+FF.commit=function(){FF.VERSION.value=FF.VERSION.value+1}
+FF.memo=function(fn){
+ var c=FF._computed(function(){FF.VERSION.value;return fn()});
+ return function(){return c.value};
+}
+
+FF.memoBy=function(fn){
+ var map={};
+ return function(a){
+  if(!map[a])map[a]=FF._computed(function(){FF.VERSION.value;return fn(a)});
+  return map[a].value;
+ };
+}
+FF.WORLD=FF._signal(null);
+FF.world=function(){return FF.WORLD.value}
+FF.setWorld=function(w){FF.WORLD.value=w}
+FF.LOTS=FF._signal([]);
+FF.lotsOf=function(){return FF.LOTS.value}
+FF.setLots=function(a){FF.LOTS.value=a}
+FF.ENGINE=FF._signal(null);
+FF.engineState=function(){return FF.ENGINE.value}
+FF.resetEngineState=function(){
+ FF.ENGINE.value={prevB:"none",lastBuy:{intake:0,sales:0},
+  phase:{intake:{dir:0,n:0},sales:{dir:0,n:0}}};
+}
+FF.PLANT=FF._signal(null);
+FF.plant=function(){FF.VERSION.value;return FF.PLANT.value}
+FF.resetPlant=function(){FF.PLANT.value={cap:{intake:FF.C.cap.intake,storage:FF.C.cap.storage,sales:FF.C.cap.sales},buys:{sales:0,contract:0}}}
+FF.expand=function(kind){var P=FF.PLANT.value,c={intake:P.cap.intake,storage:P.cap.storage,sales:P.cap.sales};
+ c[kind]+=FF.C.step[kind];
+ FF.PLANT.value={cap:c,buys:P.buys};}
+FF.countBuy=function(kind){var P=FF.PLANT.value,b={sales:P.buys.sales,contract:P.buys.contract||0};
+ b[kind]++;
+ FF.PLANT.value={cap:P.cap,buys:b};}
+FF.RUN=FF._signal(null);
+FF.run=function(){FF.VERSION.value;return FF.RUN.value}
+FF.resetRun=function(seed){FF.RUN.value={day:1,seed:seed,finDay:0}}
+FF.nextDay=function(){var R=FF.RUN.value;FF.RUN.value={day:R.day+1,seed:R.seed,finDay:R.finDay}}
+FF.markFinish=function(){var R=FF.RUN.value;FF.RUN.value={day:R.day,seed:R.seed,finDay:R.day}}
+// 일별 기록. 하루에 한 번 반드시 늘어난다.
+FF.HIST=FF._signal([]);
+FF.histOf=function(){FF.VERSION.value;return FF.HIST.value}
+FF.pushHist=function(rec){FF.HIST.value=FF.HIST.value.concat([rec])}
+
+// 사건 기록. 사건이 있을 때만 늘어난다.
+FF.LOG=FF._signal(null);
+FF.resetLog=function(){
+ FF.HIST.value=[];
+ FF.LOG.value={evlog:[],events:[],buylog:[],timeline:[],mods:[]};
+}
+FF.append=function(k,rec){var L=FF.LOG.value,n={};
+ for(var x in L)n[x]=L[x];
+ n[k]=L[k].concat([rec]);
+ FF.LOG.value=n;}
+FF.logOf=function(){FF.VERSION.value;return FF.LOG.value}
+FF.LEDGER=FF._signal(null);
+FF.ledger=function(){FF.VERSION.value;return FF.LEDGER.value}
+FF.resetLedger=function(){FF.LEDGER.value={cash:FF.C.cash,spent:0,salvaged:0}}
+FF.addCash=function(v){var L=FF.LEDGER.value;FF.LEDGER.value={cash:L.cash+v,spent:L.spent,salvaged:L.salvaged}}
+FF.spend=function(v){var L=FF.LEDGER.value;FF.LEDGER.value={cash:L.cash-v,spent:L.spent+v,salvaged:L.salvaged}}
+FF.setSalvage=function(v){var L=FF.LEDGER.value;FF.LEDGER.value={cash:L.cash+v,spent:L.spent,salvaged:v}}
+FF.MARKET=FF._signal(null);
+FF.marketOf=function(){FF.VERSION.value;return FF.MARKET.value}
+FF.setMarket=function(si,di){FF.MARKET.value={si:si,di:di}}
+// 판로 관계와 배분. 오늘의 배분이 내일의 거래조건을 바꾼다.
+FF.REL=FF._signal(null);
+FF.setRel=function(a){FF.REL.value=a}
+FF.AR=FF._signal([]);
+FF.setAr=function(a){FF.AR.value=a}
+FF.ALLOC=FF._signal(null);
+FF.setAlloc=function(a){FF.ALLOC.value=a}
+
+// 이번 달 성향. 판 시작에 정해지고 끝까지 유지된다. 전망 계산이 이것을 쓴다.
+// 매입 정책. 며칠치를 목표로 들고 갈지. 플레이 중 바뀐다.
+FF.COVER=FF._signal(null);
+FF.setCover=function(v){FF.COVER.value=v}
+FF.TILT=FF._signal({supply:1,demand:1});
+FF.tiltOf=function(){FF.VERSION.value;return FF.TILT.value}
+FF.setTilt=function(t){FF.TILT.value=t}
+
+// 플레이어 행동. 게임이 받아들이는 명령의 전체 집합이다.
+FF.inventory=function(){
+ FF.VERSION.value;
+ var L=FF.lotsOf(),t=0;
+ for(var i=0;i<L.length;i++)t+=L[i].q;
+ return t;
+}
+// 어댑터: 신호와 커널 상태를 잇는다. 게임 규칙은 여기 없다.
+})(window.FF,window.FV);
+</script>
+<script id="src-access">
+(function(FF,FV){
+// 내일 적용될 증설. 화면이 쓰는 읽기 접근자다.
+// 지금 매입 목표. 화면과 커널 어댑터가 쓴다.
+FF.arOf=function(){FF.VERSION.value;return FF.AR.value||[]}
+FF.relOf=function(){FF.VERSION.value;
+ return FF.REL.value||FF.C.channels.map(function(){return FF.C.rel.start})}
+FF.allocOf=function(){FF.VERSION.value;return FF.ALLOC.value}
+FF.coverOf=function(){FF.VERSION.value;return FF.COVER.value===null?FF.C.cover:FF.COVER.value}
+FF.pendingOf=function(){FF.VERSION.value;return FF.PENDING.value}
+FF.dayOf=function(){FF.VERSION.value;return FF.RUN.value?FF.run().day:1}
+FF.started=function(){FF.VERSION.value;return !!(FF.RUN.value&&FF.histOf().length)}
+FF.today=function(){FF.VERSION.value;return (FF.RUN.value&&FF.histOf().length)?FF.histOf()[FF.histOf().length-1]:null}
+FF.histLen=function(){FF.VERSION.value;return FF.RUN.value?FF.histOf().length:0}
+FF.recent=function(n){FF.VERSION.value;return FF.RUN.value?FF.histOf().slice(-n):[]}
+FF.status=function(){FF.VERSION.value;
+ return FF.RUN.value?{day:Math.min(FF.run().day,FF.C.days),cash:FF.LEDGER.value.cash,seed:FF.run().seed,
+  profit:FF.histOf().length?FF.histOf()[FF.histOf().length-1].profit:null}:null}
+FF.capsOf=function(){FF.VERSION.value;return FF.RUN.value?{intake:FF.plant().cap.intake,storage:FF.plant().cap.storage,sales:FF.plant().cap.sales}:null}
+FF.finDayOf=function(){FF.VERSION.value;return FF.RUN.value?FF.run().finDay:0}
+FF.timelineOf=function(){FF.VERSION.value;return FF.RUN.value?FF.logOf().timeline:[]}
+FF.buylogOf=function(){FF.VERSION.value;return FF.RUN.value?FF.logOf().buylog:[]}
+FF.buysOf=function(){FF.VERSION.value;return FF.RUN.value?{sales:FF.plant().buys.sales,contract:FF.plant().buys.contract||0,spent:FF.LEDGER.value.spent}:null}
+
+FF.Cmd={
+ wait:function(){return {type:"wait"}},
+ buy:function(capacity){return {type:"buy",capacity:capacity}},
+ contract:function(size){return {type:"contract",size:size}},
+ policy:function(cover){return {type:"policy",cover:cover}},
+ sell:function(alloc){return {type:"sell",alloc:alloc}},
+ finish:function(){return {type:"finish"}}
+};
+// 계획표의 한 칸을 명령으로 바꾼다. "sales" 또는 "contract:1.5" 또는 빈 값이다.
+FF.planCmd=function(action){
+ if(!action)return FF.Cmd.wait();
+ if(typeof action==="string"&&action.indexOf("contract")===0){
+  var i=action.indexOf(":");
+  return FF.Cmd.contract(i>0?parseFloat(action.slice(i+1)):1);
+ }
+ return FF.Cmd.buy(action);
+}
+
+FF.applyKernelState=function(s,r,pendBefore){
+ FF.setLots(s.lots);
+ if(pendBefore)FF.expand(pendBefore);
+ FF.setPending(s.pend);
+ FF.setRel((s.rel||[]).slice());
+ FF.setAr((s.ar||[]).slice());
+ if(s.alloc)FF.setAlloc(s.alloc.slice());
+ if(r.bought==="contract"){FF.spend(r.cost);FF.setContract(s.contract);FF.countBuy("contract")}
+ else if(r.bought){FF.spend(r.cost);FF.countBuy(r.bought)}
+ // 커널이 계산한 현금을 그대로 옮긴다. 매출채권은 따로 남는다.
+ FF.addCash(s.cash-FF.ledger().cash);
+}
+// 하루를 넘긴다. 기록이 끝난 뒤에 부른다.
+FF.advanceDay=function(s){
+ FF.nextDay();
+ FF.setMarket(s.si,s.di);
+}
+FF.toKernelState=function(){
+ var M=FF.MARKET.value, P=FF.plant(), L=FF.ledger();
+ return {day:FF.run().day,si:M.si,di:M.di,cash:L.cash,lots:FF.lotsOf().slice(),
+  cap:{intake:P.cap.intake,storage:P.cap.storage,sales:P.cap.sales},
+  pend:FF.PENDING.value,spent:L.spent,contract:FF.CONTRACT.value,cover:FF.coverOf(),
+  rel:FF.relOf().slice(),alloc:FF.allocOf(),ar:(FF.arOf()||[]).slice(),
+  buys:{sales:P.buys.sales,contract:P.buys.contract||0}};
+
+}
+
+
+})(window.FF,window.FV);
+</script>
+<script id="src-uistate">
+(function(FF,FV){
+FF.GAME=FF._signal(0);
+FF.observe=function(){FF.GAME.value;FF.VERSION.value}
+FF.QUEUE_S=FF._signal([]);
+FF.queueOf=function(){FF.GAME.value;return FF.QUEUE_S.value}
+FF.toggleBuy=function(kind,size){
+ var q=FF.QUEUE_S.value, on=false, i;
+ for(i=0;i<q.length;i++)if(q[i].kind===kind&&(kind!=="contract"||q[i].size===size))on=true;
+ if(on){FF.setQueue(q.filter(function(x){return x.kind!==kind}));return}
+ var price=(kind==="contract")
+   ?(FF.contractOption(size)||{price:Infinity}).price
+   :FF.C.cost[kind];
+ if(FF.LEDGER.value.cash<price)return;
+ FF.setQueue(q.filter(function(x){return x.kind!==kind})
+   .concat([{kind:kind,size:size,path:FF.evt()?"event":"manual"}]));
+}
+FF.clearQueue=function(){FF.setQueue([])}
+FF.setQueue=function(a){FF.QUEUE_S.value=a;FF.repaint()}
+// 확인 대기 상태. 한 번 더 눌러야 실행되는 것들이다.
+FF.SIG={fin:FF._signal(false),manual:FF._signal(false),newGame:FF._signal(false)};
+// 증설 회수의 전일 값. 하루가 넘어갈 때 오늘 값이 어제 값이 된다.
+FF.ord=function(k){var q=FF.queueOf();for(var i=0;i<q.length;i++)if(q[i].kind===k)return i+1;return 0}
+
+FF.queued=function(k,size){
+ var q=FF.queueOf();
+ for(var i=0;i<q.length;i++)
+  if(q[i].kind===k&&(size===undefined||q[i].size===size))return true;
+ return false;
+}
+
+
+
+
+
+FF.repaint=function(){FF.GAME.value=FF.GAME.value+1}
+
+
+// 시계. 진행 여부만 담는다. 게임 규칙과 무관하다.
+FF.CLOCK=FF._signal({running:false});
+FF.clockOf=function(){return FF.CLOCK.value}
+FF.setClock=function(running){FF.CLOCK.value={running:!!running}}
+
+
+// 판로 배분. 오늘부터 적용된다. 대기열에 하나만 둔다.
+FF.setAllocPlan=function(a){
+ var q=FF.QUEUE_S.value.filter(function(x){return x.kind!=="sell"});
+ FF.setQueue(a?q.concat([{kind:"sell",alloc:a.slice(),path:"manual"}]):q);
+}
+// 지금 화면에 표시할 배분. 대기열에 있으면 그것을 쓴다.
+FF.plannedAlloc=function(){
+ var q=FF.queueOf();
+ for(var i=0;i<q.length;i++)if(q[i].kind==="sell")return q[i].alloc;
+ return FF.allocOf()||FF.C.channels.map(function(){return 1});
+}
+// 판로 가중치 하나를 바꾼다.
+FF.setChannelWeight=function(i,n){
+ var a=FF.plannedAlloc().slice();
+ a[i]=n;
+ var sum=0; for(var k=0;k<a.length;k++)sum+=a[k];
+ FF.setAllocPlan(sum>0?a:null);
+}
+})(window.FF,window.FV);
+</script>
+<script id="src-kernel">
+(function(FF,FV){
+
+FF.Rng=function(s){this.s=s>>>0||1}
+FF.Rng.prototype.next=function(){this.s=(this.s+0x6d2b79f5)>>>0;var t=this.s;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296};
+FF.Rng.prototype.norm=function(m,sd){var u=Math.max(this.next(),1e-12),v=this.next();return m+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+
+// 월간 성향별 전이행렬. tilt 는 0 침체, 1 평년, 2 호황이다.
+// 성향 쪽에 더 머물고 평년에서도 그쪽으로 더 자주 간다.
+// 두 성향은 서로 거울상이라 방향에 따른 유불리가 없다.
+FF.M=function(rules,tilt){
+ var R=rules||FF.C, s=R.stay, m=(1-s)/2;
+ var T=[[s,1-s,0],[m,s,m],[0,1-s,s]];
+ if(tilt===undefined||tilt===1)return T;
+ var b=(R.tilt===undefined?0.5:R.tilt);
+ var keep=s+(1-s)*b;                 // 성향 국면에 머무는 확률
+ var toward=m*(1+b), away=m*(1-b);   // 평년에서 갈라지는 확률
+ var T0=[[keep,1-keep,0],[toward,s,away],[0,1-s,s]];
+ if(tilt===0)return T0;
+ // 호황은 침체의 거울상이다. 행과 열을 함께 뒤집는다.
+ var T2=[[0,0,0],[0,0,0],[0,0,0]];
+ for(var i=0;i<3;i++)for(var j=0;j<3;j++)T2[2-i][2-j]=T0[i][j];
+ return T2;
+}
+
+FF.hor=function(idx,a,b,rules,tilt){var T=FF.M(rules,tilt),v=[0,0,0];v[idx]=1;var acc=[0,0,0];
+for(var d=1;d<=b;d++){var o=[0,0,0];for(var i=0;i<3;i++)for(var j=0;j<3;j++)o[j]+=v[i]*T[i][j];v=o;
+if(d>=a)for(var k=0;k<3;k++)acc[k]+=v[k]}var n=b-a+1;return[acc[0]/n,acc[1]/n,acc[2]/n]}
+FF.blur=function(v,rules){var R=rules||FF.C;
+ var o=v.map(function(x){return x*(1-R.noise)+R.noise/3});
+ var s=o[0]+o[1]+o[2];return o.map(function(x){return x/s})}
+FF.pct=function(v){var a=v.map(function(x){return Math.round(x*100)});a[1]+=100-(a[0]+a[1]+a[2]);return a}
+FF.expD=function(idx,a,b,rules){var R=rules||FF.C,v=FF.hor(idx,a,b,R);
+ return v[0]*R.dm[0]+v[1]*R.dm[1]+v[2]*R.dm[2]}
+
+
+
+FF.dirOf=function(g){return g>=10?1:g<=-10?-1:0}
+
+// 다음 국면. 성향이 있으면 그 전이행렬을 따른다.
+FF.mvSeq=function(rng,x,rules,tilt){
+ var T=FF.M(rules,tilt), r=rng.next(), acc=0;
+ for(var j=0;j<3;j++){acc+=T[x][j];if(r<acc)return j}
+ return 2;
+}
+
+// World: 불확실성 생성. 게임 물리는 여기 없다.
+// 하루치 입력을 만들고 다음 국면을 함께 돌려준다.
+FF.World=function(seed,rules){
+ var R=rules||FF.C;
+ var rng=new FF.Rng(seed);
+ // 이번 달 성향. 판마다 다르고 30일 내내 유지된다.
+ var pick=function(){var r=rng.next(),p=R.tiltP||[0.25,0.5,0.25];
+  return r<p[0]?0:(r<p[0]+p[1]?1:2)};
+ var ts=pick(), td=pick();
+ var si=FF.mvSeq(rng,1,R,ts), di=FF.mvSeq(rng,1,R,td);
+ return {
+  tilt:function(){return {supply:ts,demand:td}},
+  phase:function(){return {supply:si,demand:di}},
+  next:function(){
+   var dem=Math.max(0,rng.norm(R.dm[di],R.dd));
+   // 판로별 수요. 전체 수요를 상한 비율로 나누고 판로마다 다른 변동을 준다.
+   var totCap=0, ci;
+   for(ci=0;ci<R.channels.length;ci++)totCap+=R.channels[ci].cap;
+   var chDem=[];
+   for(ci=0;ci<R.channels.length;ci++){
+    var c=R.channels[ci];
+    var vol=(c.key==="whole")?0.2:0.4;
+    chDem.push(Math.max(0,dem*(c.cap/totCap)*(1-vol+rng.next()*vol*2)));
+   }
+   var input={production:Math.max(0,rng.norm(R.sm[si],R.sd)),
+              demand:dem, chDemand:chDem,
+              supplyPhase:si, demandPhase:di};
+   si=FF.mvSeq(rng,si,R,ts); di=FF.mvSeq(rng,di,R,td);
+   input.nextSupplyPhase=si; input.nextDemandPhase=di;
+   return input;
+  }
+ };
+}
+
+
+
+FF.stepState=function(s,prod,dem,rules){
+ var R=rules||FF.C;
+ // 오늘 회수되는 매출채권을 먼저 현금으로 바꾼다.
+ // 오늘 갚아야 할 매입채무를 먼저 낸다.
+ if(s.ap&&s.ap.length){
+  var keepA=[];
+  for(var pi=0;pi<s.ap.length;pi++){
+   if(s.ap[pi].at<=s.day)s.cash-=s.ap[pi].amt; else keepA.push(s.ap[pi]);
+  }
+  s.ap=keepA;
+ }
+ if(s.ar&&s.ar.length){
+  var keep=[];
+  for(var ai=0;ai<s.ar.length;ai++){
+   if(s.ar[ai].at<=s.day)s.cash+=s.ar[ai].amt; else keep.push(s.ar[ai]);
+  }
+  s.ar=keep;
+ }
+ var tot=function(){var t=0;for(var i=0;i<s.lots.length;i++)t+=s.lots[i].q;return t};
+ var on=Math.min(s.cap.sales,FF.expD(s.di,1,3,R)), om=Math.min(s.cap.sales,FF.expD(s.di,4,7,R));
+ var cv=(s.cover===undefined)?R.cover:s.cover;
+ var need=Math.max(0,cv*on+R.alpha*Math.max(0,om-on)*R.mid-tot());
+ var baseAcc=Math.min(prod,s.cap.intake,need);
+ // 초과분 매입 계약: 한도를 넘은 물량 중 최대 X t 를 더 받는다.
+ // 한도 자체는 늘리지 않고 목표재고와 창고 제약은 그대로다.
+ var over=Math.max(0,prod-s.cap.intake);
+ var extra=s.contract>0?Math.min(over,s.contract,Math.max(0,need-baseAcc)):0;
+ var acc=baseAcc+extra;
+ var reach=Math.min(prod,s.cap.intake)+extra;
+ var refused=reach-acc, wI=prod-acc;
+ var freeNow=Math.max(0,s.cap.storage-tot());
+ var byCap=Math.max(0,over-extra);
+ var rest=wI-byCap;
+ var byStore=Math.min(rest,Math.max(0,reach-freeNow));
+ var byNeed=Math.max(0,rest-byStore);
+ var stored=Math.min(acc,freeNow), wS=acc-stored;
+ // 매입은 지금 손에 있는 현금으로만 한다. 모자라면 그만큼 덜 받는다.
+ var budget=Math.max(0,s.cash-R.fixed);
+ var payable=(R.farm>0)?Math.min(stored,budget/R.farm):stored;
+ var short=stored-payable;
+ if(short>R.ui.zero){ stored=payable; wS+=short; }
+ if(stored>0)s.lots.push({q:stored,a:0});
+ var sellable=tot();
+ // 판로 배분. s.alloc 은 판로별 비중이고 없으면 비싼 곳부터 채운다.
+ var CHS=R.channels, nch=CHS.length;
+ var relv=s.rel||[], sold=0, rev=0, ageMix=[], toCh=[];
+ var chDem=[];
+ for(var ci=0;ci<nch;ci++){chDem.push(0);toCh.push(0)}
+ // 오늘 판로 수요는 world 가 준다. 없으면 전체 수요를 상한 비율로 나눈다.
+ var src=s._chDemand||null;
+ for(ci=0;ci<nch;ci++){
+  var rl2=relv[ci]===undefined?R.rel.start:relv[ci];
+  var cap2=CHS[ci].cap*R.rel.cap[rl2];
+  var d0=src?src[ci]:(dem*CHS[ci].cap/ (function(){var t=0;for(var z=0;z<nch;z++)t+=CHS[z].cap;return t})());
+  var fl=CHS[ci].quota*R.rel.floor[rl2];
+  chDem[ci]=Math.min(cap2,Math.max(d0,(CHS[ci].key==="fran")?fl:0));
+ }
+ // 나이가 오래된 lot 부터 본다. 각 lot 를 배분에 따라 판로에 넣는다.
+ s.lots.sort(function(a,b){return b.a-a.a});
+ var order=[];
+ for(ci=0;ci<nch;ci++)order.push(ci);
+ for(var li=0;li<s.lots.length;li++){
+  var lot=s.lots[li];
+  if(lot.q<=R.ui.zero)continue;
+  var age=Math.min(lot.a,R.ttl-1);
+  // 이 lot 를 어느 판로에 넣을지: 배분 가중치가 있으면 그 순서, 없으면 단가 순
+  var seq=order.slice();
+  if(s.alloc&&s.alloc.length===nch){
+   seq.sort(function(a,b){return s.alloc[b]-s.alloc[a]});
+  } else {
+   seq.sort(function(a,b){
+    var ra=relv[a]===undefined?R.rel.start:relv[a], rb=relv[b]===undefined?R.rel.start:relv[b];
+    return CHS[b].price[age]*R.rel.price[rb]-CHS[a].price[age]*R.rel.price[ra];
+   });
+  }
+  for(var si2=0;si2<seq.length&&lot.q>R.ui.zero;si2++){
+   var c2=seq[si2];
+   // 배분이 있으면 그 판로에 배정된 몫을 넘지 않는다.
+   var quotaLeft=chDem[c2];
+   if(s.alloc&&s.alloc.length===nch){
+    var wsum=0; for(var wi=0;wi<nch;wi++)wsum+=s.alloc[wi];
+    if(wsum>0){
+     var share=sellable*s.alloc[c2]/wsum;
+     quotaLeft=Math.min(quotaLeft,Math.max(0,share-toCh[c2]));
+    }
+   }
+   var take=Math.min(lot.q,quotaLeft);
+   if(take<=R.ui.zero)continue;
+   var rl3=relv[c2]===undefined?R.rel.start:relv[c2];
+   var unit=CHS[c2].price[age]*R.rel.price[rl3]*R.q[Math.min(lot.a,R.ttl-1)];
+   lot.q-=take; chDem[c2]-=take; sold+=take; toCh[c2]+=take;
+   ageMix.push({a:lot.a,q:take});
+   var amt=take*unit;
+   rev+=amt;                       // 손익은 발생 시점에 잡는다
+   var lag=CHS[c2].settle;
+   if(lag>0){ s.ar=s.ar||[]; s.ar.push({at:s.day+lag,amt:amt}); }
+   else s.cash+=amt;               // 당일 정산은 즉시 현금
+  }
+ }
+ // 관계 갱신. 쿼터를 채우면 오르고 절반도 못 넣으면 내린다.
+ s.rel=s.rel||[];
+ for(ci=0;ci<nch;ci++){
+  var cur=s.rel[ci]===undefined?R.rel.start:s.rel[ci];
+  if(toCh[ci]>=CHS[ci].quota-R.ui.zero){ if(s.day%R.rel.up===0)cur=Math.min(3,cur+1) }
+  else if(toCh[ci]<CHS[ci].quota*0.5)cur=Math.max(0,cur-1);
+  s.rel[ci]=cur;
+ }
+ var demTotal=0;
+ for(ci=0;ci<nch;ci++)demTotal+=chDem[ci]+toCh[ci];
+ var w=0, wT=0;
+ for(i=0;i<s.lots.length;i++){
+  var l=s.lots[i];
+  if(l.q<=R.ui.zero)continue;
+  l.a++;
+  if(l.a>=R.ttl){wT+=l.q;continue}
+  s.lots[w++]=l;
+ }
+ s.lots.length=w;
+ var end=tot();
+ var cost=end*R.hold+s.cap.intake*R.maint.intake+s.cap.storage*R.maint.storage+s.cap.sales*R.maint.sales
+  +(wI+wS+wT)*R.waste+R.fixed+stored*R.farm;
+ var profit=rev-cost;
+ // 매출은 판로별 정산으로 이미 처리했다. 지출만 오늘 나간다.
+ s.cash-=cost;
+ return {prod:prod,dem:demTotal,acc:stored,refused:refused,sold:sold,missed:Math.max(0,demTotal-sold),
+  ageMix:ageMix,wI:wI,wIcap:byCap,wIstore:byStore,wIneed:byNeed,wS:wS,wT:wT,
+  end:end,profit:profit,sellable:sellable};
+}
+
+
+
+// 병목 판정. 그날의 사실이므로 커널의 일부다.
+FF.bottleneck=function(s,r,dem,rules){
+ var eps=(rules||FF.C).ui.eps, lossOut=Math.max(0,dem-r.sold);
+ var cand=[
+  ["ship",  (r.sold>=s.cap.sales-eps&&dem>r.sold+eps)?lossOut:0],
+  ["stock", (r.sold<dem-eps&&r.sellable<=r.sold+eps)?lossOut:0],
+  ["demand",(r.sold<s.cap.sales-eps&&r.sellable>r.sold+eps)?Math.max(0,s.cap.sales-dem):0],
+  ["intake",r.wIcap],
+  ["store", r.wIstore+r.wS+r.wT],
+  ["supply",(r.wIneed<=eps&&r.wIcap<=eps&&r.wIstore<=eps&&r.prod<s.cap.intake-eps)?(s.cap.intake-r.prod):0],
+  ["policy",r.wIneed]
+ ];
+ var b="none",bv=eps;
+ for(var i=0;i<cand.length;i++)if(cand[i][1]>bv){bv=cand[i][1];b=cand[i][0]}
+ return b;
+}
+
+
+
+// 하루 상태 전이. 게임 규칙은 이 함수에만 있다.
+// 신호도 로그도 화면도 모른다. 상태와 사실만 다룬다.
+//   state   {day,si,di,cash,lots,cap:{intake,storage,sales},pend,spent,buys}
+//   command FF.Cmd 의 결과
+//   world   FF.World 의 next() 출력
+// 반환 {state, result, events}. state 는 제자리에서 전진한다.
+
+FF.transition=function(state,command,world,rules){
+ var R=rules||FF.C;
+ var s=state, ev=[];
+ if(s.pend){s.cap[s.pend]+=R.step[s.pend];ev.push({type:"capacity-applied",capacity:s.pend});s.pend=null}
+ var C=command;
+ var bought=null, cost=0;
+ if(C.type==="sell"&&C.alloc&&C.alloc.length===R.channels.length){
+  s.alloc=C.alloc.slice();
+ }
+ if(C.type==="policy"){
+  var ok=false;
+  for(var pi=0;pi<R.policy.length;pi++)if(R.policy[pi].v===C.cover)ok=true;
+  if(ok&&s.cover!==C.cover){
+   s.cover=C.cover;
+   ev.push({type:"policy",cover:C.cover,day:s.day});
+  }
+ }
+ if(C.type==="contract"){
+  var opt=FF.contractOption(C.size,R);
+  if(opt&&opt.x>0
+     &&(s.buys?s.buys.contract:0)<R.contract.max
+     &&s.day<=(R.contract.until||R.days)
+     &&s.cash>=opt.price){
+   cost=opt.price;
+   s.cash-=cost; s.spent+=cost; s.contract=opt.x;
+   if(s.buys)s.buys.contract++;
+   bought="contract";
+   ev.push({type:"purchase",capacity:"contract",cost:cost,day:s.day});
+  }
+ }
+ if(C.type==="buy"&&R.cost[C.capacity]!==undefined&&s.cash>=R.cost[C.capacity]){
+  bought=C.capacity; cost=R.cost[bought];
+  s.cash-=cost; s.spent+=cost; s.pend=bought;
+  if(s.buys)s.buys[bought]++;
+  ev.push({type:"purchase",capacity:bought,cost:cost,day:s.day});
+ }
+ s.si=world.supplyPhase; s.di=world.demandPhase;
+ var r=FF.stepState(s,world.production,world.demand,R);
+ r.bought=bought; r.cost=cost;
+ r.b=FF.bottleneck(s,r,world.demand,R);
+ if(r.wIcap>R.ui.eps)ev.push({type:"capacity-hit",capacity:"intake",amount:r.wIcap});
+ if(r.wIstore+r.wS>R.ui.eps)ev.push({type:"capacity-hit",capacity:"storage",amount:r.wIstore+r.wS});
+ if(r.missed>R.ui.eps)ev.push({type:"demand-missed",amount:r.missed});
+ ev.push({type:"day-ended",day:s.day,profit:r.profit-cost});
+ // 최근 사흘의 관측을 남긴다. 화면의 못 판 주문과 같은 값이다.
+ if(s.recent){
+  s.recent=s.recent.concat([{missed:r.missed,dem:r.dem}]).slice(-3);
+ }
+ s.day++; s.si=world.nextSupplyPhase; s.di=world.nextDemandPhase;
+ if(s.cash<=0)ev.push({type:"bankrupt",day:s.day-1});
+ return {state:s,result:r,events:ev};
+}
+
+// 관측 기록. 게임 규칙이 아니라 기록 담당이다.
+// 커널이 낸 결과와 사건을 소비해 로그를 쌓는다.
+FF.initialState=function(world,rules){
+ var R=rules||FF.C;
+ return {day:1,si:world.phase().supply,di:world.phase().demand,
+  cash:R.cash,lots:[],
+  cap:{intake:R.cap.intake,storage:R.cap.storage,sales:R.cap.sales},
+  pend:null,spent:0,contract:0,cover:R.cover,ar:[],
+  rel:R.channels.map(function(){return R.rel.start}),alloc:null,
+  buys:{sales:0,contract:0},
+  recent:[]};
+}
+
+// 전략이 상태를 읽을 때 쓰는 조회. 커널 상태의 파생값이다.
+FF.step=function(state,command,world,rules){
+ var next=FF.forkState(state);
+ var out=FF.transition(next,command,world,rules);
+ return {state:next,result:out.result,events:out.events};
+}
+
+// 분기. 상태를 복사해 갈라진다. 바뀌는 것만 새로 만든다.
+FF.forkState=function(s){
+ return {day:s.day,si:s.si,di:s.di,cash:s.cash,
+  lots:s.lots.map(function(l){return {q:l.q,a:l.a}}),
+  cap:{intake:s.cap.intake,storage:s.cap.storage,sales:s.cap.sales},
+  pend:s.pend,spent:s.spent,contract:s.contract||0,cover:s.cover,
+  ar:(s.ar||[]).map(function(x){return {at:x.at,amt:x.amt}}),
+  rel:(s.rel||[]).slice(),alloc:s.alloc?s.alloc.slice():null,dead:false,
+  recent:s.recent?s.recent.slice():[],
+  buys:s.buys?{sales:s.buys.sales,contract:s.buys.contract||0}:undefined};
+}
+
+// 최종 가치. 살아남았고 끝까지 갔으면 처분가치를 더한다.
+// 순자산. 현금에 미회수 매출채권을 더한다.
+FF.netWorth=function(s){
+ var t=s.cash;
+ if(s.ar)for(var i=0;i<s.ar.length;i++)t+=s.ar[i].amt;
+ if(s.ap)for(var j=0;j<s.ap.length;j++)t-=s.ap[j].amt;
+ return t;
+}
+FF.finalValue=function(s,fin,rules){
+ var R=rules||FF.C;
+ var nw=FF.netWorth(s);
+ return (s.cash<=0||!fin)?nw:(nw+Math.round(s.spent*R.salvage));
+}
+
+
+FF.view={
+ stock:function(s){var t=0;for(var i=0;i<s.lots.length;i++)t+=s.lots[i].q;return t},
+ room:function(s){return Math.max(0,s.cap.storage-FF.view.stock(s))},
+ canAfford:function(s,k){return s.cash>=FF.C.cost[k]},
+ pending:function(s){return s.pend},
+ // 최근 사흘 못 판 주문 비율. 플레이어가 화면에서 읽는 값이다.
+ missRate:function(s){
+  var H=s.recent||[], m=0, d=0;
+  for(var i=0;i<H.length;i++){m+=H[i].missed;d+=H[i].dem}
+  return d>0?m/d:0;
+ }
+};
+
+
+// 데이터 전략. 규칙 목록을 자료구조로 표현하고 해석기가 명령으로 바꾼다.
+// 규칙은 위에서 아래로 검사하고 처음 맞는 것을 쓴다.
+//   {when:[{read:"stock", op:">", value:15}], then:{buy:"sales"}}
+//   {then:{wait:true}}
+FF.READ={
+ stock:function(s){return FF.view.stock(s)},
+ room:function(s){return FF.view.room(s)},
+ cash:function(s){return s.cash},
+ day:function(s){return s.day},
+ capIntake:function(s){return s.cap.intake},
+ capSales:function(s){return s.cap.sales},
+ buysContract:function(s){return s.buys?(s.buys.contract||0):0},
+ buysSales:function(s){return s.buys?s.buys.sales:0},
+ pending:function(s){return s.pend?1:0}
+};
+FF.OP={
+ ">":function(a,b){return a>b},
+ "<":function(a,b){return a<b},
+ ">=":function(a,b){return a>=b},
+ "<=":function(a,b){return a<=b},
+ "==":function(a,b){return a===b}
+};
+FF.evalCond=function(c,s){
+ var read=FF.READ[c.read], op=FF.OP[c.op];
+ if(!read||!op)return false;
+ return op(read(s),c.value);
+};
+FF.compileStrategy=function(rules){
+ return function(s){
+  for(var i=0;i<rules.length;i++){
+   var r=rules[i], ok=true;
+   var when=r.when||[];
+   for(var j=0;j<when.length&&ok;j++)ok=FF.evalCond(when[j],s);
+   if(!ok)continue;
+   if(r.then&&r.then.buy){
+    if(!FF.view.canAfford(s,r.then.buy)||s.pend)return FF.Cmd.wait();
+    return FF.Cmd.buy(r.then.buy);
+   }
+   return FF.Cmd.wait();
+  }
+  return FF.Cmd.wait();
+ };
+}
+
+// 계획을 전략으로 올린다. 표는 날짜만 보는 전략이다.
+//   plan {일차: 설비}  또는  function(state) -> Command
+FF.asStrategy=function(plan){
+ if(typeof plan==="function")return plan;
+ if(Array.isArray(plan))return FF.compileStrategy(plan);
+ return function(s){
+  return FF.planCmd(plan[s.day]);
+ };
+}
+
+// 시나리오 러너. 날짜 전진 구현은 이 함수 하나뿐이다.
+//   base     계획표 또는 전략 함수
+//   forks    [{at, plan}] at 일차의 기준선 상태에서 갈라진다
+//   untilDay 지정하면 그날까지만
+// 반환 {state, days:[{day,result,events}], forks:[최종상태]}
+})(window.FF,window.FV);
+</script>
+<script id="src-runner">
+(function(FF,FV){
+// 참조 재생. 첫날 계약 x t 를 맺고 그 뒤 판매를 ns 회 산다.
+FF.replay=function(seed,x,ns){
+ var pl={},dd=2,kk;
+ if(x>0)pl[1]="contract:"+x;
+ for(kk=0;kk<ns;kk++){pl[dd]="sales";dd+=2}
+ return FF.replayPlan(seed,pl);
+}
+
+// 참조 구현 전용. 실사용 경로는 분석 계층의 시뮬레이터 하나다.
+// 최적화된 쪽이 틀리면 단위 테스트가 이것과 대조해 잡는다.
+FF.replayPlan=function(seed,plan,untilDay){
+ var r=FF.runScenario(seed,plan,untilDay);
+ return FF.finalValue(r.state,!untilDay);
+}
+
+
+// 초기 상태. 커널이 다루는 값만 담는다.
+FF.runTracks=function(seed,base,forks,untilDay,rules){
+ var R=rules||FF.C;
+ var W=FF.World(seed,R), main=FF.initialState(W,R), days=[], live=[], out=[];
+ var LIM=untilDay||R.days;
+ var baseDecide=FF.asStrategy(base);
+ var forkDecide=function(plan){
+  return function(s){
+   if(s.day in plan)return FF.planCmd(plan[s.day]);
+   return baseDecide(s);
+  };
+ };
+ var advance=function(s,w){
+  var r=FF.transition(s,s.decide(s),w,R);
+  if(s.cash<=0)s.dead=true;
+  return r;
+ };
+ main.decide=baseDecide; main.dead=false;
+ for(var t=0;t<LIM;t++){
+  var day=t+1, w=W.next(), i;
+  for(i=0;i<forks.length;i++){
+   if((forks[i].at||1)!==day)continue;
+   var c=(day===1)?FF.initialState(W,R):FF.forkState(main);
+   c.si=main.si; c.di=main.di;
+   c.idx=i; c.decide=forkDecide(forks[i].plan); c.dead=false;
+   live.push(c);
+  }
+  var keep=0;
+  for(i=0;i<live.length;i++)if(!live[i].dead)live[keep++]=live[i];
+  live.length=keep;
+  for(i=0;i<live.length;i++)advance(live[i],w);
+  if(!main.dead){
+   var res=advance(main,w);
+   days.push({day:day,result:res.result,events:res.events});
+  }
+  if(main.dead&&!live.length)break;
+ }
+ for(i=0;i<live.length;i++)out[live[i].idx]=live[i];
+ return {state:main,days:days,forks:out};
+}
+
+// 한 갈래만 돌린다. 러너의 특수한 경우다.
+FF.runScenario=function(seed,strategy,untilDay,rules){
+ var r=FF.runTracks(seed,strategy,[],untilDay,rules);
+ return {state:r.state,days:r.days};
+}
+
+// 순수 전이. 원본을 두고 새 상태를 돌려준다.
+// 성능이 필요한 곳은 transition 을 직접 쓴다.
+})(window.FF,window.FV);
+</script>
+<script id="src-record">
+(function(FF,FV){
+FF.capHits=function(kind,win){
+ var lastBlocked=false;
+ var since=FF.engineState().lastBuy[kind];
+ var h=[];
+ for(var i=0;i<FF.histOf().length;i++)if(FF.histOf()[i].day>since)h.push(FF.histOf()[i]);
+ h=h.slice(-win);
+ var n=0;
+ for(var j=0;j<h.length;j++){
+  if(kind==="intake"&&h[j].acc>=h[j].capI-0.05)n++;
+  if(kind==="sales"&&h[j].sold>=h[j].capS-0.05&&h[j].dem>h[j].sold+0.05)n++;
+ }
+ if(h.length){
+  var z=h[h.length-1];
+  lastBlocked=kind==="intake"?(z.acc>=z.capI-0.05):(z.sold>=z.capS-0.05&&z.dem>z.sold+0.05);
+ }
+ return{n:n,len:h.length,last:lastBlocked};
+}
+
+FF.useRate=function(n){
+ var h=FF.histOf().slice(-n);
+ if(!h.length)return{intake:0,sales:0};
+ var a=0,b=0;
+ for(var i=0;i<h.length;i++){a+=h[i].acc/FF.plant().cap.intake;b+=h[i].sold/FF.plant().cap.sales}
+ return{intake:a/h.length*100,sales:b/h.length*100};
+}
+
+FF.recordDay=function(r,ev){
+ FF.pushHist({day:FF.run().day,prod:r.prod,dem:r.dem,acc:r.acc,refused:r.refused,sold:r.sold,
+  missed:r.missed,ageMix:r.ageMix,wI:r.wI,wIcap:r.wIcap,wIstore:r.wIstore,wIneed:r.wIneed,
+  wS:r.wS,wT:r.wT,end:r.end,profit:r.profit-r.cost,b:r.b,
+  si:FF.MARKET.value.si,di:FF.MARKET.value.di,
+  capI:FF.plant().cap.intake,capS:FF.plant().cap.sales});
+ for(var mi=0;mi<FF.logOf().mods.length;mi++){
+  var md=FF.logOf().mods[mi];
+  if(FF.run().day<=md.day)continue;
+  md.use.push(md.kind==="contract"?(r.acc/FF.plant().cap.intake):(r.sold/FF.plant().cap.sales));
+  md.extra=(md.extra||0)+(md.kind==="contract"?Math.max(0,r.acc-FF.plant().cap.intake):Math.max(0,r.sold-md.from));
+  if(FF.run().day<=md.day+3){
+   if(md.kind==="contract"&&r.acc>FF.plant().cap.intake+0.05)md.hit++;
+   if(md.kind==="sales"&&r.sold>=FF.plant().cap.sales-0.05)md.hit++;
+  }
+ }
+ var actionable=(r.b==="intake"||r.b==="ship"||r.b==="store"||r.b==="stock");
+ var changed=(r.b!==FF.engineState().prevB);
+ FF.engineState().prevB=r.b;
+ FF.setEvent((actionable&&changed)?{b:r.b}:null);
+ if(FF.evt())FF.append("evlog",{day:FF.run().day,b:r.b});
+ if(ev)for(var q=0;q<ev.length;q++)if(ev[q].type==="purchase")
+  FF.append("timeline",{day:ev[q].day,type:"buy",kind:ev[q].capacity,
+   newCap:(ev[q].capacity==="contract")?FF.contractOf()
+     :(FF.plant().cap[ev[q].capacity]+FF.C.step[ev[q].capacity])});
+}
+
+// 구매 순간의 관측치를 남긴다. 게임 규칙이 아니라 기록이다.
+FF.recordPurchase=function(act,path,size){
+ var day=FF.run().day;
+ var T=FF.tiltOf();
+ var svB=FF.pct(FF.blur(FF.hor(FF.MARKET.value.si,4,7,FF.C,T.supply)));
+ var dvB=FF.pct(FF.blur(FF.hor(FF.MARKET.value.di,4,7,FF.C,T.demand)));
+ if(act==="contract"){
+  // 계약은 개장 전 결정이다. 근거는 관측이 아니라 월간 전망이다.
+  size=size||FF.contractOf();
+  FF.append("mods",{kind:act,day:day,idx:1,from:0,size:size,use:[],hit:0});
+  FF.append("buylog",{day:day,kind:act,
+   gap:dvB[2]-dvB[0], supplyGap:svB[2]-svB[0],
+   tilt:T.demand, supplyTilt:T.supply,
+   hitN:0,hitLen:0,left:FF.C.days-day,path:path||"manual",
+   util:null,nth:1,cap:size});
+  return;
+ }
+ FF.append("mods",{kind:act,day:day,idx:FF.plant().buys[act]+1,
+   from:FF.plant().cap.sales,use:[],hit:0});
+ var hB=FF.capHits(act,5),uB=FF.useRate(3);
+ var gB=dvB[2]-dvB[0];
+ var ES=FF.engineState();
+ if(FF.dirOf(gB)!==0&&ES.phase[act].dir===FF.dirOf(gB))ES.phase[act].n++;
+ else {ES.phase[act].dir=FF.dirOf(gB);ES.phase[act].n=FF.dirOf(gB)===0?0:1}
+ ES.lastBuy[act]=day;
+ FF.append("buylog",{day:day,kind:act,gap:gB,
+  hitN:hB.n, hitLen:hB.len, left:FF.C.days-day, path:path||"manual",
+  util:Math.round(uB.sales),
+  nth:FF.plant().buys[act]+1,cap:FF.plant().cap.sales});
+}
+
+// 하루 시작 시점의 한도 도달 여부를 남긴다.
+FF.recordDayStart=function(atCapIntake,atCapSales,act){
+ FF.append("events",{day:FF.run().day,atCapIntake:atCapIntake,
+   atCapShipping:atCapSales,bought:act||"none"});
+}
+
+
+// 새 사건을 진행 기록에 남긴다.
+FF.recordEvent=function(){
+ var ev=FF.evt();
+ if(!ev)return;
+ FF.append("timeline",{day:FF.run().day-1,type:"event",b:ev.b});
+}
+})(window.FF,window.FV);
+</script>
+<script id="src-engine">
+(function(FF,FV){
+FF.reset=function(seed){FF.SIG.fin.value=false;FF.SIG.manual.value=false;FF.SIG.newGame.value=false;FF.EVENT.value=null;FF.PENDING.value=null;FF.PHASE.value="play";FF.resetRecover();FF.setContract(0);FF.setCover(FF.C.cover);FF.setRel(FF.C.channels.map(function(){return FF.C.rel.start}));FF.setAlloc(null);FF.setAr([]);FF.setWorld(FF.World(seed));FF.setLots([]);FF.resetEngineState();FF.setMarket(FF.world().phase().supply,FF.world().phase().demand);FF.setTilt(FF.world().tilt());FF.resetLedger();FF.resetLog();FF.resetPlant();FF.resetRun(seed);
+FF.setQueue([]);
+ FF.setClock(false);
+ FF.commit();FF.repaint()}
+
+
+// 하루 물리. 물리는 이 함수에만 있다.
+// s 를 제자리에서 전진시키고 그날의 관측치를 돌려준다.
+// s = {si,di,cash,lots,cap:{intake,storage,sales}}  호출자가 필요하면 미리 복사해서 넘긴다.
+FF.stepDay=function(cmd,path){
+ if(FF.isOver())return;
+ if(cmd.type==="finish"){FF.finishRun();return}
+ var act=(cmd.type==="buy")?cmd.capacity:(cmd.type==="contract"?"contract":null);
+ if(cmd.type==="policy")FF.setCover(cmd.cover);
+ var pend=FF.PENDING.value;
+ var prev=FF.histOf()[FF.histOf().length-1]||null;
+ var atCapI=prev?prev.acc>=FF.plant().cap.intake-0.05:false;
+ var atCapS=prev?prev.sold>=FF.plant().cap.sales-0.05:false;
+ var price=(act==="contract")?(FF.contractOption(cmd.size)||{price:Infinity}).price:(act?FF.C.cost[act]:0);
+ var willBuy=(act!==null&&FF.ledger().cash>=price
+   &&(act!=="contract"||FF.contractOf()===0));
+ if(willBuy)FF.recordPurchase(act,path,cmd.size);
+ FF.recordDayStart(atCapI,atCapS,act);
+ var s=FF.toKernelState();
+ var send=willBuy?(act==="contract"?FF.Cmd.contract(cmd.size):FF.Cmd.buy(act))
+   :((cmd.type==="sell"||cmd.type==="policy")?cmd:FF.Cmd.wait());
+ var out=FF.transition(s,send,FF.world().next());
+ var r=out.result;
+ FF.applyKernelState(s,r,pend);
+ FF.recordDay(r,out.events);
+ FF.advanceDay(s);
+ if(FF.ledger().cash<=0){FF.setPhase("bust")}
+ else if(FF.run().day>FF.C.days){
+  if(!FF.isOver())FF.setSalvage(Math.round(FF.ledger().spent*FF.C.salvage));
+  FF.setPhase("done");
+ }
+ FF.commit();
+}
+
+
+
+
+
+// 새 판. 시드를 주지 않으면 무작위로 고른다.
+FF.startNew=function(seed){
+ var v=parseInt(seed,10);
+ FF.reset(v>0?v:Math.floor(Math.random()*99999)+1);
+}
+
+FF.finishRun=function(){
+ if(FF.isOver())return;
+ FF.markFinish();FF.commit();
+ FF.append("timeline",{day:FF.run().day,type:"finish"});
+ FF.setQueue([]);
+ while(!FF.isOver())FF.stepDay(FF.Cmd.wait());
+ FF.SIG.manual.value=false; FF.SIG.fin.value=false;
+ FF.repaint();
+}
+
+// 실시간 진행. 하루 경계에서 대기 중인 결정 하나를 커밋하고 하루를 넘긴다.
+// 하루 안 어느 시점에 눌렀는지는 결과에 영향을 주지 않는다.
+FF.tickDay=function(){
+ if(FF.isOver())return;
+ var q=FF.queueOf().slice();
+ var cmd=FF.Cmd.wait(), path=null;
+ if(q.length){
+  var head=q[0];
+  cmd=(head.kind==="contract")?FF.Cmd.contract(head.size)
+    :(head.kind==="policy")?FF.Cmd.policy(head.cover)
+    :(head.kind==="sell")?FF.Cmd.sell(head.alloc)
+    :FF.Cmd.buy(head.kind);
+  path=head.path||"manual";
+  FF.setQueue(q.slice(1));
+ }
+ FF.stepDay(cmd,path);
+ FF.rollRecover();
+ FF.recordEvent();
+ FF.SIG.manual.value=false;
+ // 판이 끝나면 멈춘다. 병목이 바뀌는 것은 흔한 일이라 멈추지 않는다.
+ if(FF.isOver())FF.setClock(false);
+ FF.repaint();
+}
+
+
+
+})(window.FF,window.FV);
+</script>
+<script id="src-counter">
+(function(FF,FV){
+
+
+/* ---- Preact 렌더 브리지 ---- */
+
+// 다중 재생: 계획 N개를 하루씩 동시에 전진시킨다.
+// 접두를 공유하지 않는 계획들에 쓴다. 난수는 하루 한 번만 뽑는다.
+
+
+// 시나리오 시뮬레이터. 반사실 계산의 유일한 경로다.
+//   base      기준 계획 {일차: 설비}
+//   variants  [{at, plan}]  at 일차의 기준선 상태에서 갈라져 plan 을 덮어쓴다.
+//             at 이 1 이면 처음부터 자기 계획으로 간다.
+//             plan 값이 null 이면 그날 사지 않는다.
+//   untilDay  지정하면 그날까지만 돌리고 처분가치를 더하지 않는다.
+// 난수는 계획과 무관하므로 하루에 한 번만 뽑아 모든 시나리오가 공유한다.
+FF.simulate=function(seed,base,variants,untilDay){
+ var r=FF.runTracks(seed,base,variants,untilDay);
+ var fin=!untilDay;
+ var value=function(s){return s?FF.finalValue(s,fin&&!s.dead):undefined};
+ return {base:value(r.state),variants:r.forks.map(value)};
+}
+
+// 사후 기준 계획. 첫날 계약 크기와 판매 증설 횟수의 조합이다.
+FF.planOf=function(x,ns){
+ var pl={},dd=2,k;
+ if(x>0)pl[1]="contract:"+x;
+ for(k=0;k<ns;k++){pl[dd]="sales";dd+=2}
+ return pl;
+}
+
+// 이번 판에서 실제로 한 것. 계약은 크기까지 남긴다.
+// 이번 판에 맺은 계약 크기. 없으면 0 이다.
+FF.myContractSize=function(){
+ var m=FF.logOf().mods;
+ for(var i=0;i<m.length;i++)if(m[i].kind==="contract")return m[i].size||0;
+ return 0;
+}
+
+FF.currentPlan=function(){
+ var p={},m=FF.logOf().mods;
+ for(var i=0;i<m.length;i++){
+  p[m[i].day]=(m[i].kind==="contract")?("contract:"+(m[i].size||0)):m[i].kind;
+ }
+ return p;
+}
+
+// 반사실 정의. 분석은 이 셋만 만들고 나머지는 시뮬레이터가 한다.
+FF.Scenario={
+ addOne:function(day,kind){var p={};p[day]=kind;return {at:day,plan:p}},
+ removeOne:function(day){var p={};p[day]=null;return {at:day,plan:p}},
+ fullPlan:function(plan){return {at:1,plan:plan}}
+};
+
+FF.compareStrategies=function(seeds,strategies){
+ return strategies.map(function(st){
+  var vals=seeds.map(function(sd){
+   return FF.finalValue(FF.runScenario(sd,st.plan).state,true);
+  });
+  var sum=0,min=Infinity,max=-Infinity;
+  vals.forEach(function(v){sum+=v;if(v<min)min=v;if(v>max)max=v});
+  return {name:st.name,mean:Math.round(sum/vals.length),
+    min:Math.round(min),max:Math.round(max),values:vals};
+ });
+}
+
+// 월간 전망. 초순 중순 하순 각각의 국면 분포다.
+// 오늘 국면에서 마르코프 전이를 돌려 구간 평균을 낸다.
+
+
+// 사후 최선. 계약 크기 네 가지와 판매 증설 횟수의 조합을 전부 돌린다.
+FF._hindsight=function(){
+ var XS=FF.C.contract.options.map(function(o){return o.x});
+ var plans=[],meta=[],i,s2;
+ for(i=0;i<XS.length;i++)for(s2=0;s2<=5;s2++){
+  plans.push(FF.planOf(XS[i],s2)); meta.push({i:XS[i],s:s2});
+ }
+ var mi=FF.myContractSize(), ms=FF.plant().buys.sales;
+ plans.push(FF.planOf(mi,ms));
+ var r=FF.simulate(FF.run().seed,{},plans.map(FF.Scenario.fullPlan)).variants;
+ var base=0,best={i:0,s:0,v:-Infinity};
+ for(i=0;i<meta.length;i++){
+  if(meta[i].i===0&&meta[i].s===0)base=r[i];
+  if(r[i]>best.v)best={i:meta[i].i,s:meta[i].s,v:r[i]};
+ }
+ return{base:base,best:best,mine:r[r.length-1]};
+}
+
+
+// 배치 재생: 시나리오 N개를 하루씩 동시에 전진시킨다.
+// 난수는 계획과 무관하므로 하루에 한 번만 뽑아 전부가 공유한다.
+
+
+// 분기 재생: 기준선을 한 번 전진하면서 각 날에서 갈라진다.
+// 앞부분을 다시 돌지 않는다. 난수는 계획과 무관하므로 하루 한 번만 뽑는다.
+
+
+// 지금까지의 계획. 분석의 기준선이다.
+FF._missedOps=function(){
+ var base=FF.currentPlan(), forks=[], vs=[], i;
+ for(var day=2;day<=FF.C.days-2;day++){
+  if(base[day])continue;
+  ["sales"].forEach(function(k){
+   forks.push({day:day,kind:k});
+   vs.push(FF.Scenario.addOne(day,k));
+  });
+ }
+ var r=FF.simulate(FF.run().seed,base,vs);
+ var out=[];
+ for(i=0;i<forks.length;i++)out.push({day:forks[i].day,kind:forks[i].kind,gain:Math.round(r.variants[i]-r.base)});
+ out.sort(function(a,b){return b.gain-a.gain});
+ return out;
+}
+
+
+FF._modContrib=function(){
+ var mods=FF.logOf().mods;
+ if(!mods.length)return null;
+ var base=FF.currentPlan();
+ var vs=mods.map(function(m){return FF.Scenario.removeOne(m.day)});
+ var r=FF.simulate(FF.run().seed,base,vs);
+ return r.variants.map(function(v){return Math.round(r.base-v)});
+}
+
+FF._recoverPct=function(kind){
+ var mods=FF.logOf().mods, last=null;
+ for(var i=0;i<mods.length;i++)if(mods[i].kind===kind)last=mods[i];
+ if(!last||FF.isOver()||FF.run().day<=last.day+1)return null;
+ var upto=FF.run().day-1;
+ var r=FF.simulate(FF.run().seed,FF.currentPlan(),[FF.Scenario.removeOne(last.day)],upto);
+ var gain=r.base-r.variants[0];
+ var days=upto-last.day;
+ var opt=(kind==="contract")?FF.contractOption(last.size||0):null;
+ var cost=(kind==="contract")?(opt?opt.price:0)
+  :(FF.C.cost[kind]+days*FF.C.step[kind]*FF.C.maint.sales);
+ var val=Math.round(gain);
+ var key=kind+":"+last.day, prev=FF.recoverPrev(key);
+ FF.noteRecover(key,val);
+ return{val:val,cost:cost,prev:prev};
+}
+
+FF.buyOffset=function(k){
+ var o=FF.ord(k);
+ if(o>0)return o-1;
+ return FF.queueOf().length;
+}
+
+FF._breakEven=function(k){
+ var off=FF.buyOffset(k);
+ var days=Math.max(0,FF.C.days-FF.run().day-off);
+ if(days<=0)return null;
+ var step=FF.C.step[k];
+ var maint=FF.C.maint.sales*step*days;
+ var net=FF.C.cost[k]*(1-FF.C.salvage)+maint;
+ var margin=FF.C.price;
+ return{t:net/margin,cost:Math.round(net)};
+}
+
+FF._optionOf=function(k){
+ if(k==="contract"){
+  // 계약은 용량이 아니라 사건 노출을 산다. 최근 못 판 수요가 신호다.
+  var H=FF.histOf().slice(-3), m=0, d=0;
+  for(var i=0;i<H.length;i++){m+=H[i].missed;d+=H[i].dem}
+  var owned=(FF.plant().buys.contract||0)>0;
+  var M=FF.marketOf();
+  var opts=FF.C.contract.options;
+  var big=opts[opts.length-1];
+  return {kind:k,cost:big.price,limit:big.x,options:opts,
+   supply:M?M.si:1, demand:M?M.di:1,
+   missRate:d>0?m/d:0,window:H.length,stock:FF.inventory(),owned:owned,
+   usable:Math.max(0,FF.C.days-FF.run().day),
+   affordable:!owned&&FF.ledger().cash>=opts[1].price,
+   payback:null,hits:0,lastHit:false,overRun:false};
+ }
+ var h=FF.capHits(k,5), off=FF.buyOffset(k);
+ var usable=Math.max(0,FF.C.days-FF.run().day-off);
+ var be=FF.breakEven(k);
+ var payback=be?(be.t/FF.C.step[k]):null;
+ return{kind:k,cost:FF.C.cost[k],hits:h.n,window:h.len,lastHit:!!h.last,
+  usable:usable,payback:payback,
+  affordable:FF.ledger().cash>=FF.C.cost[k],
+  overRun:(payback!==null&&payback>usable)};
+}
+
+
+FF.hindsight=FF.memo(FF._hindsight);
+FF.missedOps=FF.memo(FF._missedOps);
+FF.modContrib=FF.memo(FF._modContrib);
+FF.recoverPct=FF.memoBy(FF._recoverPct);
+FF.breakEven=FF.memoBy(FF._breakEven);
+FF.optionOf=FF.memoBy(FF._optionOf);
+
+// 기회 분석 표: 날짜 x 설비 2차원.
+// 각 칸은 그날 그 설비를 하나 더 샀을 때의 가치와 전날 대비 차분을 담는다.
+// flat 은 차분이 유지비와 같다는 뜻이다.
+
+FF._hindsightRef=function(){
+ var XS=FF.C.contract.options.map(function(o){return o.x});
+ var base=FF.replay(FF.run().seed,0,0),best={i:0,s:0,v:base};
+ for(var k=0;k<XS.length;k++)for(var s2=0;s2<=5;s2++){
+  var v=FF.replay(FF.run().seed,XS[k],s2);
+  if(v>best.v)best={i:XS[k],s:s2,v:v};
+ }
+ return{base:base,best:best,
+   mine:FF.replay(FF.run().seed,FF.myContractSize(),FF.plant().buys.sales)};
+}
+
+// 사후 기준 계획. 계약 여부와 판매 증설 횟수의 조합이다.
+FF._missedOpsRef=function(){
+ var full={};
+ for(var i=0;i<FF.logOf().mods.length;i++)full[FF.logOf().mods[i].day]=FF.logOf().mods[i].kind;
+ var base=FF.replayPlan(FF.run().seed,full);
+ var out=[];
+ for(var day=2;day<=FF.C.days-2;day++){
+  if(full[day])continue;
+  var kinds=["sales"];
+  for(var k=0;k<kinds.length;k++){
+   var p={};for(var dd in full)p[dd]=full[dd];
+   p[day]=kinds[k];
+   out.push({day:day,kind:kinds[k],gain:Math.round(FF.replayPlan(FF.run().seed,p)-base)});
+  }
+ }
+ out.sort(function(a,b){return b.gain-a.gain});
+ return out;
+}
+
+FF._modContribRef=function(){
+ if(!FF.logOf().mods.length)return null;
+ var full={};
+ for(var i=0;i<FF.logOf().mods.length;i++)full[FF.logOf().mods[i].day]=FF.logOf().mods[i].kind;
+ var baseCash=FF.replayPlan(FF.run().seed,full);
+ var out=[];
+ for(var j=0;j<FF.logOf().mods.length;j++){
+  var p={};
+  for(var d in full)if(+d!==FF.logOf().mods[j].day)p[d]=full[d];
+  out.push(Math.round(baseCash-FF.replayPlan(FF.run().seed,p)));
+ }
+ return out;
+}
+
+})(window.FF,window.FV);
+</script>
+<script id="src-report-data">
+(function(FF,FV){
+
+FF.cnt=function(axis,val){
+ var k=axis===0?"si":"di",n=0;
+ for(var i=0;i<FF.histOf().length;i++)if(FF.histOf()[i][k]===val)n++;
+ return n;
+}
+
+FF.dwellMedian=function(win){
+ var h=FF.histOf().slice(-(win||7));
+ var arr=[],tot=0;
+ for(var i=0;i<h.length;i++){var m=h[i].ageMix||[];
+  for(var j=0;j<m.length;j++){arr.push(m[j]);tot+=m[j].q}}
+ if(tot<FF.C.ui.eps)return null;
+ arr.sort(function(a,b){return a.a-b.a});
+ var acc=0,med=null,p90=null;
+ for(i=0;i<arr.length;i++){acc+=arr[i].q;
+  if(med===null&&acc>=tot*0.5)med=arr[i].a;
+  if(p90===null&&acc>=tot*0.9){p90=arr[i].a;break}}
+ return{med:med,p90:p90,days:h.length};
+}
+
+FF.invPerf=function(win){
+ var h=FF.histOf().slice(-(win||5));
+ if(h.length<2)return null;
+ var sold=0,invSum=0,acc=0,loss=0;
+ for(var i=0;i<h.length;i++){sold+=h[i].sold;invSum+=h[i].end;acc+=h[i].acc;loss+=h[i].wT;}
+ var avgInv=invSum/h.length, avgSold=sold/h.length;
+ return{cover:avgSold>0.05?(avgInv/avgSold):null,loss:acc>0.05?(loss/acc):0,days:h.length};
+}
+
+FF.causeFacts=function(d){
+ if(!d)return null;
+ return {b:d.b,capI:d.capI,capS:d.capS,wIcap:d.wIcap,wIstore:d.wIstore,wS:d.wS,
+   prod:d.prod,dem:d.dem,missed:d.missed,wIneed:d.wIneed};
+}
+
+FF.invStats=function(){
+ var p=FF.invPerf(FF.C.ui.recentWin);
+ if(!p)return null;
+ var dm=FF.dwellMedian(FF.C.ui.dwellWin);
+ return {lossPct:Math.round(p.loss*100),med:dm?dm.med:null,p90:dm?dm.p90:null,win:FF.C.ui.dwellWin};
+}
+FF.capWord=function(v,cap){return v>=cap-FF.C.ui.eps?"at":(v>=cap*FF.C.ui.nearCap?"near":"free")};
+FF.storeWord=function(v){var r=v/FF.C.cap.storage;return r>=FF.C.ui.storeFull?"full":(r>=FF.C.ui.storeMid?"mid":"free")};
+
+FF.maintOf=function(k){return FF.C.step[k]*(k==="intake"?FF.C.maint.intake:FF.C.maint.sales)};
+FF.lostInflow=function(d){
+ if(!d)return null;
+ var tot=d.wI+d.wS;
+ if(tot<FF.C.ui.eps)return null;
+ var byStore=d.wIstore+d.wS, parts=[];
+ if(d.wIcap>FF.C.ui.eps)parts.push({cause:"cap",amt:d.wIcap});
+ if(byStore>FF.C.ui.eps)parts.push({cause:"store",amt:byStore});
+ if(d.wIneed>FF.C.ui.eps)parts.push({cause:"need",amt:d.wIneed});
+ return {total:tot,parts:parts};
+}
+
+FF.trend3=function(day){
+ var h=FF.histOf(), upto=[];
+ for(var i=0;i<h.length;i++)if(!day||h[i].day<=day)upto.push(h[i]);
+ var last3=upto.slice(-3), cnt={}, best="none", n=0;
+ for(var j=0;j<last3.length;j++){
+  var k=last3[j].b; cnt[k]=(cnt[k]||0)+1;
+  if(cnt[k]>n){n=cnt[k];best=k}
+ }
+ return best;
+}
+
+
+
+FF._matrixData=function(){
+ var h=FF.histOf();
+ if(h.length<2)return null;
+ var days=h.slice(-FF.C.ui.matrixDays);
+ var FC=(!FF.isOver()&&FF.run().day<=FF.C.days)?FF.C.ui.fcDays:0;
+ var SUP=["low","mid","high"], DEM=["weak","mid","strong"];
+ var modOn={}, evOn={};
+ FF.logOf().mods.forEach(function(m){modOn[m.day]=m.kind});
+ FF.logOf().evlog.forEach(function(e){evOn[e.day]=e.b});
+ var futPhase=function(idx,W,tl){
+  var a=[];
+  for(var dd=1;dd<=FC;dd++){
+   var v=FF.blur(FF.hor(idx,dd,dd,FF.C,tl)), b=0;
+   for(var t=1;t<3;t++)if(v[t]>v[b])b=t;
+   a.push(W[b]);
+  }
+  return a;
+ };
+ var mk=function(name,group,vals,fut,warn){
+  return {name:name,group:group,cells:vals.map(function(v){
+   return {code:v, warn:warn?warn(v):false, muted:(v===null)};
+  }), future:(fut||[])};
+ };
+ return {
+  days:days.map(function(r){return r.day}), FC:FC,
+  left:Math.max(0,FF.C.days-FF.run().day+1), over:FF.isOver(),
+  rows:[
+   mk("supply","supply",days.map(function(r){return SUP[r.si]}),FC?futPhase(FF.marketOf().si,SUP,FF.tiltOf().supply):null,function(v){return v==="low"}),
+   mk("intake","cap",days.map(function(r){return FF.capWord(r.acc,r.capI)}),null,function(v){return v==="at"}),
+   mk("storage","store",days.map(function(r){return FF.storeWord(r.end)}),null,function(v){return v==="full"}),
+   mk("sales","cap",days.map(function(r){return FF.capWord(r.sold,r.capS)}),null,function(v){return v==="at"}),
+   mk("demand","demand",days.map(function(r){return DEM[r.di]}),FC?futPhase(FF.marketOf().di,DEM,FF.tiltOf().demand):null,function(v){return v==="weak"}),
+   mk("event","event",days.map(function(r){return evOn[r.day]||null}),null,function(v){return v!==null}),
+   mk("mod","kind",days.map(function(r){return modOn[r.day]||null}),null,null)
+  ]
+ };
+}
+
+
+FF.matrixData=FF.memo(FF._matrixData);
+
+FF.monthOutlook=function(){
+ var M=FF.marketOf();
+ if(!M)return null;
+ var n=FF.C.days, today=FF.run()?Math.min(FF.run().day,n):1;
+ var left=n-today+1;
+ if(left<3)return null;
+ var w=Math.round(left/3), w2=Math.round(left*2/3);
+ var spans=[{key:"early",from:today,to:today+w-1},
+            {key:"mid",from:today+w,to:today+w2-1},
+            {key:"late",from:today+w2,to:n}];
+ var row=function(idx,tl){
+  return spans.map(function(s){
+   // 오늘 국면에서 몇 일 뒤인지로 전이를 돌린다
+   return {key:s.key,from:s.from,to:s.to,
+     pct:FF.pct(FF.blur(FF.hor(idx,s.from-today+1,s.to-today+1,FF.C,tl)))};
+  });
+ };
+ var T=FF.tiltOf();
+ return {days:n, today:today, left:left, supply:row(M.si,T.supply), demand:row(M.di,T.demand)};
+}
+
+// 확률 분포를 한 줄 판정으로 바꾼다. 기상청 1개월전망 해석표와 같은 규칙이다.
+//   pct = [낮음, 비슷, 높음]
+FF.outlookVerdict=function(pct){
+ var low=pct[0], mid=pct[1], high=pct[2];
+ if(high>=50)return "high";
+ if(low>=50)return "low";
+ if(mid>=50)return "similar";
+ if(high>low)return "mostlyHigh";
+ if(low>high)return "mostlyLow";
+ return "similar";
+}
+
+// 표시용 양자화. 5% 단위로 낮추되 합계 100을 보존한다.
+// 최대 나머지 방식이고 동률은 배열 순서로 고정한다.
+FF.quantizePct=function(p,step){
+ var st=step||5;
+ var base=p.map(function(x){return Math.floor(x/st)*st});
+ var sum=base.reduce(function(a,b){return a+b},0);
+ var order=p.map(function(x,i){return {i:i,rem:x-base[i]}})
+   .sort(function(a,b){return (b.rem-a.rem)||(a.i-b.i)});
+ for(var k=0;k<(100-sum)/st;k++)base[order[k].i]+=st;
+ return base;
+}
+
+
+// 최근 사흘의 최빈 병목. 기록하지 않고 필요할 때 센다.
+
+FF.missedTop=function(){
+ var m=FF.missedOps(), pos=m.filter(function(x){return x.gain>0});
+ if(!pos.length)return null;
+ var top=pos[0];
+ var near=pos.filter(function(x){return x.kind===top.kind&&x.gain>=top.gain*FF.C.ui.nearTop});
+ var days=near.map(function(x){return x.day}).sort(function(a,b){return a-b});
+ return {day:top.day,kind:top.kind,gain:top.gain,spanFrom:days[0],spanTo:days[days.length-1],spread:days.length>1};
+}
+
+FF.finAfterTop=function(){
+ if(!FF.run().finDay)return null;
+ var all=FF.missedOps().filter(function(x){return x.gain>0});
+ all.sort(function(a,b){return b.gain-a.gain});
+ var aft=all.filter(function(x){return x.day>=FF.run().finDay});
+ if(!aft.length)return {kind:null,state:"none"};
+ var t=aft[0];
+ if(all.length&&all[0].day===t.day&&all[0].kind===t.kind)
+  return {state:"same",day:t.day,kind:t.kind,gain:t.gain};
+ return {state:"other",day:t.day,kind:t.kind,gain:t.gain};
+}
+
+FF.contribRows=function(){
+ var c=FF.modContrib()||[];
+ return FF.logOf().mods.map(function(m,i){return {day:m.day,kind:m.kind,contrib:c[i]||0}});
+}
+
+FF.recoverStats=function(k){
+ var r=FF.recoverPct(k);
+ if(!r)return null;
+ return {val:r.val,prev:r.prev,delta:(r.prev!==null&&r.prev!==r.val)?(r.val-r.prev):null};
+}
+FF.modRows=function(){
+ var C=FF.modContrib();
+ return FF.logOf().mods.map(function(m,i){
+  var days=m.use.length, ex=(m.extra||0);
+  var isC=(m.kind==="contract");
+  var step=isC?(m.size||FF.contractOf()):FF.C.step[m.kind];
+  var opt=isC?FF.contractOption(step):null;
+  var cost=isC?(opt?opt.price:0)
+    :(FF.C.cost[m.kind]+days*step*FF.C.maint.sales);
+  return {day:m.day,kind:m.kind,size:m.size,days:days,extra:ex,
+   fill:days?ex/(days*step):0,
+   cost:cost,
+   contrib:C?C[i]:0,
+   idle:(days>0&&ex<FF.C.ui.eps)};
+ });
+}
+
+FF.missedGroups=function(){
+ var m=FF.missedOps();
+ if(!m.length)return null;
+ var by={sales:[]};
+ m.forEach(function(x){if(by[x.kind])by[x.kind].push(x)});
+ var out=[];
+ ["sales"].forEach(function(k){
+  var arr=by[k].slice().sort(function(a,b){return a.day-b.day});
+  if(!arr.length)return;
+  var maint=FF.maintOf(k);
+  out.push({kind:k,maint:maint,rows:arr.map(function(t,i){
+   var d=(i>0)?(t.gain-arr[i-1].gain):null;
+   return {day:t.day,gain:t.gain,delta:d,flat:(d!==null&&Math.abs(d-maint)<=2)};
+  })});
+ });
+ return out;
+}
+
+
+FF._chartData=function(){
+ var h=FF.histOf();
+ if(h.length<3)return null;
+ var FC=(!FF.isOver()&&FF.run().day<=FF.C.days)?FF.C.ui.fcDays:0;
+ var n=FF.C.days, lastDay=h[h.length-1].day;
+ var domain=Math.max(8,Math.min(n,lastDay+FC));
+ var mx=1, mxInv=1;
+ h.forEach(function(r){mx=Math.max(mx,r.prod,r.sold);mxInv=Math.max(mxInv,r.end)});
+ var band=function(idx,means,noiseSd,tl){
+  var out=[];
+  for(var dd=1;dd<=FC;dd++){
+   var v=FF.blur(FF.hor(idx,dd,dd,FF.C,tl));
+   var m=v[0]*means[0]+v[1]*means[1]+v[2]*means[2];
+   var sd=Math.sqrt(v[0]*Math.pow(means[0]-m,2)+v[1]*Math.pow(means[1]-m,2)+v[2]*Math.pow(means[2]-m,2))+noiseSd;
+   out.push({day:Math.min(n,FF.run().day-1+dd),hi:m+sd,lo:Math.max(0,m-sd)});
+  }
+  return out;
+ };
+ var TT=FF.tiltOf();
+ var supply=FC?band(FF.marketOf().si,FF.C.sm,FF.C.sd,TT.supply):[];
+ var demand=FC?band(FF.marketOf().di,FF.C.dm,FF.C.dd,TT.demand):[];
+ supply.concat(demand).forEach(function(b){mx=Math.max(mx,b.hi)});
+ var dirWord=function(idx,tl){
+  var v=FF.blur(FF.hor(idx,1,3,FF.C,tl)), g=Math.round((v[2]-v[0])*100);
+  return g>=10?"up":g<=-10?"down":"flat";
+ };
+ var ctb=FF.isOver()?(FF.modContrib()||[]):null;
+ return {
+  rows:h, FC:FC, domain:domain, max:mx, maxInv:mxInv,
+  nowDay:Math.min(FF.run().day-1,n), labelDay:Math.min(n,FF.run().day),
+  supplyBand:supply, demandBand:demand,
+  supplyDir:FC?dirWord(FF.marketOf().si,TT.supply):null, demandDir:FC?dirWord(FF.marketOf().di,TT.demand):null,
+  events:FF.logOf().evlog.map(function(e){return {day:e.day,b:e.b}}),
+  mods:FF.logOf().mods.map(function(m,i){return {day:m.day,kind:m.kind,contrib:ctb?ctb[i]:null}}),
+  scored:!!ctb
+ };
+}
+
+FF._endCardData=function(){
+ var h=FF.hindsight(), u=FF.useRate(FF.C.days);
+ var mine=Math.round(FF.ledger().cash-h.base), opt=Math.round(h.best.v-h.base);
+ var dw=FF.dwellMedian(FF.C.days), lp=FF.invPerf(FF.C.days);
+ return {
+  bust:FF.isBust(),
+  cash:FF.ledger().cash, seed:FF.run().seed,
+  vsIdle:mine, vsHindsight:mine-opt,
+  baseContract:h.best.i, baseSales:h.best.s,
+  buysContract:FF.plant().buys.contract||0, contractSize:FF.myContractSize(), buysSales:FF.plant().buys.sales,
+  spent:FF.ledger().spent, salvaged:FF.ledger().salvaged||0,
+  inv:FF.inventory(), capIntake:FF.plant().cap.intake, capShipping:FF.plant().cap.sales,
+  dwellMed:dw?dw.med:null, dwellP90:dw?dw.p90:null,
+  lossPct:lp?Math.round(lp.loss*100):null,
+  useIntake:u.intake, useShipping:u.sales,
+  demandPhase:[FF.cnt(1,0),FF.cnt(1,1),FF.cnt(1,2)],
+  supplyPhase:[FF.cnt(0,0),FF.cnt(0,1),FF.cnt(0,2)]
+ };
+}
+
+FF.endCardData=FF.memo(FF._endCardData);
+FF.chartData=FF.memo(FF._chartData);
+FF.missedMatrix=function(){
+ var gs=FF.missedGroups();
+ if(!gs)return null;
+ var kinds=gs.map(function(g){return g.kind});
+ var maint={};
+ gs.forEach(function(g){maint[g.kind]=g.maint});
+ var byDay={};
+ gs.forEach(function(g){
+  g.rows.forEach(function(r){
+   if(!byDay[r.day])byDay[r.day]={day:r.day,cells:{}};
+   byDay[r.day].cells[g.kind]={gain:r.gain,delta:r.delta,flat:r.flat};
+  });
+ });
+ var days=Object.keys(byDay).map(Number).sort(function(x,y){return x-y});
+ var best={};
+ kinds.forEach(function(k){
+  var top=null;
+  days.forEach(function(d){var c=byDay[d].cells[k];if(c&&(top===null||c.gain>top))top=c.gain});
+  best[k]=top;
+ });
+ return {kinds:kinds,maint:maint,best:best,rows:days.map(function(d){return byDay[d]})};
+}
+
+// 전략 비교. 같은 난수열로 여러 전략을 돌려 평균을 낸다.
+// 전략은 계획표, 함수, 규칙 배열 무엇이든 된다.
+
+// 계약은 첫날에 크기를 고르는 결정이다. 사후에 어느 크기가 최선이었는지 남긴다.
+FF.contractChance=function(){
+ if(!FF.isOver())return null;
+ var mine=FF.myContractSize();
+ var full=FF.currentPlan();
+ var XS=FF.C.contract.options.map(function(o){return o.x})
+   .filter(function(x){return x!==mine});
+ if(!XS.length)return null;
+ var vs=XS.map(function(x){
+  var p={};for(var d in full)p[d]=full[d];
+  if(x>0)p[1]="contract:"+x; else delete p[1];
+  return {at:1,plan:p};
+ });
+ var r=FF.simulate(FF.run().seed,full,vs);
+ var best={x:mine,gain:0};
+ for(var i=0;i<XS.length;i++){
+  var g=Math.round(r.variants[i]-r.base);
+  if(g>best.gain)best={x:XS[i],gain:g};
+ }
+ return {mine:mine,x:best.x,gain:best.gain};
+}
+
+// 최근 며칠의 추세. 실시간 화면에서 변화를 읽는 데 쓴다.
+FF.recentSeries=function(n){
+ var H=FF.histOf().slice(-(n||8));
+ return {
+  stock:H.map(function(r){return r.end}),
+  missed:H.map(function(r){return r.missed}),
+  days:H.map(function(r){return r.day})
+ };
+}
+
+// 판로 현황. 관계와 오늘 배분을 화면이 읽는 형태로 만든다.
+FF.channelRows=function(){
+ var rel=FF.relOf(), al=FF.allocOf();
+ var sum=0;
+ if(al)for(var i=0;i<al.length;i++)sum+=al[i];
+ return FF.C.channels.map(function(c,i){
+  return {key:c.key, rel:rel[i], quota:c.quota, settle:c.settle,
+    share:(al&&sum>0)?(al[i]/sum):null,
+    price:Math.round(c.price[0]*FF.C.rel.price[rel[i]]),
+    cap:Math.round(c.cap*FF.C.rel.cap[rel[i]]*10)/10,
+    floor:(c.key==="fran")?Math.round(c.quota*FF.C.rel.floor[rel[i]]*10)/10:0};
+ });
+}
+})(window.FF,window.FV);
+</script>
+<script id="src-debug">
+(function(FF,FV){
+window.ffStep=function(state,cmd,world){return FF.step(state,cmd,world)};
+window.ffCompare=function(seeds,strategies){return FF.compareStrategies(seeds,strategies)};
+window.ffHindRef=function(){return FF._hindsightRef()};
+window.ffContribRef=function(){return FF._modContribRef()};
+window.ffMissedRef=function(){return FF._missedOpsRef()};
+window.ffFinish=function(){
+ if(!FF.run().finDay)return{운영종료:false};
+ var m=FF.missedOps().filter(function(x){return x.day>=FF.run().finDay});
+ var pos=m.filter(function(x){return x.gain>0});
+ pos.sort(function(a,b){return b.gain-a.gain});
+ var edge=Math.round(FF.ledger().cash-FF.simulate(FF.run().seed,{},[]).base);
+ var give=pos.length?pos[0].gain:0;
+ return{운영종료일:FF.run().finDay,
+  확보우위:edge,
+  포기옵션:give,
+  포기옵션_위치:pos.length?{일차:pos[0].day,설비:pos[0].kind==="intake"?"입고":"판매"}:null,
+  이후_양의기회_수:pos.length,
+  종료여유:give>0?+(edge/give).toFixed(2):null};
+};
+
+window.ffCheck=function(){
+ var bad=[];
+ for(var i=0;i<FF.histOf().length;i++){
+  var r=FF.histOf()[i];
+  var d1=Math.abs((r.prod-r.acc)-(r.wI+r.wS));
+  var d2=Math.abs((r.dem-r.sold)-r.missed);
+  if(d1>0.001)bad.push({day:r.day,식:"생산=입고+미입고",오차:+d1.toFixed(4)});
+  if(d2>0.001)bad.push({day:r.day,식:"수요=판매+못판수요",오차:+d2.toFixed(4)});
+ }
+ return{검사일수:FF.histOf().length,위반:bad.length,목록:bad};
+};
+
+window.ffOption=function(k){var o=FF.optionOf(k);return o};
+window.ffTrace=function(){return FF.histOf().map(function(r){
+ return{day:r.day,daily:r.b,trend3:FF.trend3(r.day),drift:+(r.acc-r.sold).toFixed(2),
+  sold:+r.sold.toFixed(1),missed:+r.missed.toFixed(1),profit:Math.round(r.profit)}})};
+window.ffEvents=function(){
+ var NAME={intake:"입고 한도",store:"창고 공간",ship:"판매 한도",stock:"판매할 재고"};
+ var out=FF.logOf().evlog.map(function(e){
+  var bought=FF.logOf().buylog.filter(function(b){return b.day>=e.day&&b.day<=e.day+2});
+  return{day:e.day,제약:NAME[e.b]||e.b,
+   사건후2일내구매:bought.map(function(b){return b.kind}).join(",")||"없음"};
+ });
+ var hit=out.filter(function(x){return x.사건후2일내구매!=="없음"}).length;
+ return{사건수:out.length,구매로이어짐:hit,
+  구매율:out.length?Math.round(hit/out.length*100)+"%":"-",목록:out};
+};
+
+window.ffCapSignal=function(){
+ var e=FF.logOf().events,out={};
+ ["intake","sales"].forEach(function(k){
+  var key=k==="intake"?"atCapIntake":"atCapShipping";
+  var hits=e.filter(function(x){return x[key]});
+  var bought=hits.filter(function(x){return x.bought===k}).length;
+  var boughtNoSignal=e.filter(function(x){return x.bought===k&&!x[key]}).length;
+  out[k]={상한도달:hits.length,상한직후구매:bought,
+   구매율:hits.length?Math.round(bought/hits.length*100):0,
+   신호없이구매:boughtNoSignal};
+ });
+ return out;
+};
+window.ffModules=function(){
+ var contrib=FF.modContrib()||[];
+ return FF.logOf().mods.map(function(m,i){
+  var u=m.use.length?m.use.reduce(function(a,b){return a+b},0)/m.use.length*100:0;
+  var step=m.kind==="intake"?FF.C.step.intake:FF.C.step.sales;
+  var ex=m.extra||0, days=m.use.length;
+  return{설비:m.kind==="intake"?"입고":"판매",순번:m.idx,구매일:m.day,보유일:days,
+   추가용량사용:+ex.toFixed(1),
+   여력비율:days?Math.round(ex/(days*step)*100)+"%":"-",
+   반사실기여:contrib[i]===undefined?null:contrib[i],
+   legacy_이후평균가동:Math.round(u)+"%",
+   legacy_구매후3일내상한재도달:m.hit};
+ });
+};
+window.ffBuys=function(){return{sales:FF.plant().buys.sales,contract:FF.plant().buys.contract||0,spent:FF.ledger().spent}};
+window.ffAgree=function(){var h=FF.histOf().filter(function(r){return r.day>=3});
+ if(!h.length)return 0;return +(h.filter(function(r){return r.b===FF.trend3(r.day)}).length/h.length*100).toFixed(0)};
+})(window.FF,window.FV);
+</script>
+<script id="src-render">
+(function(FF,FV){
+FV._h=window.preact.h;
+FV._render=window.preact.render;
+FV._html=window.htm.bind(FV._h);
+FV._F=window.preact.Fragment;
+})(window.FF,window.FV);
+</script>
+<script id="src-text">
+(function(FF,FV){
+// 오늘 새로 나타난 문제. 짧게 한 줄로 알린다.
+FV.EVENT_TEXT={intake:"입고 한도 부족",store:"창고 공간 부족",
+ ship:"판매 한도 부족",stock:"팔 재고 부족"};
+FV.WORD={
+ channel:{online:"온라인",fran:"프랜차이즈",whole:"도매"},
+ relword:{0:"끊김",1:"보통",2:"좋음",3:"최상"},
+ policy:{lean:"적게",mid:"보통",full:"넉넉히"},
+ verdictSupply:{high:"평년보다 많겠음",mostlyHigh:"평년보다 대체로 많겠음",
+   similar:"평년과 비슷하겠음",mostlyLow:"평년보다 대체로 적겠음",low:"평년보다 적겠음"},
+ verdictDemand:{high:"평년보다 높겠음",mostlyHigh:"평년보다 대체로 높겠음",
+   similar:"평년과 비슷하겠음",mostlyLow:"평년보다 대체로 낮겠음",low:"평년보다 낮겠음"},
+ level:{supply:["부족","평년","풍작"],demand:["침체","정상","호황"]},
+ span:{early:"초순",mid:"중순",late:"하순"},
+ path:{event:"사건",manual:"직접"},
+ cap:{at:"한도",near:"근접",free:"여유"},
+ store:{full:"가득",mid:"보통",free:"여유"},
+ supply:{low:"부족",mid:"평년",high:"풍작"},
+ demand:{weak:"침체",mid:"정상",strong:"호황"},
+ row:{supply:"생산",intake:"입고",storage:"창고",sales:"판매",demand:"수요",event:"사건",mod:"투자"},
+ event:{intake:"입고",store:"창고",ship:"판매",stock:"재고"},
+ cause:{cap:"한도",store:"창고 부족",need:"필요 없음"},
+ dir:{up:"증가",down:"하락",flat:"보합"}
+};
+FV.say=function(group,code){
+ if(code===null||code===undefined)return "";
+ var t=FV.WORD[group];
+ return (t&&t[code])||code;
+};
+// 설비 이름. 화면 어디서나 같은 말을 쓴다.
+FV.capName=function(k){return k==="contract"?"초과분 매입 계약":"판매 한도"}
+// 지금 한도에서 사고 난 뒤 한도로.
+FV.capShift=function(k){
+ var c=FF.capsOf(), from=(k==="intake")?c.intake:c.sales;
+ return from+" \u2192 "+(from+FF.C.step[k])+"t/일";
+}
+// 기록과 표에서 쓰는 짧은 이름.
+FV.lblOf=function(k){return FV.capName(k)}
+
+FV.p1=function(h){return h.len===0?"관측 없음":(h.last?"막혔다":"여유 있었다")}
+FV.p2=function(h){return h.len<3?("관측 "+h.len+"일뿐"):(h.len+"일 중 "+h.n+"일 막힘")}
+// 전망 기울기를 월간 전망과 같은 말로 옮긴다.
+FV.trendWord=function(gap){
+ return gap>=10?"늘어날 전망":(gap<=-10?"줄어들 전망":"큰 변화 없음");
+}
+
+
+FV.worldNote=function(){
+ var slump=FF.cnt(1,0),boom=FF.cnt(1,2),poor=FF.cnt(0,0),good=FF.cnt(0,2),n=FF.histLen()||1;
+ if(slump/n>=0.5)return "수요 침체가 "+slump+"일 이어져 추가 용량이 팔 자리를 찾기 어려웠다.";
+ if(boom/n>=0.5)return "수요 호황이 "+boom+"일 이어져 판매 창구가 성과를 갈랐다.";
+ if(poor/n>=0.5)return "생산 부족이 "+poor+"일 이어져 공급망에 들어올 물량 자체가 적었다.";
+ if(good/n>=0.5)return "풍작이 "+good+"일 이어져 받아들일 물량은 많았다.";
+ return "생산과 수요가 30일 동안 뚜렷한 한쪽으로 기울지 않았다.";
+}
+
+// 얼마나 놓쳤는지 숫자로 말한다. 구매 버튼과 같은 어휘를 쓴다.
+FV.causeLine=function(d){
+ var c=FF.causeFacts(d);
+ if(!c)return "아직 관측이 없다";
+ var f=function(n){return n.toFixed(1)};
+ switch(c.b){
+  case "intake": return "하루 입고 한도 "+c.capI+"t을 다 써 "+f(c.wIcap)+"t을 못 받았다";
+  case "store":  return "창고가 차서 "+f(c.wIstore+c.wS)+"t을 못 받았다";
+  case "supply": return "농가 물량이 "+f(c.prod)+"t뿐이라 입고 한도가 남았다";
+  case "ship":   return "하루 판매 한도 "+c.capS+"t을 다 써 "+f(c.missed)+"t을 못 팔았다";
+  case "stock":  return "팔 재고가 없어 주문 "+f(c.missed)+"t을 놓쳤다";
+  case "demand": return "주문이 "+f(c.dem)+"t뿐이라 판매 한도가 남았다";
+  case "policy": return "지금 필요한 만큼만 받아 "+f(c.wIneed)+"t을 남겼다";
+ }
+ return "흐름이 안정적이다";
+}
+
+
+// 어제 무엇이 막았는가. 모델 용어가 아니라 관찰한 사실로 쓴다.
+FV.BL={none:"막힌 곳이 없었다",
+ intake:"입고 한도 부족",
+ store:"창고 공간 부족",
+ supply:"농가 물량 부족",
+ ship:"판매 한도 부족",
+ stock:"팔 재고 부족",
+ demand:"시장 수요 부족",
+ policy:"필요한 만큼만 받았다"};
+
+
+
+
+FV.optionText=function(o){
+ return{
+  past:o.window<3?("관측 "+o.window+"일"):(o.hits>0?(o.hits+"/"+o.window+"일"):(o.lastHit?"어제만":"없음")),
+  usable:o.usable+"일",
+  payback:o.payback===null?"—":(o.payback.toFixed(1)+"일")
+ };
+}
+
+
+})(window.FF,window.FV);
+</script>
+<script id="src-ui-flow">
+(function(FF,FV){
+FV.FlowMetric=function(props){
+ return FV._html`
+  <div style=${{display:"flex",alignItems:"baseline",gap:"8px"}}>
+   <span style=${{width:"30px",fontSize:"12px",color:props.hot?"var(--text-warning)":"var(--text-secondary)"}}>${props.name}</span>
+   <span style=${{flex:"1",fontSize:"11px",color:"var(--text-muted)"}}>${props.sub||""}</span>
+   <span style=${{fontSize:"15px",fontWeight:"500",color:props.hot?"var(--text-warning)":"var(--text-primary)"}}>${props.value}</span>
+  </div>`;
+}
+
+FV.SplitBar=function(props){
+ var total=props.a+props.b; if(total<=0)total=1;
+ var pa=Math.round(props.a/total*100);
+ var seg=function(width,bg,fg,label){
+  return FV._html`<div style=${{width:width+"%",background:bg,color:fg,textAlign:"center",whiteSpace:"nowrap",overflow:"hidden"}}>${width>=22?label:""}</div>`;
+ };
+ return FV._html`
+  <div style=${{display:"flex",height:"13px",borderRadius:"2px",overflow:"hidden",marginTop:"4px",fontSize:"10px",lineHeight:"13px"}}>
+   ${seg(pa,"var(--border-strong)","var(--text-primary)",props.labelA)}
+   ${seg(100-pa,"var(--bg-danger)","var(--text-danger)",props.labelB)}
+  </div>`;
+}
+
+FV.FillBar=function(props){
+ var width=Math.min(100,Math.max(1,Math.round(props.value/props.cap*100)));
+ return FV._html`
+  <div style=${{height:"6px",background:"var(--surface-1)",borderRadius:"3px",overflow:"hidden",marginTop:"4px"}}>
+   <div style=${{height:"6px",width:width+"%",background:"var(--text-muted)"}}></div>
+  </div>`;
+}
+
+FV.FlowConnector=function(props){
+ if(!props.visible)return null;
+ var width=Math.max(2,Math.round(props.value/props.max*10));
+ return FV._html`
+  <div style=${{display:"flex",alignItems:"center",gap:"6px",height:"12px",paddingLeft:"38px"}}>
+   <div style=${{width:width+"px",height:"12px",background:"var(--border-strong)",opacity:"0.7"}}></div>
+   <span style=${{fontSize:"10px",color:"var(--text-muted)"}}>${FF.f1(props.value)}t</span>
+  </div>`;
+}
+
+FV.FlowStage=function(props){
+ return FV._html`
+  <div style=${{padding:"5px 9px",borderLeft:"3px solid "+(props.hot?"var(--border-warning)":"transparent"),background:props.hot?"var(--bg-warning)":"transparent"}}>
+   ${props.children}
+  </div>
+  ${props.note?FV._html`<div style=${{padding:"1px 9px 3px 38px",fontSize:"11px"}}>${props.note}</div>`:null}
+  ${props.loss?FV._html`<div style=${{padding:"0 9px 4px 38px",fontSize:"11px",color:"var(--text-danger)"}}>└ ${props.loss}</div>`:null}`;
+}
+
+FV.FlowDiagram=function(props){
+ var d=props.day;
+ var iv=props.inventory;
+ var li=FF.lostInflow(d);
+ var prod=d?d.prod:0, acc=d?d.acc:0, dem=d?d.dem:0, sold=d?d.sold:0, miss=d?d.missed:0;
+ var caps=FF.capsOf();
+ var flowMax=Math.max(caps.intake,caps.sales,FF.C.cap.storage);
+ var lossText=li?li.parts.map(function(p){return FV.say("cause",p.cause)+" "+FF.f1(p.amt)}).join(" / "):"";
+
+ var invNote=function(){
+  var st=FF.invStats();
+  if(!st)return null;
+  var dtxt=st.med!==null?("체류 중앙값 "+st.med+"일 · 90% "+st.p90+"일"):"체류 —";
+  return FV._html`<span style=${{color:"var(--text-muted)"}}>최근 ${st.win}일 ${dtxt} · 로스 ${st.lossPct}%</span>`;
+ };
+ var recNote=function(kind){
+  var st=FF.recoverStats(kind);
+  if(!st)return null;
+  return FV._html`
+   <span style=${{color:st.val>=0?"var(--text-success)":"var(--text-warning)"}}>이 증설로 현재 ${st.val>=0?"+":""}${mo(st.val)}</span>
+   ${st.delta!==null?FV._html`<span style=${{color:"var(--text-muted)"}}> · 전일보다 ${st.delta>=0?"+":""}${mo(st.delta)}</span>`:null}`;
+ };
+
+ return FV._html`
+  <div style=${{border:"1px solid var(--border)",borderRadius:"var(--radius)",overflow:"hidden"}}>
+   <${FV.FlowStage} hot=${!!(d&&d.b==="supply")} loss=${lossText}>
+    <${FV.FlowMetric} name="농가" value=${d?FF.f1(prod)+"t":"—"} hot=${!!(d&&d.b==="supply")} sub=${"매입 "+mo(FF.C.farm)+"원/t"} />
+    ${d?FV._html`<${FV.SplitBar} a=${acc} b=${prod-acc} labelA=${"입고 "+FF.f1(acc)} labelB=${"미입고 "+FF.f1(prod-acc)} />`:null}
+   <//>
+   <${FV.FlowConnector} visible=${!!d} value=${acc} max=${flowMax} />
+
+   <${FV.FlowStage} hot=${!!(d&&d.b==="intake")} note=${recNote("intake")}>
+    <${FV.FlowMetric} name="입고" value=${d?FF.f1(acc)+"t":"—"} hot=${!!(d&&d.b==="intake")} sub=${"하루 한도 "+caps.intake+"t"} />
+   <//>
+   <${FV.FlowConnector} visible=${!!d} value=${acc} max=${flowMax} />
+
+   <${FV.FlowStage} hot=${!!(d&&(d.b==="store"||d.b==="stock"))} note=${invNote()} loss=${(d&&d.wT>FF.C.ui.eps)?("보관 중 상함 "+FF.f1(d.wT)+"t"):""}>
+    <${FV.FlowMetric} name="창고" value=${FF.f1(iv)+"t"} hot=${!!(d&&(d.b==="store"||d.b==="stock"))} sub=${"용량 "+FF.C.cap.storage+"t"} />
+    <${FV.FillBar} value=${iv} cap=${caps.storage} />
+   <//>
+   <${FV.FlowConnector} visible=${!!d} value=${sold} max=${flowMax} />
+
+   <${FV.FlowStage} hot=${!!(d&&d.b==="ship")} note=${recNote("sales")}>
+    <${FV.FlowMetric} name="판매" value=${d?FF.f1(sold)+"t":"—"} hot=${!!(d&&d.b==="ship")} sub=${"하루 한도 "+caps.sales+"t"} />
+   <//>
+   <${FV.FlowConnector} visible=${!!d} value=${sold} max=${flowMax} />
+
+   <${FV.FlowStage} hot=${!!(d&&d.b==="demand")}>
+    <${FV.FlowMetric} name="시장" value=${d?FF.f1(dem)+"t":"—"} hot=${!!(d&&d.b==="demand")} sub=${"경락 "+mo(FF.C.price)+"원/t"} />
+    ${d?FV._html`<${FV.SplitBar} a=${sold} b=${miss} labelA=${"판매 "+FF.f1(sold)} labelB=${"못 판 "+FF.f1(miss)} />`:null}
+   <//>
+  </div>`;
+}
+
+})(window.FF,window.FV);
+</script>
+<script id="src-ui-matrix">
+(function(FF,FV){
+FV.MatrixCell=function(props){
+ var color=props.warn?"var(--text-warning)":(props.muted?"var(--text-muted)":(props.color||"var(--text-primary)"));
+ return FV._html`<span style=${{
+  minWidth:"32px",flex:"1",textAlign:"center",fontSize:"11px",color:color,
+  opacity:props.muted?"0.45":"1"
+ }}>${props.text}</span>`;
+}
+
+FV.MatrixHeader=function(props){
+ var M=props.matrix;
+ return FV._html`<div style=${{display:"flex",gap:"2px"}}>
+  <span style=${{width:"26px",flexShrink:"0"}}></span>
+  ${M.days.map(function(d){return FV._html`<${FV.MatrixCell} text=${String(d)} color="var(--text-muted)" />`;})}
+  ${Array.from({length:M.FC},function(_,i){return FV._html`<${FV.MatrixCell} text=${"+"+(i+1)} color="var(--text-muted)" />`;})}
+ </div>`;
+}
+
+FV.MatrixRow=function(props){
+ var r=props.row, fc=props.fc;
+ return FV._html`<div style=${{display:"flex",gap:"2px",padding:"2px 0"}}>
+  <span style=${{width:"26px",flexShrink:"0",fontSize:"11px",color:"var(--text-secondary)"}}>${FV.say("row",r.name)}</span>
+  ${r.cells.map(function(c){
+    var text=c.muted?"·":(r.group==="kind"?FV.lblOf(c.code):FV.say(r.group,c.code));
+    return FV._html`<${FV.MatrixCell} text=${text} warn=${c.warn} muted=${c.muted} />`;})}
+  ${Array.from({length:fc},function(_,i){
+    var fv=r.future[i];
+    return FV._html`<${FV.MatrixCell} text=${fv?FV.say(r.group,fv):"·"} color="var(--text-muted)" />`;})}
+ </div>`;
+}
+
+FV.ForecastMatrix=function(props){
+ var M=props.matrix;
+ if(!M)return null;
+ var summary="최근 "+M.days.length+"일 상태"+(M.FC?" · 오른쪽은 앞 "+M.FC+"일 전망":"")+(M.over?"":" · 남은 "+M.left+"일");
+ return FV._html`<div>
+  <div style=${{fontSize:"11px",color:"var(--text-muted)",marginBottom:"4px"}}>${summary}</div>
+  <${FV.MatrixHeader} matrix=${M} />
+  ${M.rows.map(function(r){return FV._html`<${FV.MatrixRow} row=${r} fc=${M.FC} />`;})}
+ </div>`;
+}
+
+})(window.FF,window.FV);
+</script>
+<script id="src-ui-chart">
+(function(FF,FV){
+FV.ChartLegend=function(props){
+ var D=props.data;
+ return FV._html`
+  <div style=${{fontSize:"11px",color:"var(--text-muted)",marginBottom:"4px"}}>
+   <span style=${{color:"var(--text-primary)"}}>━</span> 생산 ·
+   <span style=${{color:"var(--text-secondary)"}}>╌</span> 판매 ·
+   <span style=${{color:"var(--text-muted)"}}>▮</span> 재고 ·
+   <span style=${{color:"var(--text-warning)"}}>●</span>
+   ${" 사건(위 유입·중간 창고·아래 유출) · ◆ 증설"+(D.FC>0?" · 오른쪽은 앞으로 "+D.FC+"일 가능 범위":"")}
+  </div>`;
+};
+
+FV.ChartPlot=function(props){
+ var D=props.data;
+ if(!D)return null;
+ var W=FF.C.chart.w,H=FF.C.chart.h,PAD=FF.C.chart.pad,BH=FF.C.chart.barH,GAP=FF.C.chart.gap;
+ var TOP=PAD+20;
+ var x=function(day){return PAD+(day-1)/(D.domain-1)*(W-2*PAD)};
+ var y=function(v){return TOP+(1-v/D.max)*(H-BH-GAP-PAD-TOP)};
+ var bw=(W-2*PAD)/D.domain;
+
+ var inventory=D.rows.map(function(r){
+  var hh=Math.max(1,r.end/Math.max(D.maxInv,FF.C.cap.storage)*BH);
+  return FV._html`<rect
+   x=${(PAD+(r.day-1)*bw).toFixed(1)}
+   y=${(H-PAD-hh).toFixed(1)}
+   width=${Math.max(1.5,bw*0.8).toFixed(1)}
+   height=${hh.toFixed(1)}
+   fill="var(--text-muted)" opacity="0.5" />`;
+ });
+
+ var forecast=[];
+ if(D.FC>0){
+  var xNow=x(D.nowDay), lx=x(D.labelDay)+6;
+  forecast.push(FV._html`<line
+   x1=${xNow.toFixed(1)} y1=${PAD}
+   x2=${xNow.toFixed(1)} y2=${(H-BH-GAP-PAD).toFixed(1)}
+   stroke="var(--border-strong)" stroke-width="0.7" stroke-dasharray="2 2" />`);
+  forecast.push(FV._html`<text x=${lx.toFixed(1)} y=${PAD+7} font-size="7.5" fill="var(--text-primary)">${"생산 "+D.supplyDir}</text>`);
+  forecast.push(FV._html`<text x=${lx.toFixed(1)} y=${PAD+16} font-size="7.5" fill="var(--text-secondary)">${"수요 "+D.demandDir}</text>`);
+  var whiskers=function(bands,col,dx){
+   return bands.map(function(b){
+    var px=x(b.day)+dx, y1=y(b.hi), y2=y(b.lo);
+    return FV._html`<g>
+     <line x1=${px.toFixed(1)} y1=${y1.toFixed(1)} x2=${px.toFixed(1)} y2=${y2.toFixed(1)} stroke=${col} stroke-width="1.4" opacity="0.8" />
+     <line x1=${(px-2.5).toFixed(1)} y1=${y1.toFixed(1)} x2=${(px+2.5).toFixed(1)} y2=${y1.toFixed(1)} stroke=${col} stroke-width="1" opacity="0.8" />
+     <line x1=${(px-2.5).toFixed(1)} y1=${y2.toFixed(1)} x2=${(px+2.5).toFixed(1)} y2=${y2.toFixed(1)} stroke=${col} stroke-width="1" opacity="0.8" />
+    </g>`;
+   });
+  };
+  forecast=forecast.concat(whiskers(D.supplyBand,"var(--text-primary)",-3));
+  forecast=forecast.concat(whiskers(D.demandBand,"var(--text-secondary)",3));
+ }
+
+ var points=function(key){return D.rows.map(function(r){return x(r.day).toFixed(1)+","+y(r[key]).toFixed(1)}).join(" ")};
+ var events=D.events.map(function(e){
+  var lane=(e.b==="intake")?0.22:(e.b==="store"||e.b==="stock")?0.5:0.78;
+  return FV._html`<circle cx=${x(e.day).toFixed(1)} cy=${(PAD+lane*(H-BH-GAP-2*PAD)).toFixed(1)} r="2.2" fill="var(--text-warning)" />`;
+ });
+ var mods=D.mods.map(function(m,i){
+  var bx=x(m.day);
+  var col=D.scored?(m.contrib>=0?"var(--text-success)":"var(--text-warning)"):"var(--text-primary)";
+  var ly=(i%2===0)?(PAD+9):(PAD+18), anc="middle", tx=bx;
+  if(bx<28){anc="start";tx=PAD}
+  else if(bx>W-28){anc="end";tx=W-PAD}
+  return FV._html`<g>
+   <rect x=${(bx-2.5).toFixed(1)} y=${PAD+1} width="5" height="5" transform=${"rotate(45 "+bx.toFixed(1)+" "+(PAD+3.5)+")"} fill=${col} />
+   <line x1=${bx.toFixed(1)} y1=${PAD+6} x2=${bx.toFixed(1)} y2=${H-PAD} stroke=${col} stroke-width="0.5" opacity="0.4" />
+   ${D.scored?FV._html`<text x=${tx.toFixed(1)} y=${ly} font-size="7.5" fill=${col} text-anchor=${anc}>${(m.contrib>=0?"+":"")+m.contrib}</text>`:null}
+  </g>`;
+ });
+
+ return FV._html`<svg viewBox=${"0 0 "+W+" "+H} style=${{width:"100%",height:"auto",display:"block"}}>
+  ${inventory}
+  ${forecast}
+  <polyline points=${points("prod")} fill="none" stroke="var(--text-primary)" stroke-width="1.6" />
+  <polyline points=${points("sold")} fill="none" stroke="var(--text-secondary)" stroke-width="1.6" stroke-dasharray="3 2" />
+  ${events}
+  ${mods}
+ </svg>`;
+};
+
+FV.ChartAxis=function(props){
+ return FV._html`<div style=${{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"var(--text-muted)"}}>
+  <span>1일</span><span>${props.domain}일</span>
+ </div>`;
+};
+
+FV.TimelineChart=function(props){
+ var D=props.data;
+ if(!D)return null;
+ return FV._html`<div>
+  <${FV.ChartLegend} data=${D} />
+  <${FV.ChartPlot} data=${D} />
+  <${FV.ChartAxis} domain=${D.domain} />
+ </div>`;
+};
+
+
+// 월간 전망표. 기상청 1개월전망 형식이다.
+// 각 구간은 낮음 / 비슷 / 높음 세 확률과 한 줄 판정을 낸다.
+
+// 막대 여덟 칸으로 최근 추세를 보여준다. 숫자보다 방향이 먼저 읽힌다.
+FV.Spark=function(props){
+ var v=props.values||[];
+ if(v.length<2)return null;
+ var max=Math.max.apply(null,v.concat([props.floor||1]));
+ var BLK=["\u2581","\u2582","\u2583","\u2584","\u2585","\u2586","\u2587","\u2588"];
+ var chars=v.map(function(x){
+  var i=Math.min(BLK.length-1,Math.max(0,Math.round(x/max*(BLK.length-1))));
+  return BLK[i];
+ }).join("");
+ var head=chars.slice(0,-1), tail=chars.slice(-1);
+ return FV._html`
+  <div class="spark">
+   <span class="spark-name">${props.label}</span>
+   <span class="spark-bars">${head}<span class="spark-new" key=${props.day}>${tail}</span></span>
+   <span class="spark-now">${props.now}</span>
+  </div>`;
+}
+})(window.FF,window.FV);
+</script>
+<script id="src-ui-outlook">
+(function(FF,FV){
+FV.OutlookBar=function(props){
+ var v=props.value, tone=props.tone;
+ var h=Math.max(4,Math.round(v/60*34));
+ return FV._html`
+  <div class="ob">
+   <span class="ob-pct">${v}%</span>
+   <span class=${"ob-bar ob-"+tone} style=${{height:h+"px"}}></span>
+   <span class="ob-name">${props.name}</span>
+  </div>`;
+}
+
+FV.OutlookSpan=function(props){
+ var s=props.span, group=props.group;
+ var names=FV.WORD.level[group];
+ // 판정은 원본 확률로, 막대와 숫자는 5% 단위로 보여준다.
+ var verdict=FV.say(group==="supply"?"verdictSupply":"verdictDemand",
+   FF.outlookVerdict(s.pct));
+ var q=FF.quantizePct(s.pct,5);
+ return FV._html`
+  <div class="ospan">
+   <div class="ospan-head">
+    <span class="ospan-name">${FV.say("span",s.key)}</span>
+    <span class="ospan-days">${s.from}~${s.to}일</span>
+   </div>
+   <div class="ospan-verdict">${verdict}</div>
+   <div class="ospan-bars">
+    <${FV.OutlookBar} value=${q[0]} name=${names[0]} tone="low" />
+    <${FV.OutlookBar} value=${q[1]} name=${names[1]} tone="mid" />
+    <${FV.OutlookBar} value=${q[2]} name=${names[2]} tone="high" />
+   </div>
+  </div>`;
+}
+
+FV.MonthOutlook=function(props){
+ var O=props.data;
+ if(!O)return null;
+ var block=function(title,group,rows){
+  return FV._html`
+   <${FV._F}>
+    <div class="outlook-head">${title} 전망</div>
+    <div class="ospans">
+     ${rows.map(function(s){return FV._html`<${FV.OutlookSpan} span=${s} group=${group} />`})}
+    </div>
+   <//>`;
+ };
+ return FV._html`
+  <div id="koutlook" class="card-sm">
+   <div style=${{fontSize:"11px",color:"var(--text-muted)",marginBottom:"6px"}}>
+    ${O.today>1?("남은 "+O.left+"일 전망"):(O.days+"일 전망")} · 각 기간에 예상되는 상태다
+   </div>
+   ${block("생산","supply",O.supply)}
+   ${block("수요","demand",O.demand)}
+  </div>`;
+}
+
+})(window.FF,window.FV);
+</script>
+<script id="src-report">
+(function(FF,FV){
+// 결과 화면 접이식의 열림 상태. 화면에만 쓰이므로 신호가 아니다.
+FV.OPEN={};
+
+
+/* ---- View primitives --------------------------------------------------
+ * props: atomic values and display options
+ * children: nested UI structure
+ * primitives do not know domain concepts and do not calculate game values
+ * --------------------------------------------------------------------- */
+FV.Panel=function(props){
+ var p=props||{}, cls=p.className||"panel";
+ return FV._html`<section id=${p.id} class=${cls}>${p.children}</section>`;
+};
+
+FV.Section=function(props){
+ var p=props||{};
+ return FV._html`
+  <section>
+   ${p.title?FV._html`<div class="section-title">${p.title}</div>`:null}
+   ${p.children}
+  </section>`;
+};
+
+FV.StatRow=function(props){
+ var p=props||{};
+ return FV._html`
+  <div class="stat-row">
+   <span class="stat-label">${p.label}</span>
+   <span class="stat-value">${p.value}</span>
+   <span class="stat-note">${p.note||""}</span>
+  </div>`;
+};
+
+// 접이식. 펼칠 때만 본문을 만든다. render 는 함수다.
+// 접이식. 펼칠 때만 본문을 만든다. render 는 함수다.
+FV.Fold=function(props){
+ var p=props||{}, id=p.id, open=!!FV.OPEN[id];
+ var onToggle=function(e){
+  var now=!!e.target.open;
+  if(now===!!FV.OPEN[id])return;
+  FV.OPEN[id]=now;
+  FF.repaint();
+ };
+ return FV._h("details",{class:"fold",open:open,onToggle:onToggle},[
+  FV._h("summary",{class:"fold-head","data-fold":id},p.title),
+  open?FV._h("div",{class:"fold-body"},[p.render()]):null
+ ]);
+};
+
+
+
+FV.OpportunityCell=function(props){
+ var c=props.cell, best=props.best;
+ if(!c)return FV._html`<span></span>`;
+ var top=(best!==null&&c.gain===best&&c.gain>0);
+ var delta=(c.delta===null)?"":(c.flat?"·":((c.delta>=0?"+":"")+mo(c.delta)));
+ return FV._html`
+  <span style=${{textAlign:"right",whiteSpace:"nowrap"}}>
+   <span style=${{color:c.gain>=0?"var(--text-success)":"var(--text-warning)",fontWeight:top?"600":"400"}}>${(c.gain>=0?"+":"")+mo(c.gain)}</span>
+   <span style=${{fontSize:"10px",marginLeft:"5px",color:c.flat?"var(--text-muted)":"var(--text-secondary)"}}>${delta}</span>
+  </span>`;
+};
+
+FV.OpportunityRow=function(props){
+ var M=props.matrix, row=props.row;
+ return FV._html`
+  <div style=${{display:"grid",gridTemplateColumns:props.columns,gap:"8px",fontSize:"12px",padding:"3px 0",borderBottom:"0.5px solid var(--border)"}}>
+   <span style=${{color:"var(--text-muted)"}}>${row.day}</span>
+   ${M.kinds.map(function(k){return FV._html`<${FV.OpportunityCell} cell=${row.cells[k]} best=${M.best[k]} />`;})}
+  </div>`;
+};
+
+FV.ContractChance=function(){
+ var c=FF.contractChance();
+ if(!c)return null;
+ return FV._html`
+  <${FV.StatRow} label="첫날 최적 계약량"
+    value=${c.gain>0?((c.x===0?"계약 없음":("+"+c.x+"t"))):"지금 선택이 최선"}
+    note=${c.gain>0?("+"+mo(c.gain)):(c.mine===0?"계약 없음":("+"+c.mine+"t"))} />`;
+}
+
+FV.OpportunityAnalysis=function(props){
+ var M=props.matrix;
+ if(!M)return FV._html`<div style=${{fontSize:"12px",color:"var(--text-secondary)"}}>더 살 날이 없다.</div>`;
+ var COL="14% "+M.kinds.map(function(){return "1fr"}).join(" ");
+ return FV._html`
+  <${FV._F}>
+   <div style=${{fontSize:"11px",color:"var(--text-muted)",lineHeight:"1.6",marginBottom:"6px"}}>
+    그날 하나를 더 샀을 때의 현금 차이<br />
+    · 유지비만큼 변함 (입고 ${M.maint.intake} / 판매 ${M.maint.sales})
+   </div>
+   <div style=${{display:"grid",gridTemplateColumns:COL,gap:"8px",fontSize:"11px",padding:"4px 0",borderBottom:"0.5px solid var(--border)"}}>
+    <span style=${{color:"var(--text-muted)"}}>일</span>
+    ${M.kinds.map(function(k){return FV._html`<span style=${{textAlign:"right",color:"var(--text-secondary)"}}>${FV.lblOf(k)}</span>`;})}
+   </div>
+   ${M.rows.map(function(row){return FV._html`<${FV.OpportunityRow} matrix=${M} row=${row} columns=${COL} />`;})}
+  <//>`;
+};
+
+
+FV.finBriefNode=function(){
+ if(!FF.finDayOf())return null;
+ return FV._html`
+  <${FV.StatRow}
+   label="운영 종료"
+   value=${FF.finDayOf()+"일차"}
+   note=${(FF.finDayOf()+1)+"~"+FF.C.days+"일 자동 운영"}
+  />`;
+}
+
+FV.finAfterNode=function(){
+ var a=FF.finAfterTop();
+ if(!a||a.state==="same")return null;
+ if(a.state==="none")return FV._html`
+  <${FV.StatRow} label="종료 후 기회" value="없음" note="접은 뒤로는 이득 없음" />`;
+ return FV._html`
+  <${FV.StatRow}
+   label="종료 후 최대 기회"
+   value=${a.day+"일 "+FV.lblOf(a.kind)}
+   note=${"+"+mo(a.gain)}
+  />`;
+}
+
+FV.missedBriefNode=function(){
+ var t=FF.missedTop();
+ if(!t)return FV._html`
+  <${FV.StatRow} label="놓친 최대 기회" value="없음" note="어느 날 더 사도 늘지 않음" />`;
+ var a=FF.finAfterTop();
+ var ctx=(a&&a.state==="same")?"운영 종료 이후":(a&&a.state==="other")?"운영 종료 전":"";
+ var span=t.spread?(t.spanFrom+"~"+t.spanTo+"일"):(t.day+"일");
+ return FV._html`
+  <${FV._F}>
+   <${FV.StatRow}
+    label="놓친 최대 기회"
+    value=${t.day+"일 "+FV.lblOf(t.kind)}
+    note=${"+"+mo(t.gain)}
+   />
+   <${FV.StatRow} label="유효 구간" value=${span} note=${ctx} />
+  <//>`;
+}
+
+FV.contribNode=function(){
+ var rows=FF.contribRows();
+ if(!rows.length)return null;
+ return FV._html`
+  <${FV._F}>
+   ${rows.map(function(r){return FV._html`
+    <div style=${{display:"flex",justifyContent:"space-between",padding:"3px 0",fontSize:"13px"}}>
+     <span style=${{color:"var(--text-secondary)"}}>${r.day}일 ${FV.lblOf(r.kind)}</span>
+     <span style=${{color:r.contrib>=0?"var(--text-success)":"var(--text-warning)"}}>
+      ${(r.contrib>=0?"+":"")+mo(r.contrib)}
+     </span>
+    </div>`;})}
+  <//>`;
+}
+
+FV.endCardNode=function(){
+ var E=FF.endCardData();
+
+ var headNode=FV._html`
+  <${FV._F}>
+   <div style=${{fontSize:"15px",fontWeight:"600",marginBottom:"2px"}}>${E.bust?"현금 소진 · 운영 중단":FF.C.days+"일 운영 결과"}</div>
+   <${FV.Section} title="성과">
+    <${FV.StatRow} label="최종 현금" value=${mo(E.cash)} note=${"시드 "+E.seed} />
+    <${FV.StatRow} label="무투자 대비" value=${(E.vsIdle>=0?"+":"")+mo(E.vsIdle)} note="내 투자 묶음의 효과" />
+   <//>
+   <${FV.Section} title="내 결정">
+    <${FV.StatRow} label="증설" value=${(E.buysContract+E.buysSales===0)?"없음":((E.buysContract?("계약 +"+E.contractSize+"t · "):"")+"판매 "+E.buysSales+"회")} note=${mo(E.spent)+" 투입"} />
+    ${FV.contribNode()}
+    ${FV.finBriefNode()}
+   <//>
+   <${FV.Section} title="복기">
+    <${FV.StatRow} label="사후 기준 대비" value=${(E.vsHindsight>=0?"+":"")+mo(E.vsHindsight)} note=${"기준 "+(E.baseContract?("계약 +"+E.baseContract+"t · "):"")+"판매 "+E.baseSales+"회"} />
+    ${FV.missedBriefNode()}
+    ${FV.finAfterNode()}
+   <//>
+  <//>`;
+
+
+ return FV._html`
+  <${FV._F}>
+   ${headNode}
+   <${FV.Fold} id="ops" title="운영 결과"
+     render=${function(){return FV._html`<${FV.OperationResult} data=${E} />`}} />
+   <${FV.Fold} id="mods" title="투자 분석"
+     render=${function(){
+       var rows=FF.modRows();
+       return rows.length?FV._html`<${FV.InvestmentAnalysis} rows=${rows} />`
+         :FV._html`<div style=${{fontSize:"12px",color:"var(--text-muted)"}}>이번 판에는 아무것도 사지 않았다.</div>`;
+     }} />
+   <${FV.Fold} id="miss" title="기회 분석"
+     render=${function(){return FV._html`
+       <${FV._F}>
+        <${FV.ContractChance} />
+        <${FV.OpportunityAnalysis} matrix=${FF.missedMatrix()} />
+       <//>`}} />
+   <${FV.Fold} id="log" title="전체 기록"
+     render=${function(){return FV._html`<${FV.FullLog} />`}} />
+   <div style=${{marginTop:"8px",fontSize:"11px",color:"var(--text-muted)"}}>
+    사후 기준은 30일을 미리 알 때 같은 횟수로 얻는 최선이다. 사는 날은 이틀 간격으로 고정했다.
+   </div>
+  <//>`;
+}
+
+
+FV.OperationResult=function(props){
+ var E=props.data;
+ return FV._html`
+  <${FV._F}>
+   <${FV.StatRow} label="최종 재고" value=${FF.f1(E.inv)+" t"} note=${"저장 "+FF.C.cap.storage+" t"} />
+   <${FV.StatRow} label="최종 용량" value=${"입고 "+E.capIntake+" / 판매 "+E.capShipping} note=${"시작 "+FF.C.cap.intake+" / "+FF.C.cap.sales} />
+   <${FV.StatRow} label="총 투자비" value=${mo(E.spent)} note=${E.buysContract+E.buysSales+"회"} />
+   <${FV.StatRow} label="종료 시 처분가치" value=${mo(E.salvaged)} note=${"취득비의 "+Math.round(FF.C.salvage*100)+"%"} />
+   <${FV.StatRow} label="재고 체류일" value=${E.dwellMed!==null?("중앙값 "+E.dwellMed+"일 / 90% "+E.dwellP90+"일"):"—"} note=${"판매된 물량 기준, TTL "+FF.C.ttl+"일"} />
+   <${FV.StatRow} label="로스율" value=${E.lossPct!==null?E.lossPct+"%":"—"} note="상함 / 입고" />
+   <${FV.StatRow} label="입고 평균 가동" value=${E.useIntake.toFixed(0)+"%"} note=${FF.C.days+"일 기준"} />
+   <${FV.StatRow} label="판매 평균 가동" value=${E.useShipping.toFixed(0)+"%"} note=${FF.C.days+"일 기준"} />
+   <${FV.StatRow} label="수요 국면" value=${E.demandPhase[0]+"일 침체, "+E.demandPhase[1]+"일 정상, "+E.demandPhase[2]+"일 호황"} />
+   <${FV.StatRow} label="생산 국면" value=${E.supplyPhase[0]+"일 부족, "+E.supplyPhase[1]+"일 평년, "+E.supplyPhase[2]+"일 풍작"} />
+   <div style=${{marginTop:"8px",fontSize:"12px",color:"var(--text-secondary)"}}>${FV.worldNote()}</div>
+  <//>`;
+};
+
+FV.InvestmentRow=function(props){
+ var r=props.row, lbl=FV.lblOf(r.kind);
+ if(r.days===0){
+  return FV._html`
+   <div style=${{fontSize:"12px",color:"var(--text-secondary)",padding:"3px 0"}}>
+    ${r.day}일 ${lbl} · 내일부터 작동
+   </div>`;
+ }
+ var zero=(FF.isOver()&&r.idle)?"추가 용량 사용 없음 · ":"";
+ return FV._html`
+  <div style=${{fontSize:"12px",color:"var(--text-secondary)",padding:"4px 0"}}>
+   <div>${r.day}일 ${lbl} · ${r.days}일 보유</div>
+   <div style=${{paddingLeft:"10px"}}>
+    추가 용량 사용 ${r.extra.toFixed(1)}t (여력의 ${Math.round(r.fill*100)}%) · 들인 돈 ${mo(r.cost)} ·
+    <span style=${{color:r.contrib>=0?"var(--text-success)":"var(--text-warning)"}}>
+     ${zero}이 증설의 기여 ${(r.contrib>=0?"+":"")+mo(r.contrib)}
+    </span>
+   </div>
+  </div>`;
+};
+
+FV.InvestmentAnalysis=function(props){
+ var rows=props.rows||[];
+ if(!rows.length)return null;
+ return FV._html`
+  <${FV._F}>
+   <div style=${{fontSize:"12px",color:"var(--text-muted)",margin:"0 0 6px"}}>
+    기여는 그 설비 하나만 빼고 30일을 다시 돌린 결과와의 차이다. 설비끼리 영향을 주므로 합계는 전체 차이와 다르다.
+   </div>
+   ${rows.map(function(r){return FV._html`<${FV.InvestmentRow} row=${r} />`;})}
+  <//>`;
+};
+
+
+FV.FullLog=function(){
+ return FV._html`
+  <${FV._F}>
+   <${FV.TimelineLog} items=${FF.timelineOf()} />
+   <${FV.DailyLog} rows=${FF.recent(FF.C.ui.logRows).reverse()} />
+   <${FV.BuyLog} rows=${FF.buylogOf()} />
+  <//>`;
+};
+
+FV.BuyLog=function(props){
+ var BL=props.rows||[];
+ if(!BL.length)return FV._html`<div style=${{color:"var(--text-muted)",marginTop:"12px"}}>이번 판에는 아무것도 사지 않았다.</div>`;
+ var COL="repeat(8,minmax(0,1fr))";
+ var HEAD=["일차","설비","몇 번째","앞으로","최근","가동","남은 날","계기"];
+ var grid=function(extra){return Object.assign({display:"grid",gridTemplateColumns:COL,gap:"4px",borderBottom:"0.5px solid var(--border)"},extra)};
+ return FV._html`
+  <${FV._F}>
+   <div style=${{marginTop:"14px",fontSize:"12px",color:"var(--text-muted)"}}>증설 기록</div>
+   <div style=${grid({fontSize:"11px",padding:"5px 0",color:"var(--text-muted)"})}>
+    ${HEAD.map(function(x){return FV._html`<span>${x}</span>`;})}
+   </div>
+   ${BL.map(function(b){return FV._html`
+    <div style=${grid({fontSize:"12px",padding:"4px 0",color:"var(--text-primary)"})}>
+     <span>${b.day}</span><span>${FV.lblOf(b.kind)}</span><span>${b.nth}회</span>
+     <span>${FV.trendWord(b.gap)}</span><span>${b.kind==="contract"?"개장 전망":(b.hitLen<3?("관측 "+b.hitLen+"일"):(b.hitLen+"일 중 "+b.hitN+"일"))}</span>
+     <span>${b.util===null?"—":(b.util+"%")}</span><span>${b.left}일</span><span>${FV.say("path",b.path)}</span>
+    </div>`;})}
+   <button id="kcopy" style=${{width:"100%",padding:"9px",fontSize:"12px",marginTop:"10px"}} onClick=${function(){FV.copyLog()}}>기록 복사</button>
+   <textarea id="kdump" readonly style=${{width:"100%",height:"0",opacity:"0",border:"0",padding:"0"}}></textarea>
+  <//>`;
+};
+
+FV.TimelineLog=function(props){
+ var TL=props.items||[];
+ if(!TL.length)return null;
+ var sayBuy=function(t){
+  return (t.kind==="contract")
+   ? ("초과분 매입 계약 · 한도 넘는 날 "+t.newCap+"t 더 받는다")
+   : ("판매 한도 늘리기 · 다음날 "+t.newCap+"t/일 적용");
+ };
+ var byDay={};
+ TL.forEach(function(t){
+  var k2="d"+t.day;
+  if(!byDay[k2])byDay[k2]={sort:t.day+0.5,kind:"day",day:t.day,ev:[],act:[]};
+  if(t.type==="event")byDay[k2].ev.push(FV.EVENT_TEXT[t.b]||"");
+  else if(t.type==="buy")byDay[k2].act.push(sayBuy(t));
+  else if(t.type==="finish")byDay[k2].act.push("운영 종료 선택, 남은 기간 자동 운영");
+ });
+ var arr=Object.keys(byDay).map(function(k){return byDay[k]}).sort(function(a,b){return a.sort-b.sort});
+ return FV._html`
+  <div style=${{fontSize:"12px",lineHeight:"1.7"}}>
+   <div style=${{fontSize:"12px",color:"var(--text-muted)",marginBottom:"6px"}}>진행 기록</div>
+   ${arr.map(function(r){
+    if(r.kind==="auto")return FV._html`<div style=${{color:"var(--text-muted)",padding:"3px 0"}}>${r.text}</div>`;
+    return FV._html`
+     <div style=${{display:"flex",gap:"8px",padding:"3px 0"}}>
+      <span style=${{width:"34px",color:"var(--text-secondary)",flexShrink:"0"}}>${r.day}일</span>
+      <span style=${{flex:"1"}}>
+       ${r.ev.length?FV._html`<span style=${{color:"var(--text-warning)"}}>${r.ev.join(", ")}</span>`:null}
+       ${r.ev.length&&r.act.length?" → ":null}
+       ${r.act.length?FV._html`<span style=${{color:"var(--text-primary)"}}>${r.act.join(", ")}</span>`:null}
+      </span>
+     </div>`;
+   })}
+  </div>`;
+};
+
+FV.DailyLog=function(props){
+ var rows=props.rows||[];
+ var HEAD=["일차","생산","수요","판매","미입고","상함","못판수요","손익"];
+ var grid={display:"grid",gridTemplateColumns:"repeat(8,minmax(0,1fr))",gap:"2px",fontSize:"11px"};
+ if(!rows.length)return FV._html`<div style=${{color:"var(--text-muted)"}}>하루를 운영하면 결과가 쌓인다.</div>`;
+ var cell=function(v,right,color){var st={};if(right)st.textAlign="right";if(color)st.color=color;return FV._html`<span style=${st}>${v}</span>`};
+ return FV._html`
+  <${FV._F}>
+   <div style=${Object.assign({},grid,{padding:"4px 0",borderBottom:"0.5px solid var(--border)"})}>
+    ${HEAD.map(function(h,i){return cell(h,i>0);})}
+   </div>
+   ${rows.map(function(r){return FV._html`
+    <div style=${Object.assign({},grid,{padding:"3px 0",borderBottom:"0.5px solid var(--border)",color:"var(--text-primary)"})}>
+     ${cell(String(r.day),false)}${cell(FF.f1(r.prod),true)}${cell(FF.f1(r.dem),true)}${cell(FF.f1(r.sold),true)}
+     ${cell(FF.f1(r.wI+r.wS),true)}${cell(FF.f1(r.wT),true)}${cell(FF.f1(r.missed),true)}
+     ${cell(mo(r.profit),true,r.profit>=0?"var(--text-success)":"var(--text-danger)")}
+    </div>`;})}
+  <//>`;
+};
+
+
+})(window.FF,window.FV);
+</script>
+<script id="src-clip">
+(function(FF,FV){
+// 클립보드 조작. 화면 계층에서 DOM 을 만지는 유일한 곳이다.
+FV.copyLog=function(){
+ var S=FF.status(), B=FF.buysOf();
+ var lines=["seed "+S.seed+" 현금 "+Math.round(S.cash)+" 입고 "+B.intake+"회 판매 "+B.sales,
+  "일차\t설비\t몇 번째\t앞으로\t최근\t가동\t남은 날\t계기"];
+ var BL=FF.buylogOf();
+ for(var i=0;i<BL.length;i++){var b=BL[i];
+  lines.push(b.day+"\t"+FV.lblOf(b.kind)+"\t"+b.nth+"\t"+FV.trendWord(b.gap)+"\t"+(b.hitLen<3?("관측"+b.hitLen+"일"):(b.hitLen+"일중"+b.hitN+"일"))+"\t"+b.util+"%\t"+b.left+"\t"+FV.say("path",b.path))}
+ var txt=lines.join("\n");
+ FF.LASTDUMP=txt;
+ try{if(navigator&&navigator.clipboard)navigator.clipboard.writeText(txt)}catch{}
+ var ta=document.getElementById("kdump");
+ if(ta){ta.style.height="120px";ta.style.opacity="1";ta.value=txt;
+  try{ta.select();ta.setSelectionRange(0,txt.length);document.execCommand("copy")}catch{}}
+ var b2=document.getElementById("kcopy");
+ if(b2)b2.textContent="복사됨. 안 되면 아래 상자를 길게 눌러 선택한다";
+}
+})(window.FF,window.FV);
+</script>
+<script id="src-view">
+(function(FF,FV){
+
+FV.MOUNT=null;
+
+
+
+
+
+
+FV.FlowSummary=function(props){
+ var d=props.day;
+ if(FF.isOver())return FV._html`<div id="kbn" class="sub-p">${FF.isBust()?"현금 소진":FF.C.days+"일 운영 결과"}</div>`;
+ if(!d)return FV._html`<div id="kbn" class="sub-p"></div>`;
+ return FV._html`
+  <div id="kbn" class="sub-p">
+   <span style=${{fontSize:"12px",color:"var(--text-muted)"}}>어제 막힌 곳</span><br />
+   <span style=${{color:"var(--text-warning)"}}>${FV.BL[d.b]}</span><br />
+   <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>${FV.causeLine(d)}</span>
+  </div>`;
+}
+
+FV.DecisionMetric=function(props){
+ return FV._html`
+  <div style=${{display:"flex",justifyContent:"space-between",gap:"6px",fontSize:"11px",lineHeight:"1.5"}}>
+   <span style=${{color:"var(--text-muted)"}}>${props.label}</span>
+   <span style=${{color:props.warn?"var(--text-warning)":"var(--text-secondary)"}}>${props.value}</span>
+  </div>`;
+}
+
+// 초과분 매입 계약 선택지. 첫날에 노출량을 고른다.
+FV.ContractOption=function(props){
+ var o=props.opt, zero=(o.x===0);
+ var on=zero?!FF.queued("contract"):FF.queued("contract",o.x);
+ var afford=zero||FF.status().cash>=o.price;
+ return FV._h("button",{
+   id:props.id, class:"btn-cell"+(on?" opt-on":""),
+   style:{borderColor:on?"var(--border-accent)":"var(--border-strong)",
+     background:"transparent",opacity:afford?"1":"0.4"},
+   onClick:function(){ if(zero)FF.clearQueue(); else FF.toggleBuy("contract",o.x) }
+  },[
+   FV._h("div",{class:"opt-size"}, zero?"계약 없음":("+"+o.x+"t")),
+   FV._h("div",{class:"opt-price"}, zero?"0원":(mo(o.price)+"원")),
+   FV._h("div",{class:"opt-note"},
+     zero?"한도까지만 받는다":("한도 넘는 날 "+o.x+"t 더 받는다"))
+  ]);
+}
+
+FV.OptionCard=function(props){
+ var on=FF.queued(props.kind), ord=FF.ord(props.kind), opt=FF.optionOf(props.kind), tx=FV.optionText(opt);
+ return FV._html`
+  <button id=${props.id} class="btn-cell"
+   style=${{borderColor:on?"var(--border-accent)":"var(--border-strong)",background:"transparent",
+     opacity:(opt.affordable||on)?"1":"0.4"}}
+   onClick=${function(){if(!FF.isOver())FF.toggleBuy(props.kind)}}>
+   ${FF.pendingOf()===props.kind?FV._html`<b>내일 적용</b> `:(on?FV._html`<b>${ord}순위</b> `:null)}${FV.capName(props.kind)} 늘리기
+   <div style=${{fontSize:"11px",color:"var(--text-secondary)",padding:"2px 0 1px"}}>${FV.capShift(props.kind)}</div>
+   <div style=${{fontSize:"11px",color:"var(--text-primary)",padding:"1px 0 6px"}}>${mo(opt.cost)}원</div>
+   <${FV.DecisionMetric} label="도달" value=${tx.past} />
+   <${FV.DecisionMetric} label="가능" value=${tx.usable} warn=${opt.usable<=FF.C.ui.lowDays} />
+   <${FV.DecisionMetric} label="회수" value=${tx.payback} warn=${opt.overRun} />
+  </button>`;
+}
+
+FV.WatchCard=function(props){
+ return FV._html`
+  <button id="kbw" class="btn-cell"
+   style=${{borderColor:props.hasQueue?"var(--border-strong)":"var(--border-accent)",background:"transparent"}}
+   onClick=${function(){if(!FF.isOver())FF.clearQueue()}}>
+   관망
+   <div style=${{fontSize:"11px",color:"var(--text-secondary)",padding:"2px 0 1px"}}>이번에는 사지 않기</div>
+   <div style=${{fontSize:"11px",color:"var(--text-primary)",padding:"1px 0 6px"}}>0원</div>
+   <div style=${{fontSize:"11px",color:"var(--text-muted)",lineHeight:"1.5"}}>지금 한도로</div>
+   <div style=${{fontSize:"11px",color:"var(--text-muted)",lineHeight:"1.5"}}>하루 더</div>
+   <div style=${{fontSize:"11px",color:"var(--text-muted)",lineHeight:"1.5"}}>운영한다</div>
+  </button>`;
+}
+
+FV.ChannelBar=function(){
+ FF.observe();
+ if(!FF.started()||FF.isOver())return null;
+ var rows=FF.channelRows();
+ var al=FF.plannedAlloc();
+ return FV._h("div",{id:"kchan",class:"chan"},
+  rows.map(function(r,i){
+   var w=al?al[i]:1;
+   return FV._h("div",{class:"chan-row"},[
+    FV._h("span",{class:"chan-name"},FV.say("channel",r.key)),
+    FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel))),
+    FV._h("div",{class:"chan-btns"},[0,1,2,3].map(function(n){
+      return FV._h("button",{class:"cw"+(w===n?" cw-on":""),
+        onClick:function(){FF.setChannelWeight(i,n)}}, String(n));
+    })),
+    FV._h("span",{class:"chan-info"},
+      r.price+"원 · 하루 "+r.cap+"t"+(r.floor>0?(" · 보장 "+r.floor+"t"):"")),
+    FV._h("span",{class:"chan-term"},
+      (r.settle===0?"당일 정산":(r.settle+"일 뒤 정산"))+" · "+r.quota+"t 넣으면 관계 상승")
+   ]);
+  }));
+}
+
+
+FV.DecisionActions=function(props){
+ var Q=props.queue||[];
+ return FV._html`
+  <div id="kacts" class="acts">
+   <${FV.OptionCard} kind="sales" id="kbs" />
+   <${FV.WatchCard} hasQueue=${Q.length>0} />
+  </div>`;
+}
+
+// 첫날. 월간 전망을 보고 계약 여부를 정한다. 계약은 이 화면에서만 산다.
+FV.FirstDayPrompt=function(){
+ 
+ return FV._html`
+  <${FV._F}>
+   <${FV.Panel} id="kexplore" className="card">
+    <div style=${{fontSize:"13px",color:"var(--text-primary)",marginBottom:"4px"}}>개장 전</div>
+    <div style=${{fontSize:"12px",color:"var(--text-secondary)",lineHeight:"1.6"}}>
+     이번 달 전망을 보고 초과분을 얼마나 더 받을지 정한다. 계약은 지금만 맺을 수 있다.</div>
+   <//>
+   <${FV.MonthOutlook} data=${FF.monthOutlook()} />
+   <div id="kopening" class="opts">
+    ${FF.C.contract.options.map(function(o,i){
+      return FV._html`<${FV.ContractOption} opt=${o} id=${"kbc"+i} />`;
+    })}
+   </div>
+  <//>`;
+}
+
+
+
+FV.FlowView=function(){
+ var d=FF.today();
+ return FV._html`
+  <div id="kylabel" class="lbl">${d?(d.day+"일 결과"):"운영 시작 전"}</div>
+  <${FV.FlowSummary} day=${d} />
+  <div id="kchain" class="gap-s">
+   <${FV.FlowDiagram} day=${d} inventory=${FF.inventory()} />
+  </div>`;
+}
+
+
+// 이번 판에 산 것들. 진행 중에만 보인다.
+FV.HistoryView=function(){
+ if(!FF.started()||FF.isOver())return null;
+ var modRows=FF.modRows();
+ if(!modRows.length)return null;
+ return FV._html`
+  <div>
+   ${modRows.map(function(m){
+     return FV._html`<div class="card-note">${m.day}일 ${FV.lblOf(m.kind)}</div>`;
+   })}
+  </div>`;
+}
+
+
+FV.NavBarView=function(){
+ FF.observe(); FF.SIG.newGame.value;
+ var mid=!FF.isOver()&&FF.started(), done=FF.isOver(), arm=FF.SIG.newGame.value;
+ var S=FF.status();
+ var d=S?S.day:1, pf=S?S.profit:null;
+ var newGame=function(){
+  var m=!FF.isOver()&&FF.started();
+  if(m&&!FF.SIG.newGame.value){
+   FF.SIG.newGame.value=true;
+   setTimeout(function(){FF.SIG.newGame.value=false},FF.C.ui.newArmMs);
+   return;
+  }
+  FF.SIG.newGame.value=false;
+  var el=document.getElementById("kseed");
+  FV.newGame(el&&el.value?el.value:0);
+  if(el)el.value="";
+ };
+ return FV._html`
+  <${FV._F}>
+   <div style=${{display:"flex",alignItems:"center",gap:"6px",margin:"20px 0 12px"}}>
+    <div style=${{fontSize:"16px",fontWeight:"600",letterSpacing:"-.01em",flex:"1"}}>양파 · 30일 운영</div>
+    <input id="kseed" inputmode="numeric" placeholder="시드" class="btn-sm"
+     style=${{width:"64px",background:"transparent",color:"var(--text-primary)",border:"1px solid var(--border-strong)",borderRadius:"var(--radius)"}} />
+    <button id="knew" class="btn-sm"
+     style=${{
+      borderColor:arm?"var(--border-warning)":(mid?"var(--border-strong)":"var(--border-accent)"),
+      color:arm?"var(--text-warning)":(mid?"var(--text-muted)":(done?"var(--text-success)":"var(--text-primary)"))
+     }}
+     onClick=${newGame}>${arm?"버리고 새 게임":(done?"새 게임 ▸":"새 게임")}</button>
+   </div>
+   <div style=${{display:"flex",gap:"14px",flexWrap:"wrap",paddingBottom:"10px",borderBottom:"1px solid var(--border)",marginBottom:"14px"}}>
+    <div style=${{fontSize:"13px",color:"var(--text-secondary)"}}>일차 <span id="kd" style=${{color:"var(--text-primary)",fontWeight:"500"}}>${d}</span> / ${FF.C.days}</div>
+    <div style=${{fontSize:"13px",color:"var(--text-secondary)"}}>현금 <span id="kc" style=${{color:"var(--text-primary)",fontWeight:"500"}}>${mo(S.cash)}</span></div>
+    <div style=${{fontSize:"13px",color:"var(--text-secondary)"}}>어제 손익 <span id="kp" style=${{fontWeight:"500",color:pf===null?"var(--text-primary)":(pf>=0?"var(--text-success)":"var(--text-danger)")}}>${pf===null?"—":((pf>=0?"+":"-")+mo(Math.abs(pf)))}</span></div>
+    <div style=${{fontSize:"13px",color:"var(--text-secondary)"}}>시드 <span id="ks" style=${{color:"var(--text-primary)"}}>${S.seed}</span></div>
+   </div>
+  <//>`;
+}
+
+// 개장 전 화면. 본문에 남는다. 전망을 넓게 봐야 하기 때문이다.
+FV.OpeningView=function(){
+ FF.observe(); if(FF.isOver()||FF.started())return null;
+ return FV._html`<${FV.FirstDayPrompt} />`;
+}
+
+// 진행 중 결정. 독 안에 들어간다.
+FV.DecisionView=function(){
+ FF.observe(); FF.SIG.manual.value;
+ if(FF.isOver())return FV._html`<div id="klabel" class="lbl">운영 종료</div>`;
+ if(!FF.started())return null;
+
+ var ev=FF.evt(), Q=FF.queueOf();
+ var evTxt=ev?FV.EVENT_TEXT[ev.b]:"특이사항 없이 운영 중";
+ var pend=Q.length===1?("이번에 증설: "+FV.lblOf(Q[0].kind)):
+  (Q.length>1?("이번에 증설: "+Q.map(function(q){return FV.lblOf(q.kind)}).join(" \u2192 ")+" · 하루에 하나씩 산다"):null);
+
+ return FV._html`
+  <div id="klabel" class="lbl">${evTxt} · 남은 ${FF.C.days-FF.dayOf()+1}일</div>
+  <${FV.DecisionActions} queue=${Q} />
+  ${pend?FV._html`<div id="kpend" class="sub">${pend}</div>`:null}
+  `;
+}
+
+FV.ForecastView=function(){
+ FF.observe();
+ if(!FF.started()||FF.isOver())return null;
+ return FV._html`<div id="kchart" class="gap-m"><${FV.ForecastMatrix} matrix=${FF.matrixData()} /></div>`;
+}
+
+FV.TimelineChartView=function(){
+ FF.observe();
+ if(!FF.isOver()||!FF.started())return null;
+ return FV._html`<div id="kchart" class="gap-m"><${FV.TimelineChart} data=${FF.chartData()} /></div>`;
+}
+
+FV.GameResultView=function(){
+ FF.GAME.value;
+ if(!FF.isOver())return null;
+ return FV._html`
+  <div id="kbrief">
+   <${FV.Panel} className="card">
+    ${FV.endCardNode()}
+   <//>
+  </div>`;
+}
+
+// 시계 막대. 진행과 속도를 고른다.
+// 최근 추세 두 줄. 계약과 판매의 신호를 항상 볼 수 있게 한다.
+FV.TrendStrip=function(){
+ FF.observe();
+ if(!FF.started()||FF.isOver())return null;
+ var S=FF.recentSeries(8);
+ if(S.stock.length<2)return null;
+ var last=function(a){return a[a.length-1]};
+ return FV._html`
+  <div id="ktrend" class="trendstrip">
+   <${FV.Spark} label="재고" values=${S.stock} now=${FF.f1(last(S.stock))+"t"} floor=${8} day=${last(S.days)} />
+   <${FV.Spark} label="못 판 주문" values=${S.missed} now=${FF.f1(last(S.missed))+"t"} floor=${2} day=${last(S.days)} />
+  </div>`;
+}
+
+FV.ClockBar=function(){
+ FF.observe(); FF.GAME.value;
+ var c=FF.clockOf();
+ if(FF.isOver()||!FF.started())return null;
+ var btn=function(label,on,fn){
+  return FV._h("button",{class:"clk"+(on?" clk-on":""),onClick:fn},label);
+ };
+ return FV._html`
+  <div id="kclock" class="clockbar">
+   ${btn(c.running?"❚❚":"▶",c.running,function(){
+     if(c.running)FV.stopClock(); else FV.startClock();
+     FF.setClock(!c.running);
+   })}
+   <span class="clk-day">
+    ${c.running?(FV.clockLeft()+"초"):"정지"} · ${FF.dayOf()} / ${FF.C.days}일</span>
+  </div>`;
+}
+
+FV.DockView=function(){
+ FF.observe();
+ var started=FF.started(), over=FF.isOver();
+ var goText=over?"30일 종료 · 결과 확인":(started?"하루 넘기기":"첫날 운영");
+ var arm=FF.SIG.fin.value, leftD=FF.C.days-FF.dayOf()+1;
+ var finish=function(){
+  if(!FF.SIG.fin.value){
+   FF.SIG.fin.value=true;
+   setTimeout(function(){FF.SIG.fin.value=false},FF.C.ui.armMs);
+   return;
+  }
+  FF.SIG.fin.value=false;FF.stepDay(FF.Cmd.finish());
+ };
+ return FV._html`
+  <div class="dock">
+   <${FV.ClockBar} />
+   <${FV.TrendStrip} />
+   <${FV.ChannelBar} />
+   <${FV.DecisionView} />
+   <button id="kgo" class="btn-full"
+    style=${{borderColor:over?"var(--border)":"var(--border-strong)",color:over?"var(--text-muted)":"var(--text-primary)"}}
+    onClick=${function(){if(!FF.isOver())FF.tickDay()}}>${goText}</button>
+   ${started&&!over?FV._html`
+    <button id="kfin" class="btn-sub"
+     style=${{borderColor:"var(--text-danger)",color:arm?"var(--text-danger)":"var(--text-secondary)",background:arm?"var(--bg-danger)":"transparent"}}
+     onClick=${finish}>
+     ${arm?FV._html`
+      <b>30일까지 운영</b><br />
+      <span style=${{fontSize:"11px"}}>남은 ${leftD}일을 더 사지 않고 운영한다. 되돌릴 수 없다.</span>`:FV._html`
+      운영 종료<br />
+      <span style=${{fontSize:"11px",color:"var(--text-danger)"}}>되돌릴 수 없다 · 이후 투자 불가</span>`}
+    </button>`:null}
+  </div>`;
+}
+
+FV.OutlookView=function(){
+ FF.observe();
+ if(!FF.started()||FF.isOver())return null;
+ return FV._html`<${FV.MonthOutlook} data=${FF.monthOutlook()} />`;
+}
+
+FV.PlayPager=function(){
+ if(!FF.histLen()||FF.isOver())return null;
+ return FV._html`
+  <nav class="tabs">
+   <a href="#p0">어제 흐름</a>
+   <a href="#p1">일별 기록</a>
+   <a href="#p2">월간 전망</a>
+  </nav>
+  <div class="pager">
+   <section class="pane" id="p0"><${FV.FlowView} /></section>
+   <section class="pane" id="p1"><${FV.HistoryView} /></section>
+   <section class="pane" id="p2"><${FV.OutlookView} /></section>
+  </div>`;
+}
+
+FV.App=function(){
+ FF.observe();
+ var fresh=!FF.histLen(), over=FF.isOver();
+ return FV._html`
+  <div>
+   <${FV.NavBarView} />
+   <${FV.ForecastView} />
+   <${FV.TimelineChartView} />
+   <${FV.GameResultView} />
+   <${FV.OpeningView} />
+
+   ${fresh?FV._html`<${FV.FlowView} />`:null}
+   <${FV.PlayPager} />
+   ${over?FV._html`<${FV.FlowView} />`:null}
+
+   <div class="dock-space"></div>
+   <${FV.DockView} />
+  </div>`;
+}
+// 실시간 시계. 표현 시간과 시뮬레이션 시간을 분리한다.
+// 재생을 누를 때만 타이머가 생긴다. 누르지 않으면 타이머가 없다.
+FV.CLOCK_MS=5000;
+// 시계 수명. 시작과 정지를 명시적으로 관리한다.
+// 다음 하루까지 남은 초.
+FV.clockLeft=function(){
+ return Math.max(0,Math.round((FV.CLOCK_MS-(FV._acc||0))/1000));
+}
+
+FV.newGame=function(seed){
+ FV.stopClock();
+ FF.startNew(seed);
+}
+
+FV.TICK_MS=1000;
+FV.startClock=function(){
+ if(FV._timer)return;
+ FV._timer=setInterval(function(){
+  if(!FF.clockOf().running||FF.isOver()){FV.stopClock();return}
+  FV._acc=(FV._acc||0)+FV.TICK_MS;
+  if(FV._acc>=FV.CLOCK_MS){FV._acc=0;FF.tickDay()}
+  else FF.repaint();
+ },FV.TICK_MS);
+}
+
+// 시계를 멈춘다. 테스트와 창 종료에서 부른다.
+FV.stopClock=function(){
+ if(!FV._timer)return;
+ clearInterval(FV._timer);
+ FV._timer=null; FV._acc=0;
+}
+
+FV.paint=function(){
+ if(FV.MOUNT)return;
+ FV.MOUNT=document.getElementById("app");
+ FV._render(FV._html`<${FV.App} />`,FV.MOUNT);
+}
+
+
+})(window.FF,window.FV);
+</script>
+<script id="src-boot">
+(function(FF,FV){
+var h=(location.hash||"").match(/seed=(\d+)/);
+FF.reset(h?parseInt(h[1],10):Math.floor(Math.random()*99999)+1);
+FV.paint();
+})(window.FF,window.FV);
+</script>
+
+
+</div></body>
+</html>

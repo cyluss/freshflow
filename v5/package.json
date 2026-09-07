@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "acorn": "^8.18.0",
+    "acorn-walk": "^8.3.5",
+    "jsdom": "^30.0.1"
+  },
+  "devDependencies": {
+    "oxlint": "^1.81.0"
+  }
+}

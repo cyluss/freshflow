@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fresh Flow V0.0</title>
+<style>
+:root{
+ --surface-0:#faf9f7;--surface-1:#f1efe8;--surface-2:#ffffff;
+ --text-primary:#1f1f1e;--text-secondary:#5f5e5a;--text-muted:#888780;
+ --text-success:#3b6d11;--text-danger:#a32d2d;--text-warning:#854f0b;
+ --bg-warning:#faeeda;--border:rgba(0,0,0,.14);--border-strong:rgba(0,0,0,.28);
+ --border-warning:#ba7517;--border-accent:#378add;--radius:8px;
+ font-family:ui-sans-serif,system-ui,"Noto Sans KR",sans-serif;
+}
+@media (prefers-color-scheme:dark){
+ :root{
+  --surface-0:#14161a;--surface-1:#1c2027;--surface-2:#232830;
+  --text-primary:#e6e8ec;--text-secondary:#9aa1ad;--text-muted:#6f7683;
+  --text-success:#97c459;--text-danger:#f09595;--text-warning:#fac775;
+  --bg-warning:#412402;--border:rgba(255,255,255,.14);--border-strong:rgba(255,255,255,.3);
+ }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-0);color:var(--text-primary)}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px 40px}
+button{background:transparent;color:var(--text-primary);border:0.5px solid var(--border-strong);
+ border-radius:var(--radius);cursor:pointer;font-family:inherit}
+button:hover{background:var(--surface-1)}
+button:active{transform:scale(.98)}
+</style>
+</head>
+<body><div class="wrap">
+<div id="ffk" style="padding:1rem 0">
+<div style="display:flex;gap:20px;align-items:baseline;flex-wrap:wrap;border-bottom:0.5px solid var(--border);padding-bottom:12px;margin-bottom:1rem">
+  <div style="font-size:13px;color:var(--text-secondary)">일차 <span id="kd" style="color:var(--text-primary);font-weight:500">1</span> / 30</div>
+  <div style="font-size:13px;color:var(--text-secondary)">현금 <span id="kc" style="color:var(--text-primary);font-weight:500">60,000</span></div>
+  <div style="font-size:13px;color:var(--text-secondary)">어제 손익 <span id="kp" style="font-weight:500">—</span></div>
+  <div style="font-size:13px;color:var(--text-secondary)">시드 <span id="ks" style="color:var(--text-primary)">1</span></div>
+</div>
+
+<div style="font-size:12px;color:var(--text-muted);margin:0 0 6px">앞으로의 전망과 현재 재고</div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:1rem">
+  <div style="background:var(--surface-1);border-radius:var(--radius);padding:12px">
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">중기 확률전망, 4일에서 7일</div>
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">생산</div>
+    <div id="kfs" style="display:flex;height:20px;border-radius:4px;overflow:hidden;margin-bottom:4px"></div>
+    <div id="kfsl" style="font-size:11px;color:var(--text-secondary);display:flex;gap:10px;margin-bottom:10px"></div>
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">수요</div>
+    <div id="kfd" style="display:flex;height:20px;border-radius:4px;overflow:hidden;margin-bottom:4px"></div>
+    <div id="kfdl" style="font-size:11px;color:var(--text-secondary);display:flex;gap:10px"></div>
+    <div id="kfsum" style="font-size:11px;color:var(--text-primary);margin-top:9px;padding-top:8px;border-top:0.5px solid var(--border)"></div>
+  </div>
+  <div style="background:var(--surface-1);border-radius:var(--radius);padding:12px">
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">재고 흐름</div>
+    <div style="font-size:13px;margin-bottom:6px">재고 <span id="kinv" style="font-weight:500">0.0</span> / 30 t</div>
+    <div id="kdr" style="font-size:24px;font-weight:500;margin-bottom:2px">+0.0 t/day</div>
+    <div id="kdrlabel" style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">최근 3일 재고 흐름</div>
+    <div id="kttl" style="font-size:12px;color:var(--text-secondary)"></div>
+  </div>
+</div>
+
+<div style="font-size:12px;color:var(--text-muted);margin:0 0 6px">어제 결과</div>
+<div id="kbn" style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">아직 주요 제약이 없다</div>
+<div id="kchain" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-bottom:1rem"></div>
+
+<div style="font-size:12px;color:var(--text-muted);margin:0 0 6px">오늘의 결정</div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:8px">
+  <button id="kb0" style="padding:10px 6px;font-size:13px;line-height:1.4">투자하지 않음<br><span style="color:var(--text-secondary);font-size:12px">0</span></button>
+  <button id="kbi" style="padding:10px 6px;font-size:13px;line-height:1.4">집하 +2 t/day<br><span style="color:var(--text-secondary);font-size:12px">2,000</span></button>
+  <button id="kbs" style="padding:10px 6px;font-size:13px;line-height:1.4">출하 +1 t/day<br><span style="color:var(--text-secondary);font-size:12px">550</span></button>
+</div>
+<button id="kgo" style="width:100%;padding:11px 8px;font-size:13px;line-height:1.4;margin-bottom:8px;border-color:var(--border-accent)">결정하고 하루 진행</button>
+<div id="khint" style="font-size:11px;color:var(--text-muted);margin-bottom:1rem">오늘 산 설비는 내일부터 작동한다.</div>
+
+<div id="klog" style="font-size:12px;color:var(--text-secondary)"></div>
+</div>
+<script>
+(function(){
+var C={days:30,cash:60000,sm:[14,20,27],sd:2,dm:[10,20,32],dd:2,stay:0.8,
+cap:{i:20,st:30,sh:21},step:{intake:2,shipping:1},cost:{intake:2000,shipping:550},
+maint:{i:20,st:8,sh:25},ttl:10,q:[1,1,1,1,.8,.8,.8,.5,.5,.5],
+price:900,farm:380,hold:22,waste:45,fixed:1400,cover:2,alpha:.5,mid:4,noise:.35};
+var KEY={intake:"i",shipping:"sh"};
+
+function Rng(s){this.s=s>>>0||1}
+Rng.prototype.next=function(){this.s=(this.s+0x6d2b79f5)>>>0;var t=this.s;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296};
+Rng.prototype.norm=function(m,sd){var u=Math.max(this.next(),1e-12),v=this.next();return m+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+
+function M(){var m=(1-C.stay)/2;return[[C.stay,1-C.stay,0],[m,C.stay,m],[0,1-C.stay,C.stay]]}
+function hor(idx,a,b){var T=M(),v=[0,0,0];v[idx]=1;var acc=[0,0,0];
+for(var d=1;d<=b;d++){var o=[0,0,0];for(var i=0;i<3;i++)for(var j=0;j<3;j++)o[j]+=v[i]*T[i][j];v=o;
+if(d>=a)for(var k=0;k<3;k++)acc[k]+=v[k]}var n=b-a+1;return[acc[0]/n,acc[1]/n,acc[2]/n]}
+function blur(v){var o=v.map(function(x){return x*(1-C.noise)+C.noise/3});var s=o[0]+o[1]+o[2];return o.map(function(x){return x/s})}
+function pct(v){var a=v.map(function(x){return Math.round(x*100)});a[1]+=100-(a[0]+a[1]+a[2]);return a}
+function expD(idx,a,b){var v=hor(idx,a,b);return v[0]*C.dm[0]+v[1]*C.dm[1]+v[2]*C.dm[2]}
+
+var G,pick;
+function inv(){var s=0;for(var i=0;i<G.lots.length;i++)s+=G.lots[i].q;return s}
+function move(x){var r=G.rng.next();if(r<C.stay)return x;if(x!==1)return 1;return r<C.stay+(1-C.stay)/2?0:2}
+
+function reset(seed){G={rng:new Rng(seed),seed:seed,si:1,di:1,day:1,cash:C.cash,lots:[],
+cap:{i:C.cap.i,st:C.cap.st,sh:C.cap.sh},pend:null,hist:[],over:false};
+G.si=move(G.si);G.di=move(G.di);pick="none";render()}
+
+function stepDay(act){
+ if(G.over)return;
+ if(G.pend){G.cap[KEY[G.pend]]+=C.step[G.pend];G.pend=null}
+ var ic=0;
+ if(act!=="none"&&G.cash>=C.cost[act]){ic=C.cost[act];G.cash-=ic;G.pend=act}
+ var prod=Math.max(0,G.rng.norm(C.sm[G.si],C.sd));
+ var dem=Math.max(0,G.rng.norm(C.dm[G.di],C.dd));
+ var on=Math.min(G.cap.sh,expD(G.di,1,3)),om=Math.min(G.cap.sh,expD(G.di,4,7));
+ var need=Math.max(0,C.cover*on+C.alpha*Math.max(0,om-on)*C.mid-inv());
+ var acc=Math.min(prod,G.cap.i,need);
+ var refused=Math.min(prod,G.cap.i)-acc,wI=prod-acc;
+ var free=Math.max(0,G.cap.st-inv());
+ var stored=Math.min(acc,free),wS=acc-stored;
+ if(stored>0)G.lots.push({q:stored,a:0});
+ var sellable=inv(),rem=Math.min(dem,G.cap.sh,sellable),tgt=rem,rev=0;
+ G.lots.sort(function(a,b){return b.a-a.a});
+ for(var i=0;i<G.lots.length&&rem>1e-9;i++){var take=Math.min(G.lots[i].q,rem);G.lots[i].q-=take;rem-=take;
+  rev+=take*C.price*C.q[Math.min(G.lots[i].a,C.ttl-1)]}
+ var sold=tgt-rem;
+ G.lots=G.lots.filter(function(l){return l.q>1e-9});
+ var wT=0;
+ G.lots=G.lots.filter(function(l){l.a++;if(l.a>=C.ttl){wT+=l.q;return false}return true});
+ var end=inv();
+ var cost=end*C.hold+G.cap.i*C.maint.i+G.cap.st*C.maint.st+G.cap.sh*C.maint.sh+(wI+wS+wT)*C.waste+C.fixed+stored*C.farm;
+ var profit=rev-cost;G.cash+=profit;
+ var b="none";
+ if(sold>=G.cap.sh-0.05&&dem>sold+0.05)b="shipping";
+ else if(sold<dem-0.05&&sellable<=sold+0.05)b="supply";
+ else if(wS>0.05)b="storage";
+ else if(wI>0.05&&refused<0.05)b="intake";
+ else if(sold<G.cap.sh-0.05)b="demand";
+ G.hist.push({day:G.day,prod:prod,dem:dem,acc:stored,refused:refused,sold:sold,
+  missed:Math.max(0,dem-sold),wI:wI,wS:wS,wT:wT,end:end,profit:profit-ic,b:b});
+ var last3=G.hist.slice(-3),cnt={},best="none",bn=0;
+ for(var z=0;z<last3.length;z++){var k=last3[z].b;cnt[k]=(cnt[k]||0)+1;if(cnt[k]>bn){bn=cnt[k];best=k}}
+ G.hist[G.hist.length-1].b3=best;
+ G.day++;
+ G.si=move(G.si);G.di=move(G.di);
+ if(G.cash<=0||G.day>C.days)G.over=true;
+}
+
+var f1=function(n){return n.toFixed(1)},mo=function(n){return Math.round(n).toLocaleString("ko-KR")};
+var BL={none:"어제는 뚜렷한 주요 제약이 없었다",intake:"어제 주요 제약: 집하 용량",storage:"어제 주요 제약: 창고 공간",
+ shipping:"어제 주요 제약: 출하 용량",demand:"어제 주요 제약: 시장 수요",supply:"어제 주요 제약: 판매할 재고"};
+var RAMP=["#5F5E5A","#185FA5","#0F6E56"],TINT=["#F1EFE8","#E6F1FB","#E1F5EE"];
+
+function bars(el,lab,vals,names){
+ el.innerHTML=vals.map(function(v,i){return '<div style="width:'+v+'%;background:'+RAMP[i]+';color:'+TINT[i]+';display:flex;align-items:center;justify-content:center;font-size:11px">'+(v>=12?v:"")+'</div>'}).join("");
+ lab.innerHTML=names.map(function(n,i){return '<span>'+n+' '+vals[i]+'%</span>'}).join("");
+}
+
+function node(name,val,sub,hot,loss){
+ return '<div style="border:0.5px solid '+(hot?"var(--border-warning)":"var(--border)")+';background:'+(hot?"var(--bg-warning)":"transparent")+';border-radius:var(--radius);padding:8px 6px;text-align:center">'+
+ '<div style="font-size:11px;color:var(--text-secondary)">'+name+'</div>'+
+ '<div style="font-size:16px;font-weight:500;margin:3px 0;color:'+(hot?"var(--text-warning)":"var(--text-primary)")+'">'+val+'</div>'+
+ '<div style="font-size:11px;color:var(--text-secondary);min-height:15px">'+sub+'</div>'+
+ '<div style="font-size:11px;color:var(--text-danger);min-height:15px">'+(loss||"")+'</div></div>';
+}
+
+function render(){
+ var d=G.hist.length?G.hist[G.hist.length-1]:null;
+ document.getElementById("kd").textContent=Math.min(G.day,C.days);
+ document.getElementById("kc").textContent=mo(G.cash);
+ document.getElementById("ks").textContent=G.seed;
+ var pe=document.getElementById("kp");
+ pe.textContent=d?mo(d.profit):"—";
+ pe.style.color=d?(d.profit>=0?"var(--text-success)":"var(--text-danger)"):"var(--text-primary)";
+ bars(document.getElementById("kfs"),document.getElementById("kfsl"),pct(blur(hor(G.si,4,7))),["부족","평년","풍작"]);
+ bars(document.getElementById("kfd"),document.getElementById("kfdl"),pct(blur(hor(G.di,4,7))),["침체","정상","호황"]);
+ var iv=inv();
+ document.getElementById("kinv").textContent=f1(iv);
+ var rec=G.hist.slice(-3),dr=rec.length?rec.reduce(function(a,x){return a+x.acc-x.sold},0)/rec.length:0;
+ var de=document.getElementById("kdr");
+ de.textContent=(dr>=0?"+":"")+f1(dr)+" t/day";
+ de.style.color="var(--text-primary)";
+  document.getElementById("kdrlabel").textContent=dr>0.25?"최근 3일: 재고가 쌓이는 중":dr<-0.25?"최근 3일: 재고가 줄어드는 중":"최근 3일: 재고가 대체로 유지됨";
+ var bk=[0,0,0];
+ G.lots.forEach(function(l){var r=C.ttl-l.a;if(r>=7)bk[0]+=l.q;else if(r>=3)bk[1]+=l.q;else bk[2]+=l.q});
+ document.getElementById("kttl").innerHTML=["잔여 7일 이상","잔여 3일에서 6일","잔여 2일 이하"].map(function(n,i){
+  return '<div style="display:flex;justify-content:space-between;padding:2px 0"><span>'+n+'</span><span style="color:var(--text-primary)">'+f1(bk[i])+' t</span></div>'}).join("");
+ document.getElementById("kbn").textContent=G.over?(G.cash<=0?"현금이 바닥났다":"30일이 끝났다"):BL[d?d.b:"none"];
+ document.getElementById("kchain").innerHTML=
+  node("농가 · 외부",d?f1(d.prod):"—","오늘 생산","")+
+  node("집하 · 투자 가능",(d?f1(d.acc):"—")+"/"+G.cap.i,d&&d.refused>0.05?"거절 "+f1(d.refused):"처리/용량",d&&d.b==="intake",d&&d.wI>0.05?"산지폐기 "+f1(d.wI):"")+
+  node("창고 · 고정",f1(iv)+"/"+G.cap.st,"재고/용량",d&&d.b==="storage",d&&d.wS+d.wT>0.05?"폐기 "+f1(d.wS+d.wT):"")+
+  node("출하 · 투자 가능",(d?f1(d.sold):"—")+"/"+G.cap.sh,"판매/용량",d&&d.b==="shipping","")+
+  node("시장 · 외부",d?f1(d.dem):"—","수요",d&&(d.b==="demand"||d.b==="supply"),d&&d.missed>0.05?"놓친수요 "+f1(d.missed):"");
+ var go=document.getElementById("kgo");
+ go.textContent=G.over?"새 게임":"결정하고 하루 진행";
+ go.style.borderColor=G.over?"var(--border-accent)":"var(--border-strong)";
+ [["kbi","intake"],["kbs","shipping"],["kb0","none"]].forEach(function(x){
+  var b=document.getElementById(x[0]),on=pick===x[1];
+  b.style.borderColor=on?"var(--border-warning)":"var(--border-strong)";
+  b.style.background=on?"var(--bg-warning)":"transparent";
+  var afford=x[1]==="none"||G.cash>=C.cost[x[1]];
+  b.style.opacity=(!G.over&&afford)?"1":"0.4"});
+ document.getElementById("khint").textContent=G.pend?("어제 산 설비가 내일 적용된다: "+(G.pend==="intake"?"집하":"출하")):"오늘 산 설비는 내일부터 작동한다.";
+ var rows=G.hist.slice(-6).reverse();
+ document.getElementById("klog").innerHTML=rows.length?
+  '<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:4px 0;border-bottom:0.5px solid var(--border)">'+
+  ["일차","생산","수요","판매","놓친수요","폐기","손익"].map(function(h,i){return '<span style="text-align:'+(i?"right":"left")+'">'+h+'</span>'}).join("")+'</div>'+
+  rows.map(function(r){return '<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:3px 0;border-bottom:0.5px solid var(--border);color:var(--text-primary)">'+
+   '<span>'+r.day+'</span><span style="text-align:right">'+f1(r.prod)+'</span><span style="text-align:right">'+f1(r.dem)+'</span>'+
+   '<span style="text-align:right">'+f1(r.sold)+'</span><span style="text-align:right">'+f1(r.missed)+'</span>'+
+   '<span style="text-align:right">'+f1(r.wI+r.wS+r.wT)+'</span>'+
+   '<span style="text-align:right;color:'+(r.profit>=0?"var(--text-success)":"var(--text-danger)")+'">'+mo(r.profit)+'</span></div>'}).join(""):
+  '<div style="color:var(--text-muted)">하루를 진행하면 결과가 쌓인다.</div>';
+}
+
+document.getElementById("kbi").onclick=function(){if(!G.over&&G.cash>=C.cost.intake)pick="intake";render()};
+document.getElementById("kbs").onclick=function(){if(!G.over&&G.cash>=C.cost.shipping)pick="shipping";render()};
+document.getElementById("kb0").onclick=function(){if(!G.over)pick="none";render()};
+window.ffTrace=function(){return G.hist.map(function(r){
+ return{day:r.day,daily:r.b,trend3:r.b3,drift:+(r.acc-r.sold).toFixed(2),
+  sold:+r.sold.toFixed(1),missed:+r.missed.toFixed(1),profit:Math.round(r.profit)}})};
+window.ffAgree=function(){var h=G.hist.filter(function(r){return r.day>=3});
+ if(!h.length)return 0;return +(h.filter(function(r){return r.b===r.b3}).length/h.length*100).toFixed(0)};
+document.getElementById("kgo").onclick=function(){
+ if(G.over){reset(Math.floor(Math.random()*99999)+1);return}
+ stepDay(pick);pick="none";render()};
+reset(Math.floor(Math.random()*99999)+1);
+})();
+</script>
+</div></body>
+</html>

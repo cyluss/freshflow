@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fresh Flow V0.0</title>
+<style>
+:root{
+ --surface-0:#faf9f7;--surface-1:#f1efe8;--surface-2:#ffffff;
+ --text-primary:#1f1f1e;--text-secondary:#5f5e5a;--text-muted:#888780;
+ --text-success:#3b6d11;--text-danger:#a32d2d;--text-warning:#854f0b;
+ --bg-warning:#faeeda;--border:rgba(0,0,0,.14);--border-strong:rgba(0,0,0,.28);
+ --border-warning:#ba7517;--border-accent:#378add;--radius:8px;
+ font-family:ui-sans-serif,system-ui,"Noto Sans KR",sans-serif;
+}
+@media (prefers-color-scheme:dark){
+ :root{
+  --surface-0:#14161a;--surface-1:#1c2027;--surface-2:#232830;
+  --text-primary:#e6e8ec;--text-secondary:#9aa1ad;--text-muted:#6f7683;
+  --text-success:#97c459;--text-danger:#f09595;--text-warning:#fac775;
+  --bg-warning:#412402;--border:rgba(255,255,255,.14);--border-strong:rgba(255,255,255,.3);
+ }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-0);color:var(--text-primary)}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px 40px}
+button{background:transparent;color:var(--text-primary);border:0.5px solid var(--border-strong);
+ border-radius:var(--radius);cursor:pointer;font-family:inherit}
+button:hover{background:var(--surface-1)}
+button:active{transform:scale(.98)}
+</style>
+</head>
+<body><div class="wrap">
+<div id="ffk" style="padding:1rem 0">
+<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">30일 뒤 현금을 최대화한다. 투자비는 파산 위험이 아니라 기회비용이다.</div>
+<div style="display:flex;gap:6px;margin-bottom:12px">
+  <button id="kv1" style="padding:6px 12px;font-size:12px">결정용</button>
+  <button id="kv2" style="padding:6px 12px;font-size:12px">전체</button>
+  <input id="kseed" inputmode="numeric" placeholder="시드" style="width:78px;margin-left:auto;padding:6px 8px;font-size:12px;background:transparent;color:var(--text-primary);border:0.5px solid var(--border-strong);border-radius:var(--radius)" />
+  <button id="knew" style="padding:6px 12px;font-size:12px;border-color:var(--border-accent)">새 게임</button>
+  <button id="klayout" style="padding:6px 12px;font-size:12px">표기 전환</button>
+</div>
+<div style="display:flex;gap:20px;align-items:baseline;flex-wrap:wrap;border-bottom:0.5px solid var(--border);padding-bottom:12px;margin-bottom:1rem">
+  <div style="font-size:13px;color:var(--text-secondary)">일차 <span id="kd" style="color:var(--text-primary);font-weight:500">1</span> / 30</div>
+  <div style="font-size:13px;color:var(--text-secondary)">현금 <span id="kc" style="color:var(--text-primary);font-weight:500">60,000</span></div>
+  <div style="font-size:13px;color:var(--text-secondary)">어제 손익 <span id="kp" style="font-weight:500">—</span></div>
+  <div style="font-size:13px;color:var(--text-secondary)">시드 <span id="ks" style="color:var(--text-primary)">1</span></div>
+</div>
+
+<div id="kbrief" style="background:var(--surface-1);border-radius:var(--radius);padding:14px;margin-bottom:1rem"></div>
+
+<div id="kfclabel" class="dtl" style="font-size:12px;color:var(--text-muted);margin:0 0 6px">앞으로의 전망과 현재 재고</div>
+<div id="kfcsec" class="dtl" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:1rem">
+  <div style="background:var(--surface-1);border-radius:var(--radius);padding:12px">
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">중기 확률전망, 4일에서 7일</div>
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">생산</div>
+    <div id="kfs" style="display:flex;height:20px;border-radius:4px;overflow:hidden;margin-bottom:4px"></div>
+    <div id="kfsl" style="font-size:11px;color:var(--text-secondary);display:flex;gap:10px;margin-bottom:10px"></div>
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">수요</div>
+    <div id="kfd" style="display:flex;height:20px;border-radius:4px;overflow:hidden;margin-bottom:4px"></div>
+    <div id="kfdl" style="font-size:11px;color:var(--text-secondary);display:flex;gap:10px"></div>
+    <div id="kfsum" style="font-size:11px;color:var(--text-primary);margin-top:9px;padding-top:8px;border-top:0.5px solid var(--border)"></div>
+  </div>
+  <div style="background:var(--surface-1);border-radius:var(--radius);padding:12px">
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">재고 흐름</div>
+    <div style="font-size:13px;margin-bottom:6px">재고 <span id="kinv" style="font-weight:500">0.0</span> / 30 t</div>
+    <div id="kdr" style="font-size:24px;font-weight:500;margin-bottom:2px">+0.0 t/day</div>
+    <div id="kdrlabel" style="font-size:11px;color:var(--text-secondary);margin-bottom:10px">최근 3일 재고 흐름</div>
+    <div id="kttl" style="font-size:12px;color:var(--text-secondary)"></div>
+  </div>
+</div>
+
+<div id="kylabel" style="font-size:12px;color:var(--text-muted);margin:0 0 6px">어제 결과</div>
+<div id="kbn" style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">아직 주요 제약이 없다</div>
+<div id="kchain" style="margin-bottom:8px"></div>
+<div id="kspark" class="dtl" style="margin-bottom:1rem"></div>
+
+<div id="kexplore" style="background:var(--surface-1);border-radius:var(--radius);padding:14px;margin-bottom:10px;display:none"></div>
+<div id="kauto" style="font-size:12px;color:var(--text-secondary);background:var(--surface-1);border-radius:var(--radius);padding:9px 11px;margin-bottom:10px;display:none"></div>
+<div id="klabel" style="font-size:12px;color:var(--text-muted);margin:0 0 6px">오늘의 결정</div>
+<div id="kchoice" class="dtl" style="border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px"></div>
+
+<button id="kdetail" style="width:100%;padding:11px 8px;font-size:13px;margin-bottom:8px;display:none">결과 보기</button>
+<button id="kcmp" style="width:100%;padding:8px;font-size:12px;margin-bottom:8px;border:0;background:transparent;color:var(--text-muted);display:none">비교 근거 보기</button>
+<div id="kacts" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px">
+  <button id="kbi" style="padding:10px 4px;font-size:12px;line-height:1.4"></button>
+  <button id="kbs" style="padding:10px 4px;font-size:12px;line-height:1.4"></button>
+  <button id="kbw" style="padding:10px 4px;font-size:12px;line-height:1.4"></button>
+</div>
+<div id="kpend" style="font-size:12px;color:var(--text-secondary);margin-bottom:8px"></div>
+<button id="kgo" style="width:100%;padding:11px 8px;font-size:13px;line-height:1.4;margin-bottom:8px;border-color:var(--border-accent)">계속 운영</button>
+<button id="kopen" style="width:100%;margin-bottom:6px;display:none">설비 관리</button>
+<div id="khint" style="font-size:11px;color:var(--text-muted);margin-bottom:1rem">오늘 산 설비는 내일부터 작동한다.</div>
+
+<div id="kmods" style="background:var(--surface-1);border-radius:var(--radius);padding:10px 12px;margin-bottom:1rem"></div>
+<div id="ktimeline" style="font-size:12px;color:var(--text-secondary);margin-bottom:1rem"></div>
+<div class="dtl" id="klog" style="font-size:12px;color:var(--text-secondary)"></div>
+</div>

@@ -1,0 +1,410 @@
+
+FF.Rng=function(s){this.s=s>>>0||1}
+FF.Rng.prototype.next=function(){this.s=(this.s+0x6d2b79f5)>>>0;var t=this.s;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296};
+FF.Rng.prototype.norm=function(m,sd){var u=Math.max(this.next(),1e-12),v=this.next();return m+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+
+// 월간 성향별 전이행렬. tilt 는 0 침체, 1 평년, 2 호황이다.
+// 성향 쪽에 더 머물고 평년에서도 그쪽으로 더 자주 간다.
+// 두 성향은 서로 거울상이라 방향에 따른 유불리가 없다.
+FF.M=function(rules,tilt){
+ var R=rules||FF.C, s=R.stay, m=(1-s)/2;
+ var T=[[s,1-s,0],[m,s,m],[0,1-s,s]];
+ if(tilt===undefined||tilt===1)return T;
+ var b=(R.tilt===undefined?0.5:R.tilt);
+ var keep=s+(1-s)*b;                 // 성향 국면에 머무는 확률
+ var toward=m*(1+b), away=m*(1-b);   // 평년에서 갈라지는 확률
+ var T0=[[keep,1-keep,0],[toward,s,away],[0,1-s,s]];
+ if(tilt===0)return T0;
+ // 호황은 침체의 거울상이다. 행과 열을 함께 뒤집는다.
+ var T2=[[0,0,0],[0,0,0],[0,0,0]];
+ for(var i=0;i<3;i++)for(var j=0;j<3;j++)T2[2-i][2-j]=T0[i][j];
+ return T2;
+}
+
+FF.hor=function(idx,a,b,rules,tilt){var T=FF.M(rules,tilt),v=[0,0,0];v[idx]=1;var acc=[0,0,0];
+for(var d=1;d<=b;d++){var o=[0,0,0];for(var i=0;i<3;i++)for(var j=0;j<3;j++)o[j]+=v[i]*T[i][j];v=o;
+if(d>=a)for(var k=0;k<3;k++)acc[k]+=v[k]}var n=b-a+1;return[acc[0]/n,acc[1]/n,acc[2]/n]}
+FF.blur=function(v,rules){var R=rules||FF.C;
+ var o=v.map(function(x){return x*(1-R.noise)+R.noise/3});
+ var s=o[0]+o[1]+o[2];return o.map(function(x){return x/s})}
+FF.pct=function(v){var a=v.map(function(x){return Math.round(x*100)});a[1]+=100-(a[0]+a[1]+a[2]);return a}
+FF.expD=function(idx,a,b,rules){var R=rules||FF.C,v=FF.hor(idx,a,b,R);
+ return v[0]*R.dm[0]+v[1]*R.dm[1]+v[2]*R.dm[2]}
+
+
+
+FF.dirOf=function(g){return g>=10?1:g<=-10?-1:0}
+
+// 다음 국면. 성향이 있으면 그 전이행렬을 따른다.
+FF.mvSeq=function(rng,x,rules,tilt){
+ var T=FF.M(rules,tilt), r=rng.next(), acc=0;
+ for(var j=0;j<3;j++){acc+=T[x][j];if(r<acc)return j}
+ return 2;
+}
+
+// World: 불확실성 생성. 게임 물리는 여기 없다.
+// 하루치 입력을 만들고 다음 국면을 함께 돌려준다.
+FF.World=function(seed,rules){
+ var R=rules||FF.C;
+ var rng=new FF.Rng(seed);
+ // 이번 달 성향. 판마다 다르고 30일 내내 유지된다.
+ var pick=function(){var r=rng.next(),p=R.tiltP||[0.25,0.5,0.25];
+  return r<p[0]?0:(r<p[0]+p[1]?1:2)};
+ var ts=pick(), td=pick();
+ var si=FF.mvSeq(rng,1,R,ts), di=FF.mvSeq(rng,1,R,td);
+ return {
+  tilt:function(){return {supply:ts,demand:td}},
+  phase:function(){return {supply:si,demand:di}},
+  next:function(){
+   var dem=Math.max(0,rng.norm(R.dm[di],R.dd));
+   // 판로별 수요. 전체 수요를 상한 비율로 나누고 판로마다 다른 변동을 준다.
+   var totCap=0, ci;
+   for(ci=0;ci<R.channels.length;ci++)totCap+=R.channels[ci].cap;
+   var chDem=[];
+   for(ci=0;ci<R.channels.length;ci++){
+    var c=R.channels[ci];
+    var vol=(c.key==="whole")?0.2:0.4;
+    chDem.push(Math.max(0,dem*(c.cap/totCap)*(1-vol+rng.next()*vol*2)));
+   }
+   var input={production:Math.max(0,rng.norm(R.sm[si],R.sd)),
+              demand:dem, chDemand:chDem,
+              supplyPhase:si, demandPhase:di};
+   si=FF.mvSeq(rng,si,R,ts); di=FF.mvSeq(rng,di,R,td);
+   input.nextSupplyPhase=si; input.nextDemandPhase=di;
+   return input;
+  }
+ };
+}
+
+
+
+FF.stepState=function(s,prod,dem,rules){
+ var R=rules||FF.C;
+ // 오늘 회수되는 매출채권을 먼저 현금으로 바꾼다.
+ // 오늘 갚아야 할 매입채무를 먼저 낸다.
+ if(s.ap&&s.ap.length){
+  var keepA=[];
+  for(var pi=0;pi<s.ap.length;pi++){
+   if(s.ap[pi].at<=s.day)s.cash-=s.ap[pi].amt; else keepA.push(s.ap[pi]);
+  }
+  s.ap=keepA;
+ }
+ if(s.ar&&s.ar.length){
+  var keep=[];
+  for(var ai=0;ai<s.ar.length;ai++){
+   if(s.ar[ai].at<=s.day)s.cash+=s.ar[ai].amt; else keep.push(s.ar[ai]);
+  }
+  s.ar=keep;
+ }
+ var tot=function(){var t=0;for(var i=0;i<s.lots.length;i++)t+=s.lots[i].q;return t};
+ var on=Math.min(s.cap.sales,FF.expD(s.di,1,3,R)), om=Math.min(s.cap.sales,FF.expD(s.di,4,7,R));
+ var cv=(s.cover===undefined)?R.cover:s.cover;
+ var need=Math.max(0,cv*on+R.alpha*Math.max(0,om-on)*R.mid-tot());
+ var baseAcc=Math.min(prod,s.cap.intake,need);
+ // 초과분 매입 계약: 한도를 넘은 물량 중 최대 X t 를 더 받는다.
+ // 한도 자체는 늘리지 않고 목표재고와 창고 제약은 그대로다.
+ var over=Math.max(0,prod-s.cap.intake);
+ var extra=s.contract>0?Math.min(over,s.contract,Math.max(0,need-baseAcc)):0;
+ var acc=baseAcc+extra;
+ var reach=Math.min(prod,s.cap.intake)+extra;
+ var refused=reach-acc, wI=prod-acc;
+ var freeNow=Math.max(0,s.cap.storage-tot());
+ var byCap=Math.max(0,over-extra);
+ var rest=wI-byCap;
+ var byStore=Math.min(rest,Math.max(0,reach-freeNow));
+ var byNeed=Math.max(0,rest-byStore);
+ var stored=Math.min(acc,freeNow), wS=acc-stored;
+ // 매입은 지금 손에 있는 현금으로만 한다. 모자라면 그만큼 덜 받는다.
+ var budget=Math.max(0,s.cash-R.fixed);
+ var payable=(R.farm>0)?Math.min(stored,budget/R.farm):stored;
+ var short=stored-payable;
+ if(short>R.ui.zero){ stored=payable; wS+=short; }
+ if(stored>0)s.lots.push({q:stored,a:0});
+ var sellable=tot();
+ // 판로 배분. s.alloc 은 판로별 비중이고 없으면 비싼 곳부터 채운다.
+ var CHS=R.channels, nch=CHS.length;
+ var relv=s.rel||[], sold=0, rev=0, ageMix=[], toCh=[];
+ var chDem=[];
+ for(var ci=0;ci<nch;ci++){chDem.push(0);toCh.push(0)}
+ // 오늘 판로 수요는 world 가 준다. 없으면 전체 수요를 상한 비율로 나눈다.
+ var src=s._chDemand||null;
+ for(ci=0;ci<nch;ci++){
+  var rl2=relv[ci]===undefined?R.rel.start:relv[ci];
+  var cap2=CHS[ci].cap*R.rel.cap[rl2];
+  var d0=src?src[ci]:(dem*CHS[ci].cap/ (function(){var t=0;for(var z=0;z<nch;z++)t+=CHS[z].cap;return t})());
+  var fl=CHS[ci].quota*R.rel.floor[rl2];
+  chDem[ci]=Math.min(cap2,Math.max(d0,(CHS[ci].key==="fran")?fl:0));
+ }
+ // 나이가 오래된 lot 부터 본다. 각 lot 를 배분에 따라 판로에 넣는다.
+ s.lots.sort(function(a,b){return b.a-a.a});
+ var order=[];
+ for(ci=0;ci<nch;ci++)order.push(ci);
+ for(var li=0;li<s.lots.length;li++){
+  var lot=s.lots[li];
+  if(lot.q<=R.ui.zero)continue;
+  var age=Math.min(lot.a,R.ttl-1);
+  // 이 lot 를 어느 판로에 넣을지: 배분 가중치가 있으면 그 순서, 없으면 단가 순
+  var seq=order.slice();
+  if(s.alloc&&s.alloc.length===nch){
+   seq.sort(function(a,b){return s.alloc[b]-s.alloc[a]});
+  } else {
+   seq.sort(function(a,b){
+    var ra=relv[a]===undefined?R.rel.start:relv[a], rb=relv[b]===undefined?R.rel.start:relv[b];
+    return CHS[b].price[age]*R.rel.price[rb]-CHS[a].price[age]*R.rel.price[ra];
+   });
+  }
+  for(var si2=0;si2<seq.length&&lot.q>R.ui.zero;si2++){
+   var c2=seq[si2];
+   // 배분이 있으면 그 판로에 배정된 몫을 넘지 않는다.
+   var quotaLeft=chDem[c2];
+   if(s.alloc&&s.alloc.length===nch){
+    var wsum=0; for(var wi=0;wi<nch;wi++)wsum+=s.alloc[wi];
+    if(wsum>0){
+     var share=sellable*s.alloc[c2]/wsum;
+     quotaLeft=Math.min(quotaLeft,Math.max(0,share-toCh[c2]));
+    }
+   }
+   var take=Math.min(lot.q,quotaLeft);
+   if(take<=R.ui.zero)continue;
+   var rl3=relv[c2]===undefined?R.rel.start:relv[c2];
+   var unit=CHS[c2].price[age]*R.rel.price[rl3]*R.q[Math.min(lot.a,R.ttl-1)];
+   lot.q-=take; chDem[c2]-=take; sold+=take; toCh[c2]+=take;
+   ageMix.push({a:lot.a,q:take});
+   var amt=take*unit;
+   rev+=amt;                       // 손익은 발생 시점에 잡는다
+   var lag=CHS[c2].settle;
+   if(lag>0){ s.ar=s.ar||[]; s.ar.push({at:s.day+lag,amt:amt}); }
+   else s.cash+=amt;               // 당일 정산은 즉시 현금
+  }
+ }
+ // 관계 갱신. 쿼터를 채우면 오르고 절반도 못 넣으면 내린다.
+ s.rel=s.rel||[];
+ for(ci=0;ci<nch;ci++){
+  var cur=s.rel[ci]===undefined?R.rel.start:s.rel[ci];
+  if(toCh[ci]>=CHS[ci].quota-R.ui.zero){ if(s.day%R.rel.up===0)cur=Math.min(3,cur+1) }
+  else if(toCh[ci]<CHS[ci].quota*0.5)cur=Math.max(0,cur-1);
+  s.rel[ci]=cur;
+ }
+ var demTotal=0;
+ for(ci=0;ci<nch;ci++)demTotal+=chDem[ci]+toCh[ci];
+ var w=0, wT=0;
+ for(i=0;i<s.lots.length;i++){
+  var l=s.lots[i];
+  if(l.q<=R.ui.zero)continue;
+  l.a++;
+  if(l.a>=R.ttl){wT+=l.q;continue}
+  s.lots[w++]=l;
+ }
+ s.lots.length=w;
+ var end=tot();
+ var cost=end*R.hold+s.cap.intake*R.maint.intake+s.cap.storage*R.maint.storage+s.cap.sales*R.maint.sales
+  +(wI+wS+wT)*R.waste+R.fixed+stored*R.farm;
+ var profit=rev-cost;
+ // 매출은 판로별 정산으로 이미 처리했다. 지출만 오늘 나간다.
+ s.cash-=cost;
+ return {prod:prod,dem:demTotal,acc:stored,refused:refused,sold:sold,missed:Math.max(0,demTotal-sold),
+  ageMix:ageMix,wI:wI,wIcap:byCap,wIstore:byStore,wIneed:byNeed,wS:wS,wT:wT,
+  end:end,profit:profit,sellable:sellable};
+}
+
+
+
+// 병목 판정. 그날의 사실이므로 커널의 일부다.
+FF.bottleneck=function(s,r,dem,rules){
+ var eps=(rules||FF.C).ui.eps, lossOut=Math.max(0,dem-r.sold);
+ var cand=[
+  ["ship",  (r.sold>=s.cap.sales-eps&&dem>r.sold+eps)?lossOut:0],
+  ["stock", (r.sold<dem-eps&&r.sellable<=r.sold+eps)?lossOut:0],
+  ["demand",(r.sold<s.cap.sales-eps&&r.sellable>r.sold+eps)?Math.max(0,s.cap.sales-dem):0],
+  ["intake",r.wIcap],
+  ["store", r.wIstore+r.wS+r.wT],
+  ["supply",(r.wIneed<=eps&&r.wIcap<=eps&&r.wIstore<=eps&&r.prod<s.cap.intake-eps)?(s.cap.intake-r.prod):0],
+  ["policy",r.wIneed]
+ ];
+ var b="none",bv=eps;
+ for(var i=0;i<cand.length;i++)if(cand[i][1]>bv){bv=cand[i][1];b=cand[i][0]}
+ return b;
+}
+
+
+
+// 하루 상태 전이. 게임 규칙은 이 함수에만 있다.
+// 신호도 로그도 화면도 모른다. 상태와 사실만 다룬다.
+//   state   {day,si,di,cash,lots,cap:{intake,storage,sales},pend,spent,buys}
+//   command FF.Cmd 의 결과
+//   world   FF.World 의 next() 출력
+// 반환 {state, result, events}. state 는 제자리에서 전진한다.
+
+FF.transition=function(state,command,world,rules){
+ var R=rules||FF.C;
+ var s=state, ev=[];
+ if(s.pend){s.cap[s.pend]+=R.step[s.pend];ev.push({type:"capacity-applied",capacity:s.pend});s.pend=null}
+ var C=command;
+ var bought=null, cost=0;
+ if(C.type==="sell"&&C.alloc&&C.alloc.length===R.channels.length){
+  s.alloc=C.alloc.slice();
+ }
+ if(C.type==="policy"){
+  var ok=false;
+  for(var pi=0;pi<R.policy.length;pi++)if(R.policy[pi].v===C.cover)ok=true;
+  if(ok&&s.cover!==C.cover){
+   s.cover=C.cover;
+   ev.push({type:"policy",cover:C.cover,day:s.day});
+  }
+ }
+ if(C.type==="contract"){
+  var opt=FF.contractOption(C.size,R);
+  if(opt&&opt.x>0
+     &&(s.buys?s.buys.contract:0)<R.contract.max
+     &&s.day<=(R.contract.until||R.days)
+     &&s.cash>=opt.price){
+   cost=opt.price;
+   s.cash-=cost; s.spent+=cost; s.contract=opt.x;
+   if(s.buys)s.buys.contract++;
+   bought="contract";
+   ev.push({type:"purchase",capacity:"contract",cost:cost,day:s.day});
+  }
+ }
+ if(C.type==="buy"&&R.cost[C.capacity]!==undefined&&s.cash>=R.cost[C.capacity]){
+  bought=C.capacity; cost=R.cost[bought];
+  s.cash-=cost; s.spent+=cost; s.pend=bought;
+  if(s.buys)s.buys[bought]++;
+  ev.push({type:"purchase",capacity:bought,cost:cost,day:s.day});
+ }
+ s.si=world.supplyPhase; s.di=world.demandPhase;
+ var r=FF.stepState(s,world.production,world.demand,R);
+ r.bought=bought; r.cost=cost;
+ r.b=FF.bottleneck(s,r,world.demand,R);
+ if(r.wIcap>R.ui.eps)ev.push({type:"capacity-hit",capacity:"intake",amount:r.wIcap});
+ if(r.wIstore+r.wS>R.ui.eps)ev.push({type:"capacity-hit",capacity:"storage",amount:r.wIstore+r.wS});
+ if(r.missed>R.ui.eps)ev.push({type:"demand-missed",amount:r.missed});
+ ev.push({type:"day-ended",day:s.day,profit:r.profit-cost});
+ // 최근 사흘의 관측을 남긴다. 화면의 못 판 주문과 같은 값이다.
+ if(s.recent){
+  s.recent=s.recent.concat([{missed:r.missed,dem:r.dem}]).slice(-3);
+ }
+ s.day++; s.si=world.nextSupplyPhase; s.di=world.nextDemandPhase;
+ if(s.cash<=0)ev.push({type:"bankrupt",day:s.day-1});
+ return {state:s,result:r,events:ev};
+}
+
+// 관측 기록. 게임 규칙이 아니라 기록 담당이다.
+// 커널이 낸 결과와 사건을 소비해 로그를 쌓는다.
+FF.initialState=function(world,rules){
+ var R=rules||FF.C;
+ return {day:1,si:world.phase().supply,di:world.phase().demand,
+  cash:R.cash,lots:[],
+  cap:{intake:R.cap.intake,storage:R.cap.storage,sales:R.cap.sales},
+  pend:null,spent:0,contract:0,cover:R.cover,ar:[],
+  rel:R.channels.map(function(){return R.rel.start}),alloc:null,
+  buys:{sales:0,contract:0},
+  recent:[]};
+}
+
+// 전략이 상태를 읽을 때 쓰는 조회. 커널 상태의 파생값이다.
+FF.step=function(state,command,world,rules){
+ var next=FF.forkState(state);
+ var out=FF.transition(next,command,world,rules);
+ return {state:next,result:out.result,events:out.events};
+}
+
+// 분기. 상태를 복사해 갈라진다. 바뀌는 것만 새로 만든다.
+FF.forkState=function(s){
+ return {day:s.day,si:s.si,di:s.di,cash:s.cash,
+  lots:s.lots.map(function(l){return {q:l.q,a:l.a}}),
+  cap:{intake:s.cap.intake,storage:s.cap.storage,sales:s.cap.sales},
+  pend:s.pend,spent:s.spent,contract:s.contract||0,cover:s.cover,
+  ar:(s.ar||[]).map(function(x){return {at:x.at,amt:x.amt}}),
+  rel:(s.rel||[]).slice(),alloc:s.alloc?s.alloc.slice():null,dead:false,
+  recent:s.recent?s.recent.slice():[],
+  buys:s.buys?{sales:s.buys.sales,contract:s.buys.contract||0}:undefined};
+}
+
+// 최종 가치. 살아남았고 끝까지 갔으면 처분가치를 더한다.
+// 순자산. 현금에 미회수 매출채권을 더한다.
+FF.netWorth=function(s){
+ var t=s.cash;
+ if(s.ar)for(var i=0;i<s.ar.length;i++)t+=s.ar[i].amt;
+ if(s.ap)for(var j=0;j<s.ap.length;j++)t-=s.ap[j].amt;
+ return t;
+}
+FF.finalValue=function(s,fin,rules){
+ var R=rules||FF.C;
+ var nw=FF.netWorth(s);
+ return (s.cash<=0||!fin)?nw:(nw+Math.round(s.spent*R.salvage));
+}
+
+
+FF.view={
+ stock:function(s){var t=0;for(var i=0;i<s.lots.length;i++)t+=s.lots[i].q;return t},
+ room:function(s){return Math.max(0,s.cap.storage-FF.view.stock(s))},
+ canAfford:function(s,k){return s.cash>=FF.C.cost[k]},
+ pending:function(s){return s.pend},
+ // 최근 사흘 못 판 주문 비율. 플레이어가 화면에서 읽는 값이다.
+ missRate:function(s){
+  var H=s.recent||[], m=0, d=0;
+  for(var i=0;i<H.length;i++){m+=H[i].missed;d+=H[i].dem}
+  return d>0?m/d:0;
+ }
+};
+
+
+// 데이터 전략. 규칙 목록을 자료구조로 표현하고 해석기가 명령으로 바꾼다.
+// 규칙은 위에서 아래로 검사하고 처음 맞는 것을 쓴다.
+//   {when:[{read:"stock", op:">", value:15}], then:{buy:"sales"}}
+//   {then:{wait:true}}
+FF.READ={
+ stock:function(s){return FF.view.stock(s)},
+ room:function(s){return FF.view.room(s)},
+ cash:function(s){return s.cash},
+ day:function(s){return s.day},
+ capIntake:function(s){return s.cap.intake},
+ capSales:function(s){return s.cap.sales},
+ buysContract:function(s){return s.buys?(s.buys.contract||0):0},
+ buysSales:function(s){return s.buys?s.buys.sales:0},
+ pending:function(s){return s.pend?1:0}
+};
+FF.OP={
+ ">":function(a,b){return a>b},
+ "<":function(a,b){return a<b},
+ ">=":function(a,b){return a>=b},
+ "<=":function(a,b){return a<=b},
+ "==":function(a,b){return a===b}
+};
+FF.evalCond=function(c,s){
+ var read=FF.READ[c.read], op=FF.OP[c.op];
+ if(!read||!op)return false;
+ return op(read(s),c.value);
+};
+FF.compileStrategy=function(rules){
+ return function(s){
+  for(var i=0;i<rules.length;i++){
+   var r=rules[i], ok=true;
+   var when=r.when||[];
+   for(var j=0;j<when.length&&ok;j++)ok=FF.evalCond(when[j],s);
+   if(!ok)continue;
+   if(r.then&&r.then.buy){
+    if(!FF.view.canAfford(s,r.then.buy)||s.pend)return FF.Cmd.wait();
+    return FF.Cmd.buy(r.then.buy);
+   }
+   return FF.Cmd.wait();
+  }
+  return FF.Cmd.wait();
+ };
+}
+
+// 계획을 전략으로 올린다. 표는 날짜만 보는 전략이다.
+//   plan {일차: 설비}  또는  function(state) -> Command
+FF.asStrategy=function(plan){
+ if(typeof plan==="function")return plan;
+ if(Array.isArray(plan))return FF.compileStrategy(plan);
+ return function(s){
+  return FF.planCmd(plan[s.day]);
+ };
+}
+
+// 시나리오 러너. 날짜 전진 구현은 이 함수 하나뿐이다.
+//   base     계획표 또는 전략 함수
+//   forks    [{at, plan}] at 일차의 기준선 상태에서 갈라진다
+//   untilDay 지정하면 그날까지만
+// 반환 {state, days:[{day,result,events}], forks:[최종상태]}
