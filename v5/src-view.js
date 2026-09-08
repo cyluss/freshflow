@@ -88,29 +88,31 @@ FV.ChannelBar=function(){
    FV._h("span",{class:"chan-kv-value"},value)
   ]);
  };
+ // 판단 위계 순서: 관계(장기 전략) -> 배정/주문(정책의 결과) -> 가격/최대/보장(판단 근거) -> 정책 버튼.
  var rows=P.rows.map(function(r,i){
   var issue=issueOf(i);
   var statusTxt=issue?(" · "+(issue.resolution==="accepted"?"포기함":"회복 중")):"";
-  var missTxt=P.missed[i]>=1?("다른 판로 우선으로 "+FF.fInt(P.missed[i])+"t 못 받음"):"";
+  var missTxt=P.missed[i]>=1?(FF.fInt(P.missed[i])+"t을 다른 판로에 양보"):"";
   return FV._h("div",{class:"chan-card"},[
    FV._h("div",{class:"chan-id"},[
     FV._h("span",{class:"chan-name"},FV.say("channel",r.key))
    ]),
    kv("관계",FV.say("relword",String(r.rel)),"chan-rel"),
+   FV._h("div",{class:"chan-alloc"},[
+    FV._h("span",{class:"chan-kv-label"},"배정")," ",
+    FV._h("span",{class:"chan-kv-value"},FF.fInt(P.preview[i])+"t"),
+    " / 주문 "+FF.fInt(P.est[i])+"t"+statusTxt
+   ]),
+   missTxt?FV._h("div",{class:"chan-kv-note"},missTxt):null,
    FV._h("div",{class:"chan-cond"},[
     kv("가격",r.price+"원"),
-    kv("주문",FF.fInt(P.est[i])+"t"),
     kv("최대",r.cap+"t"),
     kv("보장",r.floor>0?(r.floor+"t"):"—")
    ]),
    FV._h("div",{class:"chan-policy"},STANCE_LEVELS.map(function(lv){
     return FV._h("button",{class:"pol"+(P.levels[i]===lv?" pol-on":""),
      onClick:function(){FF.setChannelStance(i,lv)}},FV.say("stance",String(lv)));
-   })),
-   FV._h("div",{class:"chan-preview"},[
-    kv("예상",FF.fInt(P.preview[i])+"t"+statusTxt),
-    missTxt?FV._h("div",{class:"chan-kv-note"},missTxt):null
-   ])
+   }))
   ]);
  });
  return FV._h("div",{id:"kchan",class:"chan"},[

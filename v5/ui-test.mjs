@@ -470,9 +470,9 @@ function open(file, seed) {
   t('관계 낱말 표시', rows.every(r => ['끊김','보통','좋음','최상'].some(w => r.querySelector('.chan-rel').textContent.includes(w))));
   t('관계에 라벨 있다', rows.every(r => r.querySelector('.chan-rel').textContent.startsWith('관계')));
   t('가격 표시', rows.every(r => /\d+원/.test(r.querySelector('.chan-cond').textContent)));
-  t('주문량 표시', rows.every(r => /주문 \d+t/.test(r.querySelector('.chan-cond').textContent)));
   t('상한 표시', rows.every(r => /최대 \d+t/.test(r.querySelector('.chan-cond').textContent)));
-  t('예상 표시', rows.every(r => /예상 \d+t/.test(r.querySelector('.chan-preview').textContent)));
+  t('배정 표시', rows.every(r => /배정 \d+t/.test(r.querySelector('.chan-alloc').textContent)));
+  t('주문량 표시', rows.every(r => /주문 \d+t/.test(r.querySelector('.chan-alloc').textContent)));
   t('정책 버튼 넷', rows.every(r => r.querySelectorAll('.pol').length === 4));
   t('정책 버튼 이름', rows.every(r =>
     [...r.querySelectorAll('.pol')].map(b => b.textContent).join() === '양보,기본,우선,보장'));
