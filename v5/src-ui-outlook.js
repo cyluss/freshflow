@@ -44,7 +44,7 @@ FV.MonthOutlook=function(props){
    <//>`;
  };
  return FV._html`
-  <div id="koutlook" class="card-sm">
+  <div id="koutlook" class="outlook-block">
    <div style=${{fontSize:"11px",color:"var(--text-muted)",marginBottom:"6px"}}>
     ${O.today>1?("남은 "+O.left+"일 전망"):(O.days+"일 전망")} · 각 기간에 예상되는 상태다
    </div>

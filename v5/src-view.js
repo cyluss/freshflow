@@ -143,16 +143,15 @@ FV.CapacityButton=function(){
 }
 
 
+// 안내 → 전망 → 계약 입력 → 실행까지 개장 전 결정 하나를 한 컨테이너에 담는다.
 FV.FirstDayPrompt=function(){
- 
  return FV._html`
-  <${FV._F}>
-   <${FV.Panel} id="kexplore" className="card">
-    <div style=${{fontSize:"13px",color:"var(--text-primary)",marginBottom:"4px"}}>개장 전</div>
-    <div style=${{fontSize:"12px",color:"var(--text-secondary)",lineHeight:"1.6"}}>
-     이번 달 전망을 보고 초과분을 얼마나 더 받을지 정한다. 계약은 지금만 맺을 수 있다.</div>
-   <//>
+  <${FV.Panel} id="kexplore" className="card">
+   <div style=${{fontSize:"13px",color:"var(--text-primary)",marginBottom:"4px"}}>개장 전</div>
+   <div style=${{fontSize:"12px",color:"var(--text-secondary)",lineHeight:"1.6"}}>
+    이번 달 전망을 보고 초과분 계약을 정한다. 계약은 지금만 맺을 수 있다.</div>
    <${FV.MonthOutlook} data=${FF.monthOutlook()} />
+   <div class="fd-subhead">초과분 계약</div>
    <div id="kopening" class="opts">
     ${FF.C.contract.options.map(function(o,i){
       return FV._html`<${FV.ContractOption} opt=${o} id=${"kbc"+i} />`;
