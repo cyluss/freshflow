@@ -35,11 +35,14 @@ for (let seed = 1; seed <= SEEDS; seed++) {
     FF.setStance(levels);
     const caps = FF.capsOf();
     const effC = FF.effectiveContract();
-    const exp = FF.expectedIntake();
+    const prod = FF.prodOf();
+    const exp = FF.todayIntake();
     checked++;
-    // expectedIntake는 반올림값이라 정수 상한과 최대 0.5 차이가 날 수 있다(예: 20.5 -> 21).
+    // todayIntake는 반올림값이라 정수 상한과 최대 0.5 차이가 날 수 있다(예: 20.5 -> 21).
     if (exp > caps.intake + effC + 0.5 + EPS)
-      fail(`seed${seed} d${day}: expectedIntake ${exp} > capIntake+effectiveContract ${caps.intake + effC}`);
+      fail(`seed${seed} d${day}: todayIntake ${exp} > capIntake+effectiveContract ${caps.intake + effC}`);
+    if (exp > prod + 0.5 + EPS)
+      fail(`seed${seed} d${day}: todayIntake ${exp} > production ${prod} (물량 생성)`);
 
     const P = FF.stancePlan();
     const sellableCeil = P.inv + P.exp;
@@ -58,12 +61,19 @@ for (let seed = 1; seed <= SEEDS; seed++) {
     });
 
     // --- 실행: 하루 커밋 ---
+    const plannedIntake = exp, plannedProd = prod;
     FF.stepDay(FF.Cmd.wait());
     const r = FF.today();
     checked++;
 
     // --- 사후 단계: 확정 결과 불변조건 ---
     if (r.acc > r.prod + EPS) fail(`seed${seed} d${day}: 실제입고 ${r.acc} > 생산 ${r.prod}`);
+    // 생산이 턴 시작에 확정되므로, 실행 전 계획된 입고/생산과 실행 후 기록된 값이 정확히 같아야 한다.
+    // 다르면 미리보기가 여전히 국면 평균 같은 추정치를 쓰고 있다는 뜻이다.
+    if (Math.abs(r.prod - plannedProd) > EPS)
+      fail(`seed${seed} d${day}: 실행 전 확정 생산 ${plannedProd} != 실행 후 기록 생산 ${r.prod}`);
+    if (Math.abs(FF.rInt(r.acc) - plannedIntake) > EPS)
+      fail(`seed${seed} d${day}: 실행 전 계획 입고 ${plannedIntake} != 실행 후 실제 입고 ${FF.rInt(r.acc)}`);
     const sumToCh = (r.toCh || []).reduce((a, b) => a + b, 0);
     if (Math.abs(sumToCh - r.sold) > EPS)
       fail(`seed${seed} d${day}: toCh 합 ${sumToCh} != sold ${r.sold}`);

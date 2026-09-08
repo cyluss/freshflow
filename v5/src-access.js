@@ -2,7 +2,7 @@
 FF.isLossCause=function(b){return b==="intake"||b==="store"||b==="ship"||b==="stock"}
 
 // 오늘 있을 하루에 실제로 걸릴 계약량. 이미 활성화됐거나(contract), 어제 사서 오늘부터 걸리거나(pendContract) 둘 중 하나다.
-// 미리보기(expectedIntake 등)는 이 값을 써야 "계약 다음날부터 적용"이 화면에서도 하루 안 어긋난다.
+// 미리보기(todayIntake 등)는 이 값을 써야 "계약 다음날부터 적용"이 화면에서도 하루 안 어긋난다.
 FF.effectiveContract=function(){return FF.contractOf()||FF.pendContractOf()||0}
 
 // 내일 적용될 증설. 화면이 쓰는 읽기 접근자다.
@@ -75,7 +75,8 @@ FF.toKernelState=function(){
  var M=FF.MARKET.value, P=FF.plant(), L=FF.ledger();
  return {day:FF.run().day,si:M.si,di:M.di,cash:L.cash,lots:FF.lotsOf().slice(),
   cap:{intake:P.cap.intake,storage:P.cap.storage,sales:P.cap.sales},
-  pend:FF.PENDING.value,spent:L.spent,contract:FF.CONTRACT.value,pendContract:FF.pendContractOf(),cover:FF.coverOf(),
+  pend:FF.PENDING.value,spent:L.spent,contract:FF.CONTRACT.value,pendContract:FF.pendContractOf(),
+  todayProd:FF.prodOf(),cover:FF.coverOf(),
   rel:FF.relOf().slice(),alloc:FF.allocOf(),stance:FF.stanceOf(),ar:(FF.arOf()||[]).slice(),
   buys:{sales:P.buys.sales,contract:P.buys.contract||0}};
 

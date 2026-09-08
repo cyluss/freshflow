@@ -138,7 +138,7 @@ FV.ChannelBar=function(){
  // 플레이어가 판로 세 줄을 직접 더하지 않아도 오늘 몇 t을 팔 계획인지 바로 보이게 하기 위해서다.
  // 둘이 다르면(미배정>0) 수요가 판매 가능보다 적어서 판매 가능을 다 못 채운다는 뜻이다.
  // pool/sellable/unassigned 등은 사실 투영(G)이 이미 낸 값이다. 화면은 더하고 빼지 않고 그대로 읽는다.
- var pool=G['curr.plan.inventory.pool'], inv=G['curr.state.inventory.stock'], exp=G['curr.forecast.supply.intake'];
+ var pool=G['curr.plan.inventory.pool'], inv=G['curr.state.inventory.stock'], exp=G['curr.state.supply.intake'];
  var sum=G['curr.plan.inventory.assigned'], sellable=G['curr.plan.inventory.sellable'], unassigned=G['curr.plan.inventory.unassigned'];
  var capSales=FF.capsOf().sales, old=FF.oldStock();
  return FV._h("div",{id:"kchan",class:"chan"},[
@@ -149,7 +149,7 @@ FV.ChannelBar=function(){
      FV._h("span",{class:"chan-head-value"},FF.fInt(pool)+"t")
     ]),
     FV._h("div",{class:"chan-head-note"},
-     "재고 "+FF.fInt(inv)+"t · 오늘 입고 예상 "+FF.fInt(exp)+"t"+
+     "재고 "+FF.fInt(inv)+"t · 오늘 확정 입고 "+FF.fInt(exp)+"t"+
      (sellable>capSales?(" · 판매 한도 "+capSales+"t"):""))
    ]),
    FV._h("div",{class:"chan-head-col"},[

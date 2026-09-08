@@ -357,9 +357,9 @@ function open(file, seed) {
   t('첫날은 계약이 아직 안 걸린다', s12b.w.FF.effectiveContract() === 0);
   s12b.q('kgo').click(); await tick(); // 1일차 실행 -> 2일차: 계약이 오늘부터 유효
   t('둘째 날부터 계약이 유효', s12b.w.FF.effectiveContract() === 1.5);
-  const caps = s12b.w.FF.capsOf(), M = s12b.w.FF.marketOf();
-  const expected = Math.round(Math.min(s12b.w.FF.C.sm[M.si], caps.intake + 1.5));
-  t('입고 예상이 기본 한도+계약을 반영', s12b.w.FF.expectedIntake() === expected);
+  const caps = s12b.w.FF.capsOf();
+  const expected = Math.round(Math.min(s12b.w.FF.prodOf(), caps.intake + 1.5));
+  t('확정 입고가 기본 한도+계약을 반영', s12b.w.FF.todayIntake() === expected);
 }
 
 // 15c. 초과분 계약이 발동하면 그날 알려주고, 종료 후 누적 효과를 보여준다
@@ -565,7 +565,7 @@ function open(file, seed) {
 
   t('머리줄 판매 가능은 가장 크게', /판매 가능/.test(bar.querySelector('.chan-head-main').textContent));
   t('머리줄에 재고', /재고 \d+t/.test(bar.querySelector('.chan-head-note').textContent));
-  t('머리줄에 입고 예상', /입고 예상 \d+t/.test(bar.querySelector('.chan-head-note').textContent));
+  t('머리줄에 확정 입고', /확정 입고 \d+t/.test(bar.querySelector('.chan-head-note').textContent));
   {
    const P0 = ch.w.FF.stancePlan(), capSales = ch.w.FF.capsOf().sales;
    const values = [...bar.querySelectorAll('.chan-head-value')];
@@ -573,7 +573,7 @@ function open(file, seed) {
    t('예상 판매 값은 배정 합과 같다', values[1].textContent === P0.sum + 't');
    const noteTxt = bar.querySelector('.chan-head-note').textContent;
    t('재고 값이 정확히 일치', noteTxt.includes('재고 ' + P0.inv + 't'));
-   t('입고 예상 값이 정확히 일치', noteTxt.includes('오늘 입고 예상 ' + P0.exp + 't'));
+   t('확정 입고 값이 정확히 일치', noteTxt.includes('오늘 확정 입고 ' + P0.exp + 't'));
    t('판매 한도는 실제로 걸릴 때만', /판매 한도 \d+t/.test(noteTxt) === (P0.sellable > capSales));
    const unassignedTxt = [...bar.querySelectorAll('.chan-head-note')].map(x => x.textContent).join(' ');
    t('미배정은 있을 때만', /미배정 \d+t/.test(unassignedTxt) === (P0.unassigned >= 1));

@@ -245,7 +245,7 @@ for (const [name, n] of globalsUsed) problems.push(`미정의 식별자 ${name} 
 // D12. 커널은 전역 규칙을 직접 읽지 않는다. 인자로 받는다.
 {
   const KERNEL = ['stepState','bottleneck','transition','World','initialState','finalValue','mvSeq',
-                  'M','hor','blur','expD'];
+                  'M','hor','blur','expD','intakeNeed'];
   const lines = fs.readFileSync('src-kernel.js','utf8').split('\n');
   let owner = '';
   lines.forEach((ln,i) => {

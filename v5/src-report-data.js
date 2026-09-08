@@ -341,14 +341,20 @@ FF.channelRows=function(){
 
 FF.rInt=function(n){return Math.round(n)}
 // 오늘 판로가 받을 수 있는 양은 이월 재고뿐 아니라 오늘 입고분도 포함한다.
-// 입고는 배분을 정한 뒤에 들어오므로 국면 평균으로 예상치만 낸다. 실제 입고와는 다를 수 있다.
-// 오늘 걸릴 계약(이미 활성화됐거나 어제 사서 오늘부터 걸리는 계약)만큼 상한을 올려서 잡는다.
-// 안 그러면 계약을 해도 판매 가능/입고 예상에서 그 효과가 사라져 보인다.
-FF.expectedIntake=function(){
+// 오늘 생산은 정책을 정하기 전에 이미 확정되어 있다(FF.revealToday). 더 이상 국면 평균으로
+// 추정하지 않는다. 다만 실제 입고(커널의 acc)는 생산·입고한도뿐 아니라 목표재고(need)로도
+// 막힌다. 그래서 이 함수는 커널의 stepState와 같은 공식(FF.intakeNeed + 계약분)을 그대로 쓴다.
+// 하나만 계산해서 둘 다 쓰면, 여기와 커널이 서로 다른 값을 낼 위험이 없다.
+FF.todayIntake=function(){
  var M=FF.marketOf(), caps=FF.capsOf();
  if(!M||!caps)return 0;
- var ceil=caps.intake+FF.effectiveContract();
- return FF.rInt(Math.min(FF.C.sm[M.si],ceil));
+ var prod=FF.prodOf()||0;
+ var need=FF.intakeNeed(M.di,caps.sales,FF.coverOf(),FF.inventory());
+ var base=Math.min(prod,caps.intake,need);
+ var contract=FF.effectiveContract();
+ var over=Math.max(0,prod-caps.intake);
+ var extra=contract>0?Math.min(over,contract,Math.max(0,need-base)):0;
+ return FF.rInt(base+extra);
 }
 // 오늘 판로별 예상 수요 한도. 커널이 world 로 뽑는 값과 같은 공식을 국면 평균으로 대신 쓴다.
 // 실제 값은 이것과 다를 수 있다. 화면은 이것으로 미리보기만 만든다.
@@ -389,9 +395,12 @@ FF.stancePlan=function(){
  var rows=FF.channelRows(), n=rows.length;
  var levels=rows.map(function(r,i){return FF.stanceLevel(i)});
  var est=rows.map(function(r,i){return FF.rInt(FF.estChannelDemand(i))});
- var inv=FF.inventory(), exp=FF.expectedIntake(), caps=FF.capsOf();
+ // 재고를 먼저 정수로 반올림한 뒤 이 정수로만 pool을 계산한다. 원값(inv)과 반올림값(invR)이
+ // 하필 .5 근처면 반올림 방향이 서로 달라질 수 있어서, 화면에 보이는 재고+입고 합과 pool이
+ // 어긋나 보일 수 있었다(예: inv=0.4999...→표시 0t, inv+exp=17.5→반올림 18t).
+ var inv=FF.inventory(), invR=FF.rInt(inv), exp=FF.todayIntake(), caps=FF.capsOf();
  var totCap=0, i; for(i=0;i<n;i++)totCap+=rows[i].cap;
- var pool=FF.rInt(Math.min(inv+exp,totCap,caps?caps.sales:totCap));
+ var pool=Math.min(invR+exp,totCap,caps?caps.sales:totCap);
  var preview=FF.allocatePool(pool,est.slice(),levels,rows.map(function(r){return r.quota}));
  // 판로마다 따로 반올림하면 합이 pool을 넘을 수 있다(quantizePct와 같은 문제).
  // 최대 나머지 방식으로 합을 pool 이하로 고정한 뒤에만 반올림한다.
@@ -407,7 +416,6 @@ FF.stancePlan=function(){
  var sum=0; for(i=0;i<n;i++)sum+=preview[i];
  // 기회비용: 주문은 있는데 다른 판로 우선 때문에 못 받는 양이다.
  var missed=est.map(function(e,idx){return FF.rInt(Math.max(0,e-preview[idx]))});
- var invR=FF.rInt(inv);
  // 화면이 재고+입고를 다시 더하거나 pool-sum을 다시 빼지 않도록 여기서 낸다.
  return {rows:rows,levels:levels,est:est,preview:preview,missed:missed,inv:invR,exp:exp,
   pool:pool,sum:FF.rInt(sum),sellable:invR+exp,unassigned:Math.max(0,pool-FF.rInt(sum))};
@@ -441,7 +449,8 @@ FF._factsCurrPlan=function(out){
  out.push(FF.fact("curr","plan","inventory",null,"assigned",P.sum));
  out.push(FF.fact("curr","plan","inventory",null,"sellable",P.sellable));
  out.push(FF.fact("curr","plan","inventory",null,"unassigned",P.unassigned));
- out.push(FF.fact("curr","forecast","supply",null,"intake",P.exp));
+ // 오늘 입고는 확정 생산 기반이라 더 이상 전망이 아니다. curr.state로 분류한다.
+ out.push(FF.fact("curr","state","supply",null,"intake",P.exp));
  P.rows.forEach(function(r,i){
   out.push(FF.fact("curr","plan","allocation",r.key,"stance",P.levels[i]));
   out.push(FF.fact("curr","plan","allocation",r.key,"assigned",P.preview[i]));

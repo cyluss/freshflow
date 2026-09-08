@@ -46,17 +46,29 @@ FF.mvSeq=function(rng,x,rules,tilt){
 // 하루치 입력을 만들고 다음 국면을 함께 돌려준다.
 FF.World=function(seed,rules){
  var R=rules||FF.C;
- var rng=new FF.Rng(seed);
- // 이번 달 성향. 판마다 다르고 30일 내내 유지된다.
- var pick=function(){var r=rng.next(),p=R.tiltP||[0.25,0.5,0.25];
+ // 생산과 수요는 서로 다른 확률 스트림에서 뽑는다. 하나의 스트림을 같이 쓰면, 둘 중 한쪽의
+ // 소비 시점이나 횟수가 나중에 바뀔 때 다른 쪽 수열까지 밀려버린다(재현성이 우연에 기댄다).
+ // 두 스트림을 처음부터 물리적으로 분리해 두면 그 위험이 아예 없다.
+ var rngS=new FF.Rng(seed);
+ var rngD=new FF.Rng(seed^0x9e3779b9);
+ // 이번 달 성향. 판마다 다르고 30일 내내 유지된다. 공급 성향은 공급 스트림에서, 수요 성향은 수요 스트림에서 뽑는다.
+ var pick=function(rng){var r=rng.next(),p=R.tiltP||[0.25,0.5,0.25];
   return r<p[0]?0:(r<p[0]+p[1]?1:2)};
- var ts=pick(), td=pick();
- var si=FF.mvSeq(rng,1,R,ts), di=FF.mvSeq(rng,1,R,td);
+ var ts=pick(rngS), td=pick(rngD);
+ var si=FF.mvSeq(rngS,1,R,ts), di=FF.mvSeq(rngD,1,R,td);
  return {
   tilt:function(){return {supply:ts,demand:td}},
   phase:function(){return {supply:si,demand:di}},
-  next:function(){
-   var dem=Math.max(0,rng.norm(R.dm[di],R.dd));
+  // 생산은 턴이 시작될 때(정책을 정하기 전) 미리 확정한다. 수요는 하루를 실행할 때만 실현된다.
+  // 그래서 둘을 분리해 서로 다른 시점에 뽑는다. 참조 재생(러너)은 여전히 next()로 같이 뽑는다.
+  nextProduction:function(){
+   var out={production:Math.max(0,rngS.norm(R.sm[si],R.sd)),supplyPhase:si};
+   si=FF.mvSeq(rngS,si,R,ts);
+   out.nextSupplyPhase=si;
+   return out;
+  },
+  nextDemand:function(){
+   var dem=Math.max(0,rngD.norm(R.dm[di],R.dd));
    // 판로별 수요. 전체 수요를 상한 비율로 나누고 판로마다 다른 변동을 준다.
    var totCap=0, ci;
    for(ci=0;ci<R.channels.length;ci++)totCap+=R.channels[ci].cap;
@@ -64,19 +76,35 @@ FF.World=function(seed,rules){
    for(ci=0;ci<R.channels.length;ci++){
     var c=R.channels[ci];
     var vol=(c.key==="whole")?0.2:0.4;
-    chDem.push(Math.max(0,dem*(c.cap/totCap)*(1-vol+rng.next()*vol*2)));
+    chDem.push(Math.max(0,dem*(c.cap/totCap)*(1-vol+rngD.next()*vol*2)));
    }
-   var input={production:Math.max(0,rng.norm(R.sm[si],R.sd)),
-              demand:dem, chDemand:chDem,
-              supplyPhase:si, demandPhase:di};
-   si=FF.mvSeq(rng,si,R,ts); di=FF.mvSeq(rng,di,R,td);
-   input.nextSupplyPhase=si; input.nextDemandPhase=di;
-   return input;
+   var out={demand:dem,chDemand:chDem,demandPhase:di};
+   di=FF.mvSeq(rngD,di,R,td);
+   out.nextDemandPhase=di;
+   return out;
+  },
+  // 참조 재생 전용. 생산 다음 수요 순서로 그대로 이어 뽑아 둘을 합친 옛 모양을 낸다.
+  next:function(){
+   var p=this.nextProduction(), d=this.nextDemand();
+   return {production:p.production,demand:d.demand,chDemand:d.chDemand,
+     supplyPhase:p.supplyPhase,demandPhase:d.demandPhase,
+     nextSupplyPhase:p.nextSupplyPhase,nextDemandPhase:d.nextDemandPhase};
   }
  };
 }
 
 
+
+// 오늘 더 받고 싶은 목표 입고량. 판매 목표 재고(cover*근일 예상판매 + 원일 증가분 일부)에서
+// 지금 들고 있는 재고를 뺀 나머지다. 실제 입고(acc)는 이 값과 생산·입고한도 중 가장 작은 쪽이다.
+// 커널과 미리보기가 이 함수 하나를 같이 쓴다. 따로 두면(예: 미리보기가 국면 평균을 따로 계산하면)
+// 둘이 갈라져도 알아채기 어렵다.
+FF.intakeNeed=function(di,capSales,cover,totalInv,rules){
+ var R=rules||FF.C;
+ var on=Math.min(capSales,FF.expD(di,1,3,R)), om=Math.min(capSales,FF.expD(di,4,7,R));
+ var cv=(cover===undefined)?R.cover:cover;
+ return Math.max(0,cv*on+R.alpha*Math.max(0,om-on)*R.mid-totalInv);
+}
 
 FF.stepState=function(s,prod,dem,rules){
  var R=rules||FF.C;
@@ -97,9 +125,7 @@ FF.stepState=function(s,prod,dem,rules){
   s.ar=keep;
  }
  var tot=function(){var t=0;for(var i=0;i<s.lots.length;i++)t+=s.lots[i].q;return t};
- var on=Math.min(s.cap.sales,FF.expD(s.di,1,3,R)), om=Math.min(s.cap.sales,FF.expD(s.di,4,7,R));
- var cv=(s.cover===undefined)?R.cover:s.cover;
- var need=Math.max(0,cv*on+R.alpha*Math.max(0,om-on)*R.mid-tot());
+ var need=FF.intakeNeed(s.di,s.cap.sales,s.cover,tot(),R);
  var baseAcc=Math.min(prod,s.cap.intake,need);
  // 초과분 매입 계약: 한도를 넘은 물량 중 최대 X t 를 더 받는다.
  // 한도 자체는 늘리지 않고 목표재고와 창고 제약은 그대로다.
@@ -295,8 +321,12 @@ FF.transition=function(state,command,world,rules){
   if(s.buys)s.buys[bought]++;
   ev.push({type:"purchase",capacity:bought,cost:cost,day:s.day});
  }
- s.si=world.supplyPhase; s.di=world.demandPhase;
- var r=FF.stepState(s,world.production,world.demand,R);
+ // 생산이 이미 확정되어 있으면(턴 시작에 미리 뽑아 둔 값) 그것을 쓴다. 없으면(참조 재생 등) world가 그 자리에서 준다.
+ var revealed=s.todayProd!==undefined&&s.todayProd!==null;
+ if(!revealed&&world.supplyPhase!==undefined)s.si=world.supplyPhase;
+ s.di=world.demandPhase;
+ var prod=revealed?s.todayProd:world.production;
+ var r=FF.stepState(s,prod,world.demand,R);
  r.bought=bought; r.cost=cost;
  r.b=FF.bottleneck(s,r,world.demand,R);
  if(r.wIcap>R.ui.eps)ev.push({type:"capacity-hit",capacity:"intake",amount:r.wIcap});
@@ -307,7 +337,9 @@ FF.transition=function(state,command,world,rules){
  if(s.recent){
   s.recent=s.recent.concat([{missed:r.missed,dem:r.dem}]).slice(-3);
  }
- s.day++; s.si=world.nextSupplyPhase; s.di=world.nextDemandPhase;
+ // 생산이 확정되어 있던 턴이면 다음 국면 관리는 턴 시작 때 생산을 미리 확정하는 쪽이 이미 넘겨받는다.
+ s.day++; s.di=world.nextDemandPhase;
+ if(!revealed&&world.nextSupplyPhase!==undefined)s.si=world.nextSupplyPhase;
  if(s.cash<=0)ev.push({type:"bankrupt",day:s.day-1});
  return {state:s,result:r,events:ev};
 }
@@ -319,7 +351,7 @@ FF.initialState=function(world,rules){
  return {day:1,si:world.phase().supply,di:world.phase().demand,
   cash:R.cash,lots:[],
   cap:{intake:R.cap.intake,storage:R.cap.storage,sales:R.cap.sales},
-  pend:null,spent:0,contract:0,pendContract:null,cover:R.cover,ar:[],
+  pend:null,spent:0,contract:0,pendContract:null,todayProd:null,cover:R.cover,ar:[],
   rel:R.channels.map(function(){return R.rel.start}),alloc:null,stance:null,
   buys:{sales:0,contract:0},
   recent:[]};
@@ -337,7 +369,8 @@ FF.forkState=function(s){
  return {day:s.day,si:s.si,di:s.di,cash:s.cash,
   lots:s.lots.map(function(l){return {q:l.q,a:l.a}}),
   cap:{intake:s.cap.intake,storage:s.cap.storage,sales:s.cap.sales},
-  pend:s.pend,spent:s.spent,contract:s.contract||0,pendContract:s.pendContract||null,cover:s.cover,
+  pend:s.pend,spent:s.spent,contract:s.contract||0,pendContract:s.pendContract||null,
+  todayProd:(s.todayProd===undefined)?null:s.todayProd,cover:s.cover,
   ar:(s.ar||[]).map(function(x){return {at:x.at,amt:x.amt}}),
   rel:(s.rel||[]).slice(),alloc:s.alloc?s.alloc.slice():null,
   stance:s.stance?s.stance.slice():null,dead:false,

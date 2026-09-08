@@ -98,6 +98,10 @@ FF.setSalvage=function(v){var L=FF.LEDGER.value;FF.LEDGER.value={cash:L.cash+v,s
 FF.MARKET=FF._signal(null);
 FF.marketOf=function(){FF.VERSION.value;return FF.MARKET.value}
 FF.setMarket=function(si,di){FF.MARKET.value={si:si,di:di}}
+// 오늘 확정 생산량. 턴이 시작될 때(정책을 정하기 전) 이미 뽑혀 있다. 수요와 달리 더 이상 추정이 아니다.
+FF.PROD=FF._signal(null);
+FF.prodOf=function(){FF.VERSION.value;return FF.PROD.value}
+FF.setProd=function(v){FF.PROD.value=v}
 // 판로 관계와 배분. 오늘의 배분이 내일의 거래조건을 바꾼다.
 FF.REL=FF._signal(null);
 FF.setRel=function(a){FF.REL.value=a}

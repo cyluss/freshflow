@@ -1,8 +1,17 @@
-FF.reset=function(seed){FF.SIG.fin.value=false;FF.SIG.manual.value=false;FF.SIG.newGame.value=false;FF.EVENT.value=null;FF.PENDING.value=null;FF.PHASE.value="play";FF.resetRecover();FF.setContract(0);FF.setPendContract(null);FF.setCover(FF.C.cover);FF.setRel(FF.C.channels.map(function(){return FF.C.rel.start}));FF.setAlloc(null);FF.setStance(null);FF.setIssue(null);FF.setSignal([]);FF.setAr([]);FF.setWorld(FF.World(seed));FF.setLots([]);FF.resetEngineState();FF.setMarket(FF.world().phase().supply,FF.world().phase().demand);FF.setTilt(FF.world().tilt());FF.resetLedger();FF.resetLog();FF.resetPlant();FF.resetRun(seed);
+FF.reset=function(seed){FF.SIG.fin.value=false;FF.SIG.manual.value=false;FF.SIG.newGame.value=false;FF.EVENT.value=null;FF.PENDING.value=null;FF.PHASE.value="play";FF.resetRecover();FF.setContract(0);FF.setPendContract(null);FF.setProd(null);FF.setCover(FF.C.cover);FF.setRel(FF.C.channels.map(function(){return FF.C.rel.start}));FF.setAlloc(null);FF.setStance(null);FF.setIssue(null);FF.setSignal([]);FF.setAr([]);FF.setWorld(FF.World(seed));FF.setLots([]);FF.resetEngineState();FF.setMarket(FF.world().phase().supply,FF.world().phase().demand);FF.setTilt(FF.world().tilt());FF.resetLedger();FF.resetLog();FF.resetPlant();FF.resetRun(seed);
 FF.setQueue([]);
  FF.setClock(false);
+ FF.revealToday();
  FF.commit();FF.repaint()}
 
+// 오늘 생산을 확정한다. 정책 화면을 보여주기 전에, 하루가 시작될 때마다 한 번 부른다.
+// 수요는 여기서 건드리지 않는다. 수요는 하루를 실행할 때(stepDay)만 실현된다.
+FF.revealToday=function(){
+ if(FF.isOver())return;
+ var out=FF.world().nextProduction();
+ FF.setProd(out.production);
+ FF.setMarket(out.supplyPhase,FF.marketOf().di);
+}
 
 // 하루 물리. 물리는 이 함수에만 있다.
 // s 를 제자리에서 전진시키고 그날의 관측치를 돌려준다.
@@ -24,7 +33,8 @@ FF.stepDay=function(cmd,path){
  var s=FF.toKernelState();
  var send=willBuy?(act==="contract"?FF.Cmd.contract(cmd.size):FF.Cmd.buy(act))
    :((cmd.type==="sell"||cmd.type==="policy")?cmd:FF.Cmd.wait());
- var out=FF.transition(s,send,FF.world().next());
+ // 오늘 생산은 이미 revealToday가 확정해 뒀다(s.todayProd). 여기서는 수요만 새로 뽑는다.
+ var out=FF.transition(s,send,FF.world().nextDemand());
  var r=out.result;
  var prevRel=FF.relOf();
  FF.applyKernelState(s,r,pend);
@@ -36,6 +46,8 @@ FF.stepDay=function(cmd,path){
   if(!FF.isOver())FF.setSalvage(Math.round(FF.ledger().spent*FF.C.salvage));
   FF.setPhase("done");
  }
+ // 다음 날의 정책 화면을 보여주기 전에 그날의 생산부터 미리 확정해 둔다.
+ FF.revealToday();
  FF.commit();
 }
 
