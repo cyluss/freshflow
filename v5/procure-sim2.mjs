@@ -12,6 +12,12 @@
 // 과다예약분은 그대로 보관비를 문다). option은 과소예측 위험도 없애고 과다예측 위험도
 // 옵션료로만 가격화한다(행사는 실제 필요분까지만 하므로 물리적 과잉재고가 안 생긴다).
 // cash/credit은 애초에 예약 상한이 없어 이 구분과 무관하다.
+//
+// 이슈 #6 반영: 위 1차/2차 결과는 모두 expectedProdAt이 hidden World state(si, tilt)를
+// FF.hor로 직접 읽어 플레이어가 볼 수 없는 정확도의 예측을 쓴 상태에서 나왔다. 그래서
+// 최종 판정 근거가 아니라 참고용 진단으로만 남긴다. 지금은 FF.blurredPhase(플레이어가
+// 보는 전망과 같은 소스)를 쓴다. si/tilt를 여전히 읽지만 그 값을 넘기는 함수 자체가
+// 플레이어에게 노출되는 흐려진 분포와 같으므로 정보 우위가 없다.
 import fs from 'fs';
 
 const stub = 'var FF={},FV={};';
@@ -41,14 +47,15 @@ const STANCES = {
 const STANCE_KEYS = Object.keys(STANCES);
 const POLICIES = ['cash', 'credit', 'prepaid', 'option'];
 
-// 공급 국면(si)은 하루 단위로 안 고정되어 있다. FF.mvSeq가 성향(tilt)이 정한 전이행렬을
-// 따라 매일 마르코프 전이한다(성향 자체는 판 내내 고정). 그래서 leadDays일 뒤 기대 생산은
-// 오늘 국면의 평균이 아니라, 오늘 국면에서 leadDays번 전이한 뒤의 국면 분포로 가중평균해야
-// 한다. 커널이 수요 전망(FF.expD)에 쓰는 것과 같은 FF.hor/FF.M을 그대로 재사용한다.
+// 이슈 #6: 헤드리스 정책이 플레이어가 볼 수 없는 hidden World state를 직접 읽지 않는다.
+// si 자체는 여전히 읽지만, 그 값을 흐리지 않은 FF.hor로 바로 계산하면 플레이어가 보는
+// 전망(국면 라벨, 월간 전망 막대)보다 더 정확한 예측을 쓰게 된다. FF.blurredPhase는
+// 그 전망들과 같은 소스(src-report-data.js의 FF._forecastOnly/FF.monthOutlook)라서,
+// 이 값으로 만든 기대 생산은 플레이어가 화면에서 보는 것과 같은 정보량이다.
 function expectedProdAt(leadDays) {
   const M = FF.marketOf();
   const ts = FF.tiltOf().supply;
-  const dist = FF.hor(M.si, leadDays, leadDays, FF.C, ts);
+  const dist = FF.blurredPhase(M.si, leadDays, leadDays, FF.C, ts);
   let mean = 0;
   for (let k = 0; k < 3; k++) mean += dist[k] * FF.C.sm[k];
   return Math.round(mean * 2);
