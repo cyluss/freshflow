@@ -82,8 +82,8 @@ FV.ChannelBar=function(){
  };
  var STANCE_LEVELS=[0,1,2,3];
  // 라벨과 값을 같은 순서, 같은 칸 너비로 둔다. 판로 셋을 나란히 봤을 때 같은 줄끼리 비교되게 하기 위해서다.
- var kv=function(label,value){
-  return FV._h("div",{class:"chan-kv"},[
+ var kv=function(label,value,extraClass){
+  return FV._h("div",{class:"chan-kv"+(extraClass?(" "+extraClass):"")},[
    FV._h("span",{class:"chan-kv-label"},label), " ",
    FV._h("span",{class:"chan-kv-value"},value)
   ]);
@@ -94,9 +94,9 @@ FV.ChannelBar=function(){
   var missTxt=P.missed[i]>=1?("다른 판로 우선으로 "+FF.fInt(P.missed[i])+"t 못 받음"):"";
   return FV._h("div",{class:"chan-card"},[
    FV._h("div",{class:"chan-id"},[
-    FV._h("span",{class:"chan-name"},FV.say("channel",r.key)),
-    FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel))+" "+r.rel)
+    FV._h("span",{class:"chan-name"},FV.say("channel",r.key))
    ]),
+   kv("관계",FV.say("relword",String(r.rel)),"chan-rel"),
    FV._h("div",{class:"chan-cond"},[
     kv("가격",r.price+"원"),
     kv("주문",FF.fInt(P.est[i])+"t"),
