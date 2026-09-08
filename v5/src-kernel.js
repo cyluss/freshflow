@@ -118,20 +118,9 @@ FF.stepState=function(s,prod,dem,rules){
  var R=rules||FF.C;
  // 오늘 회수되는 매출채권을 먼저 현금으로 바꾼다.
  // 오늘 갚아야 할 매입채무를 먼저 낸다.
- if(s.ap&&s.ap.length){
-  var keepA=[];
-  for(var pi=0;pi<s.ap.length;pi++){
-   if(s.ap[pi].at<=s.day)s.cash-=s.ap[pi].amt; else keepA.push(s.ap[pi]);
-  }
-  s.ap=keepA;
- }
- if(s.ar&&s.ar.length){
-  var keep=[];
-  for(var ai=0;ai<s.ar.length;ai++){
-   if(s.ar[ai].at<=s.day)s.cash+=s.ar[ai].amt; else keep.push(s.ar[ai]);
-  }
-  s.ar=keep;
- }
+ var isDue=function(x,day){return x.at<=day};
+ if(s.ap&&s.ap.length)s.ap=FF.advanceTimed(s.ap,s.day,isDue,function(x){s.cash-=x.amt});
+ if(s.ar&&s.ar.length)s.ar=FF.advanceTimed(s.ar,s.day,isDue,function(x){s.cash+=x.amt});
  var tot=function(){var t=0;for(var i=0;i<s.lots.length;i++)t+=s.lots[i].q;return t};
  var need=FF.intakeNeed(s.di,s.cap.sales,s.cover,tot(),R);
  var baseAcc=Math.min(prod,s.cap.intake,need);
@@ -246,15 +235,12 @@ FF.stepState=function(s,prod,dem,rules){
  }
  var demTotal=0;
  for(ci=0;ci<nch;ci++)demTotal+=chDem[ci]+toCh[ci];
- var w=0, wT=0;
- for(i=0;i<s.lots.length;i++){
-  var l=s.lots[i];
-  if(l.q<=R.ui.zero)continue;
-  l.a++;
-  if(l.a>=R.ttl){wT+=l.q;continue}
-  s.lots[w++]=l;
- }
- s.lots.length=w;
+ // 다 팔린 lot은 그냥 버린다(나이도 안 늘리고 폐기량에도 안 잡는다). 남은 lot만 하루 나이를
+ // 먹은 뒤, ttl 만기 순회는 AR/AP와 같은 FF.advanceTimed를 쓴다.
+ var wT=0;
+ s.lots=s.lots.filter(function(l){return l.q>R.ui.zero});
+ s.lots.forEach(function(l){l.a++});
+ s.lots=FF.advanceTimed(s.lots,null,function(l){return l.a>=R.ttl},function(l){wT+=l.q});
  var end=tot();
  var cost=end*R.hold+s.cap.intake*R.maint.intake+s.cap.storage*R.maint.storage+s.cap.sales*R.maint.sales
   +(wI+wS+wT)*R.waste+R.fixed+stored*R.farm;

@@ -106,3 +106,16 @@ FF.roundAllocation=function(shares,target){
 FF.tradeAmount=function(effectivePrice,quantity){
  return Math.round(effectivePrice*quantity);
 }
+
+// 만기 있는 항목의 하루 단위 순회. 만기 도달(isExpired)한 항목만 onExpire로 소멸시키고
+// 나머지는 그대로 남긴다. AR/AP(만기일 at과 day를 비교)와 재고 lot(나이 a가 ttl에 닿으면
+// 폐기, day는 안 쓴다)이 모양은 같은 이 순회를 공유한다. lot의 나이 증가나 일부 소비처럼
+// "만기 전에 항목 자체가 바뀌는" 절차는 이 함수가 하지 않는다 — 그건 호출자가 미리 한다.
+FF.advanceTimed=function(items,day,isExpired,onExpire){
+ var keep=[];
+ for(var i=0;i<items.length;i++){
+  if(isExpired(items[i],day))onExpire(items[i]);
+  else keep.push(items[i]);
+ }
+ return keep;
+}
