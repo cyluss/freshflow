@@ -53,7 +53,7 @@ function open(file, seed) {
   const today = s0.w.FF.today();
   const lost = s0.w.FF.isLossCause(today.b);
   const label = s0.q('kbn').querySelector('span').textContent;
-  t('병목 라벨은 손실 여부와 일치', label === (lost ? '어제 막힌 곳' : '어제 상태'));
+  t('병목 라벨은 손실 여부와 일치', label === today.day + '일차 ' + (lost ? '막힌 곳' : '상태'));
 }
 
 // 2. 배분 막대는 진행 중 항상 보인다
@@ -327,7 +327,19 @@ function open(file, seed) {
   t('둘째 날부터 선택지 없음', !s11.q('kbc0') && !s11.q('kopening'));
 }
 
-// 15b. 초과분 계약이 발동하면 그날 알려주고, 종료 후 누적 효과를 보여준다
+// 15b. 계약이 활성화되면(어제 사서 오늘부터) 판매 가능/입고 예상 미리보기에도 반영된다
+{
+  const s12b = open(FILE, 7);
+  s12b.q('kbc3').click(); await tick(); // +1.5t 계약
+  t('첫날은 계약이 아직 안 걸린다', s12b.w.FF.effectiveContract() === 0);
+  s12b.q('kgo').click(); await tick(); // 1일차 실행 -> 2일차: 계약이 오늘부터 유효
+  t('둘째 날부터 계약이 유효', s12b.w.FF.effectiveContract() === 1.5);
+  const caps = s12b.w.FF.capsOf(), M = s12b.w.FF.marketOf();
+  const expected = Math.round(Math.min(s12b.w.FF.C.sm[M.si], caps.intake + 1.5));
+  t('입고 예상이 기본 한도+계약을 반영', s12b.w.FF.expectedIntake() === expected);
+}
+
+// 15c. 초과분 계약이 발동하면 그날 알려주고, 종료 후 누적 효과를 보여준다
 {
   const s12 = open(FILE, 7);
   s12.q('kbc3').click(); await tick(); // +1.5t 계약

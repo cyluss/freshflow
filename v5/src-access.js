@@ -1,6 +1,10 @@
 // 어제 병목(b)이 실제로 뭔가 놓친 경우인지. supply/demand/policy는 용량이 남았을 뿐 손실이 아니다.
 FF.isLossCause=function(b){return b==="intake"||b==="store"||b==="ship"||b==="stock"}
 
+// 오늘 있을 하루에 실제로 걸릴 계약량. 이미 활성화됐거나(contract), 어제 사서 오늘부터 걸리거나(pendContract) 둘 중 하나다.
+// 미리보기(expectedIntake 등)는 이 값을 써야 "계약 다음날부터 적용"이 화면에서도 하루 안 어긋난다.
+FF.effectiveContract=function(){return FF.contractOf()||FF.pendContractOf()||0}
+
 // 내일 적용될 증설. 화면이 쓰는 읽기 접근자다.
 // 지금 매입 목표. 화면과 커널 어댑터가 쓴다.
 FF.arOf=function(){FF.VERSION.value;return FF.AR.value||[]}

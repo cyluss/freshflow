@@ -361,10 +361,13 @@ FF.channelRows=function(){
 FF.rInt=function(n){return Math.round(n)}
 // 오늘 판로가 받을 수 있는 양은 이월 재고뿐 아니라 오늘 입고분도 포함한다.
 // 입고는 배분을 정한 뒤에 들어오므로 국면 평균으로 예상치만 낸다. 실제 입고와는 다를 수 있다.
+// 오늘 걸릴 계약(이미 활성화됐거나 어제 사서 오늘부터 걸리는 계약)만큼 상한을 올려서 잡는다.
+// 안 그러면 계약을 해도 판매 가능/입고 예상에서 그 효과가 사라져 보인다.
 FF.expectedIntake=function(){
  var M=FF.marketOf(), caps=FF.capsOf();
  if(!M||!caps)return 0;
- return FF.rInt(Math.min(FF.C.sm[M.si],caps.intake));
+ var ceil=caps.intake+FF.effectiveContract();
+ return FF.rInt(Math.min(FF.C.sm[M.si],ceil));
 }
 // 오늘 판로별 예상 수요 한도. 커널이 world 로 뽑는 값과 같은 공식을 국면 평균으로 대신 쓴다.
 // 실제 값은 이것과 다를 수 있다. 화면은 이것으로 미리보기만 만든다.

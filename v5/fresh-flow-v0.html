@@ -477,6 +477,10 @@ FF.inventory=function(){
 // 어제 병목(b)이 실제로 뭔가 놓친 경우인지. supply/demand/policy는 용량이 남았을 뿐 손실이 아니다.
 FF.isLossCause=function(b){return b==="intake"||b==="store"||b==="ship"||b==="stock"}
 
+// 오늘 있을 하루에 실제로 걸릴 계약량. 이미 활성화됐거나(contract), 어제 사서 오늘부터 걸리거나(pendContract) 둘 중 하나다.
+// 미리보기(expectedIntake 등)는 이 값을 써야 "계약 다음날부터 적용"이 화면에서도 하루 안 어긋난다.
+FF.effectiveContract=function(){return FF.contractOf()||FF.pendContractOf()||0}
+
 // 내일 적용될 증설. 화면이 쓰는 읽기 접근자다.
 // 지금 매입 목표. 화면과 커널 어댑터가 쓴다.
 FF.arOf=function(){FF.VERSION.value;return FF.AR.value||[]}
@@ -1936,10 +1940,13 @@ FF.channelRows=function(){
 FF.rInt=function(n){return Math.round(n)}
 // 오늘 판로가 받을 수 있는 양은 이월 재고뿐 아니라 오늘 입고분도 포함한다.
 // 입고는 배분을 정한 뒤에 들어오므로 국면 평균으로 예상치만 낸다. 실제 입고와는 다를 수 있다.
+// 오늘 걸릴 계약(이미 활성화됐거나 어제 사서 오늘부터 걸리는 계약)만큼 상한을 올려서 잡는다.
+// 안 그러면 계약을 해도 판매 가능/입고 예상에서 그 효과가 사라져 보인다.
 FF.expectedIntake=function(){
  var M=FF.marketOf(), caps=FF.capsOf();
  if(!M||!caps)return 0;
- return FF.rInt(Math.min(FF.C.sm[M.si],caps.intake));
+ var ceil=caps.intake+FF.effectiveContract();
+ return FF.rInt(Math.min(FF.C.sm[M.si],ceil));
 }
 // 오늘 판로별 예상 수요 한도. 커널이 world 로 뽑는 값과 같은 공식을 국면 평균으로 대신 쓴다.
 // 실제 값은 이것과 다를 수 있다. 화면은 이것으로 미리보기만 만든다.
@@ -3093,11 +3100,12 @@ FV.FlowSummary=function(props){
  if(FF.isOver())return FV._html`<div id="kbn" class="sub-p">${FF.isBust()?"현금 소진":FF.C.days+"일 운영 결과"}</div>`;
  if(!d)return FV._html`<div id="kbn" class="sub-p"></div>`;
  // 병목 표시는 실제로 뭔가 놓쳤을 때만 쓴다. 수요가 적어 여력이 남은 날은 정상 상태이지 장애가 아니다.
+ // "어제"라고만 쓰면 지금 보고 있는 오늘의 예상치와 섞여 읽힌다. 날짜 숫자를 직접 박아 시점을 명확히 한다.
  var lost=FF.isLossCause(d.b);
  var boost=FF.contractBoostToday();
  return FV._html`
   <div id="kbn" class="sub-p">
-   <span style=${{fontSize:"12px",color:"var(--text-muted)"}}>${lost?"어제 막힌 곳":"어제 상태"}</span><br />
+   <span style=${{fontSize:"12px",color:"var(--text-muted)"}}>${d.day+"일차 "+(lost?"막힌 곳":"상태")}</span><br />
    <span style=${{color:lost?"var(--text-warning)":"var(--text-secondary)"}}>${FV.BL[d.b]}</span><br />
    <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>${FV.causeLine(d)}</span><br />
    <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>실제 입고 ${FF.fInt(d.acc)}t · 생산 ${FF.fInt(d.prod)}t</span>

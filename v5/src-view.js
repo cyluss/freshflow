@@ -11,11 +11,12 @@ FV.FlowSummary=function(props){
  if(FF.isOver())return FV._html`<div id="kbn" class="sub-p">${FF.isBust()?"현금 소진":FF.C.days+"일 운영 결과"}</div>`;
  if(!d)return FV._html`<div id="kbn" class="sub-p"></div>`;
  // 병목 표시는 실제로 뭔가 놓쳤을 때만 쓴다. 수요가 적어 여력이 남은 날은 정상 상태이지 장애가 아니다.
+ // "어제"라고만 쓰면 지금 보고 있는 오늘의 예상치와 섞여 읽힌다. 날짜 숫자를 직접 박아 시점을 명확히 한다.
  var lost=FF.isLossCause(d.b);
  var boost=FF.contractBoostToday();
  return FV._html`
   <div id="kbn" class="sub-p">
-   <span style=${{fontSize:"12px",color:"var(--text-muted)"}}>${lost?"어제 막힌 곳":"어제 상태"}</span><br />
+   <span style=${{fontSize:"12px",color:"var(--text-muted)"}}>${d.day+"일차 "+(lost?"막힌 곳":"상태")}</span><br />
    <span style=${{color:lost?"var(--text-warning)":"var(--text-secondary)"}}>${FV.BL[d.b]}</span><br />
    <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>${FV.causeLine(d)}</span><br />
    <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>실제 입고 ${FF.fInt(d.acc)}t · 생산 ${FF.fInt(d.prod)}t</span>
