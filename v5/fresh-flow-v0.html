@@ -1962,7 +1962,17 @@ FF.stancePlan=function(){
    preview[i]+=share;
   }
  }
- preview=preview.map(function(v){return FF.rInt(v)});
+ // 판로마다 따로 반올림하면 합이 pool을 넘을 수 있다(quantizePct와 같은 문제).
+ // 최대 나머지 방식으로 합을 pool 이하로 고정한 뒤에만 반올림한다.
+ var rawSum=0; for(i=0;i<n;i++)rawSum+=preview[i];
+ var floor=preview.map(function(v){return Math.floor(v+FF.C.ui.zero)});
+ var flooredSum=0; for(i=0;i<n;i++)flooredSum+=floor[i];
+ var target=Math.min(pool,Math.round(rawSum));
+ var order=preview.map(function(v,idx){return {i:idx,rem:v-floor[idx]}})
+   .sort(function(a,b){return (b.rem-a.rem)||(a.i-b.i)});
+ var give=Math.max(0,target-flooredSum);
+ for(var k=0;k<give&&k<n;k++)floor[order[k].i]+=1;
+ preview=floor;
  var sum=0; for(i=0;i<n;i++)sum+=preview[i];
  // 기회비용: 주문은 있는데 다른 판로 우선 때문에 못 받는 양이다.
  var missed=est.map(function(e,idx){return FF.rInt(Math.max(0,e-preview[idx]))});

@@ -501,6 +501,8 @@ function open(file, seed) {
   const plan0 = ch.w.FF.stancePlan();
   t('기본값은 전부 기본 단계', plan0.levels.every(v => v === 1));
   t('미리보기는 상한을 넘지 않는다', plan0.preview.every((v, i) => v <= plan0.rows[i].cap + 1e-9));
+  t('배정 합은 판매 가능을 넘지 않는다', plan0.preview.reduce((a, b) => a + b, 0) <= plan0.pool);
+  t('배정은 주문을 넘지 않는다', plan0.preview.every((v, i) => v <= plan0.est[i]));
 
   // 정책 버튼은 직접 그 단계로 간다. 순환이 아니다.
   const D = 2; // 도매
