@@ -343,29 +343,60 @@ FF.rInt=function(n){return Math.round(n)}
 // 오늘 판로가 받을 수 있는 양은 이월 재고뿐 아니라 오늘 입고분도 포함한다.
 // 오늘 생산은 정책을 정하기 전에 이미 확정되어 있다(FF.revealToday). 더 이상 국면 평균으로
 // 추정하지 않는다. 실제 입고(커널의 stored)는 생산·입고한도·목표재고(need)뿐 아니라
-// 창고 여유(storage)와 현금(cash) 두 곳에서 더 막힐 수 있다. 그래서 이 함수는 커널의
-// stepState와 같은 공식을 끝까지(창고·현금 단계까지) 그대로 쓴다. 하나만 계산해서 둘 다
-// 쓰면, 여기와 커널이 서로 다른 값을 낼 위험이 없다. stepState는 오늘 만기인 매출채권을
-// 입고 예산을 보기 전에 먼저 현금으로 바꾸므로, 여기서도 오늘 만기 AR을 현금에 더한다.
+// 창고 여유(storage)와 현금(cash) 두 곳에서 더 막힐 수 있다. 그래서 이 함수는 커널과 같은
+// FF.intakePhysical로 창고 단계까지 낸 뒤, 같은 현금 예산식을 한 번 더 건다. 하나만 계산해서
+// 둘 다 쓰면, 여기와 커널이 서로 다른 값을 낼 위험이 없다. stepState는 오늘 만기인 매출채권을
+// 현금으로 먼저 바꾸고 매입채무(AP)를 먼저 갚은 뒤 입고 예산을 보므로, 여기서도 같은 순서로
+// 오늘 만기 AR은 더하고 오늘 만기 AP는 뺀다.
 // 이슈 #10으로 초기자본이 낮아져서 현금이 실제로 입고를 막는 날이 생기자, 이 단계들이
-// 빠진 미리보기가 실제 입고와 어긋나는 게 invariant sweep에서 드러났다.
+// 빠진 미리보기가 실제 입고와 어긋나는 게 invariant sweep에서 드러났다. 이슈 #11로 AP가
+// 추가되면서 같은 이유로 AP 만기도 빠뜨리면 다시 어긋난다.
 FF.todayIntake=function(){
  var M=FF.marketOf(), caps=FF.capsOf();
  if(!M||!caps)return 0;
  var prod=FF.prodOf()||0;
  var need=FF.intakeNeed(M.di,caps.sales,FF.coverOf(),FF.inventory());
- var base=Math.min(prod,caps.intake,need);
  var contract=FF.effectiveContract();
- var over=Math.max(0,prod-caps.intake);
- var extra=contract>0?Math.min(over,contract,Math.max(0,need-base)):0;
- var acc=base+extra;
- var freeNow=Math.max(0,caps.storage-FF.inventory());
- var stored=Math.min(acc,freeNow);
- var day=FF.dayOf(), arDueToday=(FF.arOf()||[]).filter(function(x){return x.at<=day})
+ var IP=FF.intakePhysical(prod,caps.intake,caps.storage,contract,need,FF.inventory());
+ var stored=IP.stored;
+ var day=FF.dayOf();
+ var arDueToday=(FF.arOf()||[]).filter(function(x){return x.at<=day})
    .reduce(function(a,x){return a+x.amt},0);
- var budget=Math.max(0,FF.ledger().cash+arDueToday-FF.C.fixed);
+ var apDueToday=(FF.apOf()||[]).filter(function(x){return x.at<=day})
+   .reduce(function(a,x){return a+x.amt},0);
+ var budget=Math.max(0,FF.ledger().cash+arDueToday-apDueToday-FF.C.fixed);
  var payable=FF.C.farm>0?Math.min(stored,Math.floor(budget/FF.C.farm)):stored;
  return FF.rInt(payable);
+}
+// AP(매입채무) 상태 미리보기. 자동 완충장치라 플레이어가 조작하진 않지만, 현금이 "왜"
+// 이렇게 남았는지 화면이 설명하려면 필요하다. stepState가 오늘 실제로 매기는 것과 같은
+// FF.apAvgSpend/FF.apCreditLimit/FF.apAvailableCredit을 그대로 쓴다.
+FF.apStatus=function(){
+ FF.VERSION.value;
+ var avgSpend=FF.apAvgSpend(FF.apHistOf());
+ var creditLimit=FF.apCreditLimit(avgSpend);
+ var outstanding=FF.sumAmt(FF.apOf());
+ var available=FF.apAvailableCredit(creditLimit,outstanding);
+ return {outstanding:FF.rInt(outstanding),available:FF.rInt(available),creditLimit:FF.rInt(creditLimit)};
+}
+// Factoring 노출 여부와 제안 금액. runway5가 문턱(FF.C.ui.factorThreshold, 노출 전용) 밑이고
+// 조기현금화할 AR이 있을 때만 eligible이다. suggested는 runway5를 정확히 0으로 되돌리는
+// 최소 금액이다(= max(0,-runway5)) - 노출 문턱값을 경제 목표치로 다시 쓰지 않기 위해서다.
+// 커널이 실제로 적용할 때 쓰는 것과 같은 FF.factorRunway/FF.applyFactoring을 그대로 쓴다.
+FF.factorPlan=function(){
+ FF.VERSION.value;
+ var ar=FF.arOf(), outstanding=FF.sumAmt(ar);
+ if(outstanding<=FF.C.ui.zero)return {eligible:false,outstanding:0};
+ var day=FF.dayOf(), M=FF.marketOf(), caps=FF.capsOf();
+ var need=FF.intakeNeed(M.di,caps.sales,FF.coverOf(),FF.inventory());
+ var IP=FF.intakePhysical(FF.prodOf()||0,caps.intake,caps.storage,FF.effectiveContract(),need,FF.inventory());
+ var runway=FF.factorRunway(FF.ledger().cash,ar,day,IP.stored);
+ var needed=Math.max(0,-runway);
+ var suggested=Math.min(needed,outstanding);
+ var preview=FF.applyFactoring(ar,suggested,day);
+ return {eligible:runway<FF.C.ui.factorThreshold,runway:FF.rInt(runway),
+  outstanding:FF.rInt(outstanding),suggested:FF.rInt(suggested),
+  previewCashIn:FF.rInt(preview.cashIn),previewCost:FF.rInt(preview.cost)};
 }
 // 오늘 판로별 예상 수요 한도. 커널이 world 로 뽑는 값과 같은 공식을 국면 평균으로 대신 쓴다.
 // 실제 값은 이것과 다를 수 있다. 화면은 이것으로 미리보기만 만든다.

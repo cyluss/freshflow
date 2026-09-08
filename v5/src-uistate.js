@@ -14,6 +14,16 @@ FF.toggleBuy=function(kind,size){
    .concat([{kind:kind,size:size,path:FF.evt()?"event":"manual"}]));
 }
 FF.clearQueue=function(){FF.setQueue([])}
+// 이슈 #11: AR 조기현금화 예약. buy/contract/policy와 같은 하루 한 슬롯이라 큐를 통째로
+// 바꾼다(토글이 아니라 금액 선택이라 toggleBuy와는 모양이 다르다).
+FF.queueFactor=function(amount){
+ FF.setQueue(amount>0?[{kind:"factor",amount:amount,path:FF.evt()?"event":"manual"}]:[]);
+}
+FF.queuedFactorAmount=function(){
+ var q=FF.queueOf();
+ for(var i=0;i<q.length;i++)if(q[i].kind==="factor")return q[i].amount;
+ return 0;
+}
 FF.setQueue=function(a){FF.QUEUE_S.value=a;FF.repaint()}
 // 확인 대기 상태. 한 번 더 눌러야 실행되는 것들이다.
 FF.SIG={fin:FF._signal(false),manual:FF._signal(false),newGame:FF._signal(false)};

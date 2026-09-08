@@ -191,6 +191,54 @@ FV.CapacityButton=function(){
 }
 
 
+// 이슈 #11: AP(매입채무) 상태. 자동 완충장치라 결정할 게 없지만, 잔액이 있을 때만 짧게
+// 보여준다 - 현금이 "왜" 실제 매입비보다 여유 있어 보이는지 설명하기 위해서다.
+FV.ApNote=function(){
+ FF.observe();
+ if(!FF.started()||FF.isOver())return null;
+ var A=FF.apStatus();
+ if(A.outstanding<=0)return null;
+ return FV._html`
+  <div id="kap" class="card-note">
+   매입채무 잔액 ${mo(A.outstanding)}원(7일 뒤 자동 상환) · 남은 가용 신용 ${mo(A.available)}원</div>`;
+}
+
+// 이슈 #11: 매출채권 조기현금화(factoring). 판매 한도 증설(CapacityButton)과 같은 "평소엔
+// 숨김" 패턴이다 - runway5가 위험 신호일 때(FF.factorPlan().eligible)만 보인다. AP와 달리
+// 이건 진짜 플레이어 결정이라 버튼 하나가 아니라 금액을 직접 고른다.
+FV.FactorButton=function(){
+ FF.observe();
+ if(FF.isOver()||!FF.started())return null;
+ var P=FF.factorPlan();
+ var on=FF.queued("factor");
+ if(!P.eligible&&!on)return null;
+ var confirm=function(amount){
+  if(!(amount>0)){FF.clearQueue();return}
+  FF.queueFactor(Math.min(amount,P.outstanding));
+ };
+ var curAmount=on?FF.queuedFactorAmount():P.suggested;
+ return FV._html`
+  <div id="kfactor" class="card-note">
+   <div style=${{fontSize:"13px",color:"var(--text-primary)",marginBottom:"2px"}}>매출채권 조기현금화</div>
+   <div style=${{fontSize:"12px",color:"var(--text-secondary)"}}>
+    5일 자금여력 ${mo(P.runway)}원 · 미회수 매출채권 ${mo(P.outstanding)}원</div>
+   <div style=${{display:"flex",gap:"6px",alignItems:"center",marginTop:"6px"}}>
+    <input id="kfactoramt" inputmode="numeric" value=${curAmount}
+     style=${{width:"92px",background:"transparent",color:"var(--text-primary)",
+       border:"1px solid var(--border-strong)",borderRadius:"var(--radius)",padding:"4px 6px"}} />
+    <button id="kfactorgo" class="btn-sm"
+      style=${{borderColor:on?"var(--border-accent)":"var(--border-strong)"}}
+      onClick=${function(){
+       var el=document.getElementById("kfactoramt");
+       confirm(el&&el.value?parseInt(el.value,10)||0:P.suggested);
+      }}>필요한 만큼만</button>
+    ${on?FV._h("button",{id:"kfactorcancel",class:"btn-sm",onClick:function(){FF.clearQueue()}},"취소"):null}
+   </div>
+   <div style=${{fontSize:"11px",color:"var(--text-muted)",marginTop:"4px"}}>
+    제안 금액 ${mo(P.suggested)}원 기준 · 받는 현금 ${mo(P.previewCashIn)}원 · 할인비용 ${mo(P.previewCost)}원</div>
+  </div>`;
+}
+
 // 안내 → 전망 → 계약 입력 → 실행까지 개장 전 결정 하나를 한 컨테이너에 담는다.
 FV.FirstDayPrompt=function(){
  return FV._html`
@@ -442,7 +490,9 @@ FV.App=function(){
    ${(!fresh&&!over)?FV._html`<${FV.FlowSummary} day=${FF.today()} />`:null}
    <${FV.IssueBar} />
    <${FV.ChannelBar} />
+   <${FV.ApNote} />
    <${FV.CapacityButton} />
+   <${FV.FactorButton} />
    <${FV.TrendStrip} />
 
    ${fresh?FV._html`<${FV.FlowView} />`:null}

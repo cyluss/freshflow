@@ -8,6 +8,10 @@ FF.effectiveContract=function(){return FF.contractOf()||FF.pendContractOf()||0}
 // 내일 적용될 증설. 화면이 쓰는 읽기 접근자다.
 // 지금 매입 목표. 화면과 커널 어댑터가 쓴다.
 FF.arOf=function(){FF.VERSION.value;return FF.AR.value||[]}
+// 매입채무(AP) 잔액과, creditLimit을 매기는 최근 매입비 이력. 자동 완충장치라 화면 결정은
+// 없지만, AR과 같은 모양({at,amt})이라 같은 접근자 패턴을 쓴다.
+FF.apOf=function(){FF.VERSION.value;return FF.AP.value||[]}
+FF.apHistOf=function(){FF.VERSION.value;return FF.APHIST.value||[]}
 FF.relOf=function(){FF.VERSION.value;
  return FF.REL.value||FF.C.channels.map(function(){return FF.C.rel.start})}
 FF.allocOf=function(){FF.VERSION.value;return FF.ALLOC.value}
@@ -38,6 +42,7 @@ FF.Cmd={
  policy:function(cover){return {type:"policy",cover:cover}},
  sell:function(alloc){return {type:"sell",alloc:alloc}},
  stance:function(levels){return {type:"sell",stance:levels}},
+ factor:function(amount){return {type:"factor",amount:amount}},
  finish:function(){return {type:"finish"}}
 };
 // 계획표의 한 칸을 명령으로 바꾼다. "sales" 또는 "contract:1.5" 또는 빈 값이다.
@@ -56,6 +61,8 @@ FF.applyKernelState=function(s,r,pendBefore){
  FF.setPending(s.pend);
  FF.setRel((s.rel||[]).slice());
  FF.setAr((s.ar||[]).slice());
+ FF.setAp((s.ap||[]).slice());
+ FF.setApHist((s.apHist||[]).slice());
  if(s.alloc)FF.setAlloc(s.alloc.slice());
  if(s.stance)FF.setStance(s.stance.slice());
  if(r.bought==="contract"){FF.spend(r.cost);FF.countBuy("contract")}
@@ -78,6 +85,7 @@ FF.toKernelState=function(){
   pend:FF.PENDING.value,spent:L.spent,contract:FF.CONTRACT.value,pendContract:FF.pendContractOf(),
   todayProd:FF.prodOf(),cover:FF.coverOf(),
   rel:FF.relOf().slice(),alloc:FF.allocOf(),stance:FF.stanceOf(),ar:(FF.arOf()||[]).slice(),
+  ap:(FF.apOf()||[]).slice(),apHist:(FF.apHistOf()||[]).slice(),
   buys:{sales:P.buys.sales,contract:P.buys.contract||0}};
 
 }

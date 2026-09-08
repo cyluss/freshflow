@@ -662,5 +662,35 @@ function open(file, seed) {
   }
 }
 
+// N. 이슈 #11: AP 상태 표시와 factoring 버튼
+{
+  const s = open(FILE, 7);
+  for (let i = 0; i < 3; i++) { s.q('kgo').click(); await tick() }
+  t('AP 잔액 없으면 AP 안내 없음', s.w.FF.apStatus().outstanding > 0 || !s.q('kap'));
+  t('평소엔 factoring 버튼 없음', s.w.FF.factorPlan().eligible ? true : !s.q('kfactor'));
+
+  // 위험 신호를 강제로 만든다: 현금을 크게 깎고 만기 있는 AR을 채운다.
+  const day = s.w.FF.dayOf();
+  s.w.FF.addCash(-s.w.FF.ledger().cash - 100000);
+  s.w.FF.setAr([{ at: day + 3, amt: 20000 }]);
+  s.w.FF.commit(); s.w.FF.repaint(); await tick();
+
+  const P = s.w.FF.factorPlan();
+  t('강제 상황에서 factoring 조건 충족', P.eligible && P.outstanding === 20000, JSON.stringify(P));
+  t('factoring 버튼 노출', !!s.q('kfactor'));
+  t('제안 금액이 outstanding 이하', P.suggested > 0 && P.suggested <= P.outstanding);
+
+  s.q('kfactorgo').click(); await tick();
+  t('factoring 대기열에 제안 금액이 들어간다', s.w.FF.queuedFactorAmount() === P.suggested);
+
+  const cashBefore = s.w.FF.ledger().cash;
+  const arBefore = s.w.FF.sumAmt(s.w.FF.arOf());
+  s.q('kgo').click(); await tick();
+  t('factoring 실행 후 현금이 늘어난다(할인 있어도 순유입)', s.w.FF.ledger().cash > cashBefore);
+  t('factoring 실행 후 AR 잔액이 정확히 제안 금액만큼 준다',
+    Math.abs((arBefore - s.w.FF.sumAmt(s.w.FF.arOf())) - P.suggested) < 1e-6);
+  t('factoring은 커널 command 집합 안에 있다(FF.Cmd.factor)', typeof s.w.FF.Cmd.factor === 'function');
+}
+
 console.log(pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

@@ -15,7 +15,12 @@
 // 분포를 나타내는 값도 실 단위 그대로 두고, 확정 수량으로 넘어오는 경계(입고 목표량 계산,
 // 판로별 예상 수요, 생산·수요 난수 확정)에서만 2를 곱해 양자화한다.
 FF.C={days:30,cash:84000,sm:[14,20,27],sd:2.5,dm:[10,20,32],dd:3,stay:0.8,
-cap:{intake:40,storage:80,sales:42},ui:{nearCap:.8,storeMid:.5,storeFull:.8,dwellFast:1,dwellSlow:2.5,lowDays:2,armMs:6000,newArmMs:4000,recentWin:5,fcDays:3,eps:.05,matrixDays:7,dwellWin:7,logRows:6,nearTop:.9,zero:1e-9},chart:{w:340,h:96,pad:4,barH:22,gap:6},// 증설은 판매 한도만 산다. 상류는 초과분 매입 계약으로 대체했다.
+cap:{intake:40,storage:80,sales:42},
+// factorThreshold: factoring 버튼을 "언제 보여줄지"만 정하는 화면 노출 기준이다(경제 규칙이
+// 아니다 - 이슈 #11). #8 조건부 factoring 검증(factoring-conditional.mjs)에서 runway5 문턱값
+// 0~40000 전 구간이 none보다 나았으므로 이 값을 바꿔도 게임의 최적 전략 자체는 안 바뀐다.
+// 그 범위 중간값 근처를 골랐을 뿐이다.
+ui:{nearCap:.8,storeMid:.5,storeFull:.8,dwellFast:1,dwellSlow:2.5,lowDays:2,armMs:6000,newArmMs:4000,recentWin:5,fcDays:3,eps:.05,matrixDays:7,dwellWin:7,logRows:6,nearTop:.9,zero:1e-9,factorThreshold:20000},chart:{w:340,h:96,pad:4,barH:22,gap:6},// 증설은 판매 한도만 산다. 상류는 초과분 매입 계약으로 대체했다.
 step:{sales:2},cost:{sales:618},
 // 초과분 매입 계약. 첫날에 크기를 고른다. 한도를 넘은 물량을 하루 최대 X(내부단위) 더 받는다.
 // 가격은 규모에 따라 완만하게 체감한다. 유지비 없음, 이후 변경 불가.
@@ -50,7 +55,16 @@ rel:{price:[0.64,1,1.30,1.60],cap:[1,1,1.4,1.8],floor:[0,0.5,1,1.5],
 stance:{weight:[0.6,1,1.6,1],min:[0,0,0,1],start:1},
 settlePlan:[],price:900,farm:380,hold:22,waste:45,fixed:2800,cover:1.5,
 // 매입 정책. 며칠치를 목표로 들고 갈지 플레이 중 바꾼다.
-policy:[{v:1,key:"lean"},{v:1.5,key:"mid"},{v:2,key:"full"}],alpha:.5,mid:4,noise:.35,tilt:0.5,tiltP:[0.25,0.5,0.25],autoMax:3,salvage:0.2};
+policy:[{v:1,key:"lean"},{v:1.5,key:"mid"},{v:2,key:"full"}],alpha:.5,mid:4,noise:.35,tilt:0.5,tiltP:[0.25,0.5,0.25],autoMax:3,salvage:0.2,
+// 이슈 #11: AP(매입채무). headless 검증(ap-creditlimit-sim.mjs)에서 확정한 값 그대로다.
+// term은 만기(며칠 뒤 현금으로 갚는지), avgWin은 creditLimit을 매기는 평균 구간(며칠),
+// k는 그 평균에 곱하는 배수다. rate는 없다(0% - 수수료를 붙이면 always-use 지배 결론이
+// 흔들릴 수 있어 이슈 #8/#11에서 의도적으로 배제했다). 플레이어 UI 결정은 없다 - 자동 완충장치다.
+ap:{term:7,avgWin:7,k:1},
+// 이슈 #11: AR factoring(매출채권 조기현금화). rate는 헤드리스 검증값(factoring-conditional.mjs,
+// 이슈 #8 커밋 07bf035) 그대로다. runwayDays는 그 검증이 쓴 신호(runway5)의 지평(5일)이다.
+// 이 둘은 결과를 바꾸는 경제 규칙이라 재조정하지 않는다.
+factor:{rate:0.005,runwayDays:5}};
 
 FF.fInt=function(n){return String(Math.round(n))},mo=function(n){return Math.round(n).toLocaleString("ko-KR")};
 

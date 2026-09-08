@@ -1,4 +1,4 @@
-FF.reset=function(seed){FF.SIG.fin.value=false;FF.SIG.manual.value=false;FF.SIG.newGame.value=false;FF.EVENT.value=null;FF.PENDING.value=null;FF.PHASE.value="play";FF.resetRecover();FF.setContract(0);FF.setPendContract(null);FF.setProd(null);FF.setCover(FF.C.cover);FF.setRel(FF.C.channels.map(function(){return FF.C.rel.start}));FF.setAlloc(null);FF.setStance(null);FF.setIssue(null);FF.setSignal([]);FF.setAr([]);FF.setWorld(FF.World(seed));FF.setLots([]);FF.resetEngineState();FF.setMarket(FF.world().phase().supply,FF.world().phase().demand);FF.setTilt(FF.world().tilt());FF.resetLedger();FF.resetLog();FF.resetPlant();FF.resetRun(seed);
+FF.reset=function(seed){FF.SIG.fin.value=false;FF.SIG.manual.value=false;FF.SIG.newGame.value=false;FF.EVENT.value=null;FF.PENDING.value=null;FF.PHASE.value="play";FF.resetRecover();FF.setContract(0);FF.setPendContract(null);FF.setProd(null);FF.setCover(FF.C.cover);FF.setRel(FF.C.channels.map(function(){return FF.C.rel.start}));FF.setAlloc(null);FF.setStance(null);FF.setIssue(null);FF.setSignal([]);FF.setAr([]);FF.setAp([]);FF.setApHist([]);FF.setWorld(FF.World(seed));FF.setLots([]);FF.resetEngineState();FF.setMarket(FF.world().phase().supply,FF.world().phase().demand);FF.setTilt(FF.world().tilt());FF.resetLedger();FF.resetLog();FF.resetPlant();FF.resetRun(seed);
 FF.setQueue([]);
  FF.setClock(false);
  FF.revealToday();
@@ -32,7 +32,7 @@ FF.stepDay=function(cmd,path){
  FF.recordDayStart(atCapI,atCapS,act);
  var s=FF.toKernelState();
  var send=willBuy?(act==="contract"?FF.Cmd.contract(cmd.size):FF.Cmd.buy(act))
-   :((cmd.type==="sell"||cmd.type==="policy")?cmd:FF.Cmd.wait());
+   :((cmd.type==="sell"||cmd.type==="policy"||cmd.type==="factor")?cmd:FF.Cmd.wait());
  // 오늘 생산은 이미 revealToday가 확정해 뒀다(s.todayProd). 여기서는 수요만 새로 뽑는다.
  var out=FF.transition(s,send,FF.world().nextDemand());
  var r=out.result;
@@ -81,6 +81,7 @@ FF.tickDay=function(){
   var head=q[0];
   cmd=(head.kind==="contract")?FF.Cmd.contract(head.size)
     :(head.kind==="policy")?FF.Cmd.policy(head.cover)
+    :(head.kind==="factor")?FF.Cmd.factor(head.amount)
     :FF.Cmd.buy(head.kind);
   path=head.path||"manual";
   FF.setQueue(q.slice(1));

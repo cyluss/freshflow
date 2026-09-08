@@ -248,7 +248,7 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
     if (a === b) same++;
   }
   t('명령 실행 결정적', same === 3, same + '/3');
-  t('명령 집합', Object.keys(FF.Cmd).join() === 'wait,buy,contract,policy,sell,stance,finish');
+  t('명령 집합', Object.keys(FF.Cmd).join() === 'wait,buy,contract,policy,sell,stance,factor,finish');
   t('wait 명령', JSON.stringify(FF.Cmd.wait()) === '{"type":"wait"}');
   t('buy 명령', FF.Cmd.buy('sales').capacity === 'sales');
 

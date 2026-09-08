@@ -122,6 +122,52 @@ FF.intakeNeed=function(di,capSales,cover,totalInv,rules){
  return Math.round(Math.max(0,cv*on+R.alpha*Math.max(0,om-on)*R.mid-totalInv));
 }
 
+// 오늘 입고 가능량의 물리적 상한. 목표재고(need)·창고 여유·초과분 계약까지 보되 현금은 아직
+// 안 본다(현금 제약은 stepState가 이 함수 결과 위에 한 번 더 건다). 커널의 실제 입고 판정과
+// 미리보기(오늘 입고량 예상, factoring의 runway5가 쓰는 want)가 이 함수 하나를 같이 쓴다.
+// reach/refused/wI/byCap/byStore/byNeed는 병목 판정에만 쓰는 진단값이라 stepState만 읽는다.
+FF.intakePhysical=function(prod,capIntake,capStorage,contract,need,totalInv){
+ var baseAcc=Math.min(prod,capIntake,need);
+ var over=Math.max(0,prod-capIntake);
+ var extra=contract>0?Math.min(over,contract,Math.max(0,need-baseAcc)):0;
+ var acc=baseAcc+extra;
+ var reach=Math.min(prod,capIntake)+extra;
+ var refused=reach-acc, wI=prod-acc;
+ var freeNow=Math.max(0,capStorage-totalInv);
+ var byCap=Math.max(0,over-extra);
+ var rest=wI-byCap;
+ var byStore=Math.min(rest,Math.max(0,reach-freeNow));
+ var byNeed=Math.max(0,rest-byStore);
+ var stored=Math.min(acc,freeNow), wS=acc-stored;
+ return {acc:acc,reach:reach,refused:refused,wI:wI,byCap:byCap,byStore:byStore,byNeed:byNeed,
+  stored:stored,wS:wS};
+}
+
+// AR/AP 잔액 합. ar/ap 모두 {at,amt} 모양이라 하나로 쓴다.
+FF.sumAmt=function(items){
+ var t=0; if(!items)return t;
+ for(var i=0;i<items.length;i++)t+=items[i].amt;
+ return t;
+}
+
+// 최근 매입비 평균(avgSpend7d). hist는 최근 며칠분의 실제 입고비용(stored*farm)을 오래된
+// 순으로 담은 배열이다. 창을 며칠로 볼지는 호출자가 이미 잘라서 넘긴다(FF.C.ap.avgWin).
+FF.apAvgSpend=function(hist){
+ if(!hist||!hist.length)return 0;
+ var t=0; for(var i=0;i<hist.length;i++)t+=hist[i];
+ return t/hist.length;
+}
+
+// 이슈 #8/#11: creditLimit(day) = 최근 평균 매입액 x K. availableCredit는 여기서 outstandingAP를
+// 뺀 나머지다(음수면 0). K=0이면 한도가 늘 0이라 AP를 전혀 못 쓴다(none과 같다).
+FF.apCreditLimit=function(avgSpend,rules){
+ var R=rules||FF.C;
+ return avgSpend*R.ap.k;
+}
+FF.apAvailableCredit=function(creditLimit,outstandingAP){
+ return Math.max(0,creditLimit-outstandingAP);
+}
+
 FF.stepState=function(s,prod,dem,rules){
  var R=rules||FF.C;
  // 오늘 회수되는 매출채권을 먼저 현금으로 바꾼다.
@@ -131,28 +177,32 @@ FF.stepState=function(s,prod,dem,rules){
  if(s.ar&&s.ar.length)s.ar=FF.advanceTimed(s.ar,s.day,isDue,function(x){s.cash+=x.amt});
  var tot=function(){var t=0;for(var i=0;i<s.lots.length;i++)t+=s.lots[i].q;return t};
  var need=FF.intakeNeed(s.di,s.cap.sales,s.cover,tot(),R);
- var baseAcc=Math.min(prod,s.cap.intake,need);
- // 초과분 매입 계약: 한도를 넘은 물량 중 최대 X t 를 더 받는다.
- // 한도 자체는 늘리지 않고 목표재고와 창고 제약은 그대로다.
- var over=Math.max(0,prod-s.cap.intake);
- var extra=s.contract>0?Math.min(over,s.contract,Math.max(0,need-baseAcc)):0;
- var acc=baseAcc+extra;
- var reach=Math.min(prod,s.cap.intake)+extra;
- var refused=reach-acc, wI=prod-acc;
- var freeNow=Math.max(0,s.cap.storage-tot());
- var byCap=Math.max(0,over-extra);
- var rest=wI-byCap;
- var byStore=Math.min(rest,Math.max(0,reach-freeNow));
- var byNeed=Math.max(0,rest-byStore);
- var stored=Math.min(acc,freeNow), wS=acc-stored;
+ // 초과분 매입 계약: 한도를 넘은 물량 중 최대 X t 를 더 받는다. 창고 여유까지 본
+ // "현금 제약 전" 상한은 FF.intakePhysical 하나로 커널과 미리보기가 같이 낸다.
+ var IP=FF.intakePhysical(prod,s.cap.intake,s.cap.storage,s.contract,need,tot());
+ var refused=IP.refused, wI=IP.wI, byCap=IP.byCap, byStore=IP.byStore, byNeed=IP.byNeed;
+ var stored=IP.stored, wS=IP.wS;
  // 매입은 지금 손에 있는 현금으로만 한다. 모자라면 그만큼 덜 받는다.
  // budget/farm을 그대로 쓰면 소수가 나온다. 현금으로 못 사는 몫이라 올림이 아니라 내림이어야
- // 한도를 넘지 않는다(정수 확정 도메인 경계).
+ // 한도를 넘지 않는다(정수 확정 도메인 경계). AP 가용한도는 여기서 보지 않는다 - 오늘 실제로
+ // 받은 물량의 대금을 나중에(availableCredit 계산 이후) 얼마나 이연할지에만 쓴다.
  var budget=Math.max(0,s.cash-R.fixed);
  var payable=(R.farm>0)?Math.min(stored,Math.floor(budget/R.farm)):stored;
  var short=stored-payable;
  if(short>R.ui.zero){ stored=payable; wS+=short; }
  if(stored>0)s.lots.push({q:stored,a:0});
+ // 이슈 #11: AP(매입채무) 자동 완충장치. 오늘 실제로 받은 물량의 매입비 중 가용한도까지는
+ // 이연하고(만기 R.ap.term일 뒤 자동 상환), 나머지만 오늘 현금으로 낸다. 플레이어 결정은
+ // 없다 - creditLimit/availableCredit은 매일 자동으로 매겨진다(#8: always-use가 구조적으로
+ // 지배해서 아낄 이유가 없다).
+ var farmCost=stored*R.farm;
+ var avgSpend=FF.apAvgSpend(s.apHist);
+ var creditLimit=FF.apCreditLimit(avgSpend,R);
+ var outstandingAP=FF.sumAmt(s.ap);
+ var availableCredit=FF.apAvailableCredit(creditLimit,outstandingAP);
+ var apPortion=Math.round(Math.min(farmCost,availableCredit));
+ if(apPortion>0){ s.ap=s.ap||[]; s.ap.push({at:s.day+R.ap.term,amt:apPortion}); }
+ s.apHist=(s.apHist||[]).concat([farmCost]).slice(-R.ap.avgWin);
  var sellable=tot();
  // 판로 배분. s.alloc 은 판로별 비중, s.stance 는 판로별 태도(양보/보통/우선/보장)다. 없으면 비싼 곳부터 채운다.
  // s.cap.sales 는 판로 상한과 별개로 하루 전체 판매량의 총상한이다. sold 가 거기 닿으면 더 못 판다.
@@ -253,11 +303,12 @@ FF.stepState=function(s,prod,dem,rules){
  var cost=end*R.hold+s.cap.intake*R.maint.intake+s.cap.storage*R.maint.storage+s.cap.sales*R.maint.sales
   +(wI+wS+wT)*R.waste+R.fixed+stored*R.farm;
  var profit=rev-cost;
- // 매출은 판로별 정산으로 이미 처리했다. 지출만 오늘 나간다.
- s.cash-=cost;
+ // 손익은 오늘 발생주의로 잡는다(AP로 이연해도 farmCost는 오늘 비용이다). 현금만 이연분
+ // (apPortion)만큼 덜 나간다 - AR이 매출을 인식 시점과 현금화 시점으로 나누는 것과 대칭이다.
+ s.cash-=(cost-apPortion);
  return {prod:prod,dem:demTotal,acc:stored,refused:refused,sold:sold,missed:Math.max(0,demTotal-sold),
   ageMix:ageMix,wI:wI,wIcap:byCap,wIstore:byStore,wIneed:byNeed,wS:wS,wT:wT,
-  end:end,profit:profit,sellable:sellable,toCh:toCh,revCh:revCh};
+  end:end,profit:profit,sellable:sellable,toCh:toCh,revCh:revCh,apUsed:apPortion};
 }
 
 
@@ -289,6 +340,42 @@ FF.bottleneck=function(s,r,dem,rules){
 //   command FF.Cmd 의 결과
 //   world   FF.World 의 next() 출력
 // 반환 {state, result, events}. state 는 제자리에서 전진한다.
+
+// 이슈 #11: AR factoring. runway5는 결정 시점에 관측 가능한 신호일 뿐 커널 물리를 바꾸지
+// 않는다(플레이어가 factor 여부·금액을 정한다) - 그래서 D12 목록에는 안 넣는다. 커널이 실제로
+// 하는 일은 FF.applyFactoring/FF.factorCashIn 뿐이고, 이 둘은 stepState와 같은 방식(rules 인자)
+// 으로 FF.C를 읽는다.
+// arDueWithin5Days는 오늘부터 지평(runwayDays)일 안에 만기가 오는 AR 합이다. want는 그날
+// 현금 제약을 보기 전 목표 입고량(FF.intakePhysical의 stored) - 오늘 매입에 쓸 현금까지
+// 미리 반영해서 "이 물량을 다 사고도 며칠을 버티는가"를 묻는다.
+FF.factorRunway=function(cash,ar,day,want,rules){
+ var R=rules||FF.C, n=R.factor.runwayDays, dueSoon=0;
+ for(var i=0;i<(ar||[]).length;i++)if(ar[i].at<=day+n)dueSoon+=ar[i].amt;
+ return cash+dueSoon-n*R.fixed-n*R.farm*want;
+}
+// 조기현금화 한 건의 실수령액. daysLeft는 그 AR 항목의 원래 만기까지 남은 날수다.
+FF.factorCashIn=function(amount,daysLeft,rules){
+ var R=rules||FF.C;
+ return Math.round(amount*(1-R.factor.rate*daysLeft));
+}
+// amount만큼 AR을 조기현금화한다. 만기가 가장 가까운 항목부터 쓴다(같은 금액이면 남은
+// 날수가 적을수록 할인이 작아 플레이어에게 유리하다 - 순서 자체가 결과를 뒤집지는 않는다,
+// 총 factor 금액만 진짜 의사결정이다). ar은 그대로 두고 새 배열을 돌려준다(순수 함수).
+FF.applyFactoring=function(ar,amount,day,rules){
+ var zero=(rules||FF.C).ui.zero;
+ var remain=amount, cashIn=0, factored=0, kept=[];
+ var items=(ar||[]).slice().sort(function(a,b){return a.at-b.at});
+ for(var i=0;i<items.length;i++){
+  var e=items[i];
+  if(remain<=zero){kept.push(e);continue}
+  var take=Math.min(e.amt,remain);
+  var daysLeft=Math.max(0,e.at-day);
+  cashIn+=FF.factorCashIn(take,daysLeft,rules);
+  factored+=take; remain-=take;
+  if(take<e.amt-zero)kept.push({at:e.at,amt:e.amt-take});
+ }
+ return {ar:kept,cashIn:cashIn,factored:factored,cost:factored-cashIn};
+}
 
 FF.transition=function(state,command,world,rules){
  var R=rules||FF.C;
@@ -332,6 +419,14 @@ FF.transition=function(state,command,world,rules){
   if(s.buys)s.buys[bought]++;
   ev.push({type:"purchase",capacity:bought,cost:cost,day:s.day});
  }
+ // 이슈 #11: AR 조기현금화. 플레이어가 고른 amount만큼 오늘 즉시 현금화한다(만기를 못 채운
+ // 만큼 할인비용을 진다). buy/contract/policy와 같은 하루 한 슬롯을 쓴다 - 자금이 급한
+ // 날 다른 결정과 겹치지 않게 하기 위한 선택이다.
+ if(C.type==="factor"&&C.amount>0){
+  var fx=FF.applyFactoring(s.ar||[],C.amount,s.day,R);
+  s.ar=fx.ar; s.cash+=fx.cashIn;
+  ev.push({type:"factor",amount:fx.factored,cashIn:fx.cashIn,cost:fx.cost,day:s.day});
+ }
  // 생산이 이미 확정되어 있으면(턴 시작에 미리 뽑아 둔 값) 그것을 쓴다. 없으면(참조 재생 등) world가 그 자리에서 준다.
  var revealed=s.todayProd!==undefined&&s.todayProd!==null;
  if(!revealed&&world.supplyPhase!==undefined)s.si=world.supplyPhase;
@@ -362,7 +457,7 @@ FF.initialState=function(world,rules){
  return {day:1,si:world.phase().supply,di:world.phase().demand,
   cash:R.cash,lots:[],
   cap:{intake:R.cap.intake,storage:R.cap.storage,sales:R.cap.sales},
-  pend:null,spent:0,contract:0,pendContract:null,todayProd:null,cover:R.cover,ar:[],
+  pend:null,spent:0,contract:0,pendContract:null,todayProd:null,cover:R.cover,ar:[],ap:[],apHist:[],
   rel:R.channels.map(function(){return R.rel.start}),alloc:null,stance:null,
   buys:{sales:0,contract:0},
   recent:[]};
@@ -383,6 +478,8 @@ FF.forkState=function(s){
   pend:s.pend,spent:s.spent,contract:s.contract||0,pendContract:s.pendContract||null,
   todayProd:(s.todayProd===undefined)?null:s.todayProd,cover:s.cover,
   ar:(s.ar||[]).map(function(x){return {at:x.at,amt:x.amt}}),
+  ap:(s.ap||[]).map(function(x){return {at:x.at,amt:x.amt}}),
+  apHist:(s.apHist||[]).slice(),
   rel:(s.rel||[]).slice(),alloc:s.alloc?s.alloc.slice():null,
   stance:s.stance?s.stance.slice():null,dead:false,
   recent:s.recent?s.recent.slice():[],
@@ -390,12 +487,9 @@ FF.forkState=function(s){
 }
 
 // 최종 가치. 살아남았고 끝까지 갔으면 처분가치를 더한다.
-// 순자산. 현금에 미회수 매출채권을 더한다.
+// 순자산. 현금 + 미회수 매출채권(AR) - 미상환 매입채무(AP).
 FF.netWorth=function(s){
- var t=s.cash;
- if(s.ar)for(var i=0;i<s.ar.length;i++)t+=s.ar[i].amt;
- if(s.ap)for(var j=0;j<s.ap.length;j++)t-=s.ap[j].amt;
- return t;
+ return s.cash+FF.sumAmt(s.ar)-FF.sumAmt(s.ap);
 }
 FF.finalValue=function(s,fin,rules){
  var R=rules||FF.C;

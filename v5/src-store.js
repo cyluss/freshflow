@@ -107,6 +107,11 @@ FF.REL=FF._signal(null);
 FF.setRel=function(a){FF.REL.value=a}
 FF.AR=FF._signal([]);
 FF.setAr=function(a){FF.AR.value=a}
+// 매입채무(AP) 잔액과 creditLimit용 최근 매입비 이력. AR과 같은 {at,amt} 모양이다.
+FF.AP=FF._signal([]);
+FF.setAp=function(a){FF.AP.value=a}
+FF.APHIST=FF._signal([]);
+FF.setApHist=function(a){FF.APHIST.value=a}
 FF.ALLOC=FF._signal(null);
 FF.setAlloc=function(a){FF.ALLOC.value=a}
 // 판로 태도. 판로마다 0~3 단계. 최소 확보량과 나머지 가중치를 core 의 stance 표가 정한다.
