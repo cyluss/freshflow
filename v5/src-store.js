@@ -8,10 +8,14 @@ FF.useSignals(FF._injected||function(v){return {value:v}},
 FF.EVENT=FF._signal(null);
 FF.setEvent=function(e){FF.EVENT.value=e}
 FF.evt=function(){FF.VERSION.value;return FF.EVENT.value}
-// 초과분 매입 계약 보유량. 0 이면 미보유.
+// 초과분 매입 계약 보유량. 0 이면 미보유. 산 날은 여기가 아니라 PENDCONTRACT에 먼저 선다.
 FF.CONTRACT=FF._signal(0);
 FF.contractOf=function(){FF.VERSION.value;return FF.CONTRACT.value}
 FF.setContract=function(v){FF.CONTRACT.value=v}
+// 오늘 산 계약. 다음 날 거래부터 CONTRACT로 넘어가고 여기는 다시 null이 된다.
+FF.PENDCONTRACT=FF._signal(null);
+FF.pendContractOf=function(){FF.VERSION.value;return FF.PENDCONTRACT.value}
+FF.setPendContract=function(v){FF.PENDCONTRACT.value=v}
 FF.PENDING=FF._signal(null);
 FF.setPending=function(p){FF.PENDING.value=p}
 FF.PHASE=FF._signal("play");

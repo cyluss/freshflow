@@ -257,6 +257,8 @@ FF.transition=function(state,command,world,rules){
  var R=rules||FF.C;
  var s=state, ev=[];
  if(s.pend){s.cap[s.pend]+=R.step[s.pend];ev.push({type:"capacity-applied",capacity:s.pend});s.pend=null}
+ // 계약도 증설과 같다: 산 날은 확정만 하고, 다음 날 거래부터 실제로 효력이 생긴다.
+ if(s.pendContract){s.contract=s.pendContract; s.pendContract=null; ev.push({type:"contract-applied"})}
  var C=command;
  var bought=null, cost=0;
  if(C.type==="sell"&&C.alloc&&C.alloc.length===R.channels.length){
@@ -281,7 +283,7 @@ FF.transition=function(state,command,world,rules){
      &&s.day<=(R.contract.until||R.days)
      &&s.cash>=opt.price){
    cost=opt.price;
-   s.cash-=cost; s.spent+=cost; s.contract=opt.x;
+   s.cash-=cost; s.spent+=cost; s.pendContract=opt.x;
    if(s.buys)s.buys.contract++;
    bought="contract";
    ev.push({type:"purchase",capacity:"contract",cost:cost,day:s.day});
@@ -317,7 +319,7 @@ FF.initialState=function(world,rules){
  return {day:1,si:world.phase().supply,di:world.phase().demand,
   cash:R.cash,lots:[],
   cap:{intake:R.cap.intake,storage:R.cap.storage,sales:R.cap.sales},
-  pend:null,spent:0,contract:0,cover:R.cover,ar:[],
+  pend:null,spent:0,contract:0,pendContract:null,cover:R.cover,ar:[],
   rel:R.channels.map(function(){return R.rel.start}),alloc:null,stance:null,
   buys:{sales:0,contract:0},
   recent:[]};
@@ -335,7 +337,7 @@ FF.forkState=function(s){
  return {day:s.day,si:s.si,di:s.di,cash:s.cash,
   lots:s.lots.map(function(l){return {q:l.q,a:l.a}}),
   cap:{intake:s.cap.intake,storage:s.cap.storage,sales:s.cap.sales},
-  pend:s.pend,spent:s.spent,contract:s.contract||0,cover:s.cover,
+  pend:s.pend,spent:s.spent,contract:s.contract||0,pendContract:s.pendContract||null,cover:s.cover,
   ar:(s.ar||[]).map(function(x){return {at:x.at,amt:x.amt}}),
   rel:(s.rel||[]).slice(),alloc:s.alloc?s.alloc.slice():null,
   stance:s.stance?s.stance.slice():null,dead:false,

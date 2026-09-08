@@ -698,10 +698,12 @@ t('전망 3일', md.FC===FF.C.ui.fcDays);
   // 계약을 사면 다음 날부터 초과분을 더 받는다
   const s1 = mk();
   const o1 = FF.transition(s1, FF.Cmd.contract(1), w(6));
-  t('계약 구매 기록', s1.contract === 1 && s1.buys.contract === 1);
+  t('계약 구매 기록', s1.contract === 0 && s1.pendContract === 1 && s1.buys.contract === 1);
   t('계약 구매비', s1.spent === FF.contractOption(1).price);
   t('계약 사건', o1.events.some(e => e.type === 'purchase' && e.capacity === 'contract'));
-  t('계약은 산 날부터 적용', o1.result.acc > 20 + 1e-9);
+  t('계약은 산 날에는 효과 없음', o1.result.acc <= 20 + 1e-9);
+  const o1b = FF.transition(s1, FF.Cmd.wait(), w(6));
+  t('계약은 다음 날부터 적용', s1.contract === 1 && s1.pendContract === null && o1b.result.acc > 20 + 1e-9);
 
   // 초과분이 없으면 아무 일도 없다
   const s2 = mk(); s2.contract = 2;
@@ -728,9 +730,9 @@ t('전망 3일', md.FC===FF.C.ui.fcDays);
   t('현금 부족시 미계약', s6.contract === 0);
 
   // 분기가 계약을 물려받는다
-  const s7 = mk(); s7.contract = 2; s7.buys.contract = 1;
+  const s7 = mk(); s7.contract = 2; s7.buys.contract = 1; s7.pendContract = 1.5;
   const f = FF.forkState(s7);
-  t('분기가 계약 승계', f.contract === 2 && f.buys.contract === 1);
+  t('분기가 계약 승계', f.contract === 2 && f.buys.contract === 1 && f.pendContract === 1.5);
 
   // 물질수지가 유지된다
   const s8 = mk(); s8.contract = 2;
@@ -784,7 +786,7 @@ t('전망 3일', md.FC===FF.C.ui.fcDays);
   FF.reset(1);
   FF.setQueue([{ kind: 'contract', size: 1 }, { kind: 'sales' }]);
   FF.tickDay();
-  t('첫 날 계약만', FF.contractOf() > 0 && FF.plant().buys.sales === 0);
+  t('첫 날 계약만', FF.pendContractOf() > 0 && FF.plant().buys.sales === 0);
   FF.tickDay();
   t('다음 날 판매', FF.plant().buys.sales === 1 && FF.queueOf().length === 0);
 }

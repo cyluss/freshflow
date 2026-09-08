@@ -183,6 +183,7 @@ FV.FirstDayPrompt=function(){
     이번 달 전망을 보고 초과분 계약을 정한다. 계약은 지금만 맺을 수 있다.</div>
    <${FV.MonthOutlook} data=${FF.monthOutlook()} />
    <div class="fd-subhead">초과분 계약</div>
+   <div style=${{fontSize:"11px",color:"var(--text-muted)"}}>오늘 계약하면 내일부터 적용된다.</div>
    <div id="kopening" class="opts">
     ${FF.C.contract.options.map(function(o,i){
       return FV._html`<${FV.ContractOption} opt=${o} id=${"kbc"+i} />`;

@@ -52,8 +52,11 @@ FF.applyKernelState=function(s,r,pendBefore){
  FF.setAr((s.ar||[]).slice());
  if(s.alloc)FF.setAlloc(s.alloc.slice());
  if(s.stance)FF.setStance(s.stance.slice());
- if(r.bought==="contract"){FF.spend(r.cost);FF.setContract(s.contract);FF.countBuy("contract")}
+ if(r.bought==="contract"){FF.spend(r.cost);FF.countBuy("contract")}
  else if(r.bought){FF.spend(r.cost);FF.countBuy(r.bought)}
+ // 계약은 산 날 다음 거래부터 걸린다. 산 날은 pendContract만 서고, 다음 날 여기서 contract로 넘어온다.
+ FF.setContract(s.contract||0);
+ FF.setPendContract(s.pendContract||null);
  // 커널이 계산한 현금을 그대로 옮긴다. 매출채권은 따로 남는다.
  FF.addCash(s.cash-FF.ledger().cash);
 }
@@ -66,7 +69,7 @@ FF.toKernelState=function(){
  var M=FF.MARKET.value, P=FF.plant(), L=FF.ledger();
  return {day:FF.run().day,si:M.si,di:M.di,cash:L.cash,lots:FF.lotsOf().slice(),
   cap:{intake:P.cap.intake,storage:P.cap.storage,sales:P.cap.sales},
-  pend:FF.PENDING.value,spent:L.spent,contract:FF.CONTRACT.value,cover:FF.coverOf(),
+  pend:FF.PENDING.value,spent:L.spent,contract:FF.CONTRACT.value,pendContract:FF.pendContractOf(),cover:FF.coverOf(),
   rel:FF.relOf().slice(),alloc:FF.allocOf(),stance:FF.stanceOf(),ar:(FF.arOf()||[]).slice(),
   buys:{sales:P.buys.sales,contract:P.buys.contract||0}};
 

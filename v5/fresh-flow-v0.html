@@ -348,10 +348,14 @@ FF.useSignals(FF._injected||function(v){return {value:v}},
 FF.EVENT=FF._signal(null);
 FF.setEvent=function(e){FF.EVENT.value=e}
 FF.evt=function(){FF.VERSION.value;return FF.EVENT.value}
-// 초과분 매입 계약 보유량. 0 이면 미보유.
+// 초과분 매입 계약 보유량. 0 이면 미보유. 산 날은 여기가 아니라 PENDCONTRACT에 먼저 선다.
 FF.CONTRACT=FF._signal(0);
 FF.contractOf=function(){FF.VERSION.value;return FF.CONTRACT.value}
 FF.setContract=function(v){FF.CONTRACT.value=v}
+// 오늘 산 계약. 다음 날 거래부터 CONTRACT로 넘어가고 여기는 다시 null이 된다.
+FF.PENDCONTRACT=FF._signal(null);
+FF.pendContractOf=function(){FF.VERSION.value;return FF.PENDCONTRACT.value}
+FF.setPendContract=function(v){FF.PENDCONTRACT.value=v}
 FF.PENDING=FF._signal(null);
 FF.setPending=function(p){FF.PENDING.value=p}
 FF.PHASE=FF._signal("play");
@@ -524,8 +528,11 @@ FF.applyKernelState=function(s,r,pendBefore){
  FF.setAr((s.ar||[]).slice());
  if(s.alloc)FF.setAlloc(s.alloc.slice());
  if(s.stance)FF.setStance(s.stance.slice());
- if(r.bought==="contract"){FF.spend(r.cost);FF.setContract(s.contract);FF.countBuy("contract")}
+ if(r.bought==="contract"){FF.spend(r.cost);FF.countBuy("contract")}
  else if(r.bought){FF.spend(r.cost);FF.countBuy(r.bought)}
+ // 계약은 산 날 다음 거래부터 걸린다. 산 날은 pendContract만 서고, 다음 날 여기서 contract로 넘어온다.
+ FF.setContract(s.contract||0);
+ FF.setPendContract(s.pendContract||null);
  // 커널이 계산한 현금을 그대로 옮긴다. 매출채권은 따로 남는다.
  FF.addCash(s.cash-FF.ledger().cash);
 }
@@ -538,7 +545,7 @@ FF.toKernelState=function(){
  var M=FF.MARKET.value, P=FF.plant(), L=FF.ledger();
  return {day:FF.run().day,si:M.si,di:M.di,cash:L.cash,lots:FF.lotsOf().slice(),
   cap:{intake:P.cap.intake,storage:P.cap.storage,sales:P.cap.sales},
-  pend:FF.PENDING.value,spent:L.spent,contract:FF.CONTRACT.value,cover:FF.coverOf(),
+  pend:FF.PENDING.value,spent:L.spent,contract:FF.CONTRACT.value,pendContract:FF.pendContractOf(),cover:FF.coverOf(),
   rel:FF.relOf().slice(),alloc:FF.allocOf(),stance:FF.stanceOf(),ar:(FF.arOf()||[]).slice(),
   buys:{sales:P.buys.sales,contract:P.buys.contract||0}};
 
@@ -854,6 +861,8 @@ FF.transition=function(state,command,world,rules){
  var R=rules||FF.C;
  var s=state, ev=[];
  if(s.pend){s.cap[s.pend]+=R.step[s.pend];ev.push({type:"capacity-applied",capacity:s.pend});s.pend=null}
+ // 계약도 증설과 같다: 산 날은 확정만 하고, 다음 날 거래부터 실제로 효력이 생긴다.
+ if(s.pendContract){s.contract=s.pendContract; s.pendContract=null; ev.push({type:"contract-applied"})}
  var C=command;
  var bought=null, cost=0;
  if(C.type==="sell"&&C.alloc&&C.alloc.length===R.channels.length){
@@ -878,7 +887,7 @@ FF.transition=function(state,command,world,rules){
      &&s.day<=(R.contract.until||R.days)
      &&s.cash>=opt.price){
    cost=opt.price;
-   s.cash-=cost; s.spent+=cost; s.contract=opt.x;
+   s.cash-=cost; s.spent+=cost; s.pendContract=opt.x;
    if(s.buys)s.buys.contract++;
    bought="contract";
    ev.push({type:"purchase",capacity:"contract",cost:cost,day:s.day});
@@ -914,7 +923,7 @@ FF.initialState=function(world,rules){
  return {day:1,si:world.phase().supply,di:world.phase().demand,
   cash:R.cash,lots:[],
   cap:{intake:R.cap.intake,storage:R.cap.storage,sales:R.cap.sales},
-  pend:null,spent:0,contract:0,cover:R.cover,ar:[],
+  pend:null,spent:0,contract:0,pendContract:null,cover:R.cover,ar:[],
   rel:R.channels.map(function(){return R.rel.start}),alloc:null,stance:null,
   buys:{sales:0,contract:0},
   recent:[]};
@@ -932,7 +941,7 @@ FF.forkState=function(s){
  return {day:s.day,si:s.si,di:s.di,cash:s.cash,
   lots:s.lots.map(function(l){return {q:l.q,a:l.a}}),
   cap:{intake:s.cap.intake,storage:s.cap.storage,sales:s.cap.sales},
-  pend:s.pend,spent:s.spent,contract:s.contract||0,cover:s.cover,
+  pend:s.pend,spent:s.spent,contract:s.contract||0,pendContract:s.pendContract||null,cover:s.cover,
   ar:(s.ar||[]).map(function(x){return {at:x.at,amt:x.amt}}),
   rel:(s.rel||[]).slice(),alloc:s.alloc?s.alloc.slice():null,
   stance:s.stance?s.stance.slice():null,dead:false,
@@ -1231,7 +1240,7 @@ FF.recordIssues=function(prevRel,r){
 </script>
 <script id="src-engine">
 (function(FF,FV){
-FF.reset=function(seed){FF.SIG.fin.value=false;FF.SIG.manual.value=false;FF.SIG.newGame.value=false;FF.EVENT.value=null;FF.PENDING.value=null;FF.PHASE.value="play";FF.resetRecover();FF.setContract(0);FF.setCover(FF.C.cover);FF.setRel(FF.C.channels.map(function(){return FF.C.rel.start}));FF.setAlloc(null);FF.setStance(null);FF.setIssue(null);FF.setSignal([]);FF.setAr([]);FF.setWorld(FF.World(seed));FF.setLots([]);FF.resetEngineState();FF.setMarket(FF.world().phase().supply,FF.world().phase().demand);FF.setTilt(FF.world().tilt());FF.resetLedger();FF.resetLog();FF.resetPlant();FF.resetRun(seed);
+FF.reset=function(seed){FF.SIG.fin.value=false;FF.SIG.manual.value=false;FF.SIG.newGame.value=false;FF.EVENT.value=null;FF.PENDING.value=null;FF.PHASE.value="play";FF.resetRecover();FF.setContract(0);FF.setPendContract(null);FF.setCover(FF.C.cover);FF.setRel(FF.C.channels.map(function(){return FF.C.rel.start}));FF.setAlloc(null);FF.setStance(null);FF.setIssue(null);FF.setSignal([]);FF.setAr([]);FF.setWorld(FF.World(seed));FF.setLots([]);FF.resetEngineState();FF.setMarket(FF.world().phase().supply,FF.world().phase().demand);FF.setTilt(FF.world().tilt());FF.resetLedger();FF.resetLog();FF.resetPlant();FF.resetRun(seed);
 FF.setQueue([]);
  FF.setClock(false);
  FF.commit();FF.repaint()}
@@ -3256,6 +3265,7 @@ FV.FirstDayPrompt=function(){
     이번 달 전망을 보고 초과분 계약을 정한다. 계약은 지금만 맺을 수 있다.</div>
    <${FV.MonthOutlook} data=${FF.monthOutlook()} />
    <div class="fd-subhead">초과분 계약</div>
+   <div style=${{fontSize:"11px",color:"var(--text-muted)"}}>오늘 계약하면 내일부터 적용된다.</div>
    <div id="kopening" class="opts">
     ${FF.C.contract.options.map(function(o,i){
       return FV._html`<${FV.ContractOption} opt=${o} id=${"kbc"+i} />`;
