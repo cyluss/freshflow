@@ -11,7 +11,9 @@ const FF = new Function(src)();
 const N_SEEDS = Number(process.argv[2] || 300);
 const BASE_CASH = FF.C.cash; // 120000(확정 도메인) = 실 60000원
 
-const CAPITAL_LEVELS = { '100%(60000)': 1, '75%(45000)': 0.75, '50%(30000)': 0.5, '25%(15000)': 0.25 };
+// 사전 선언한 적정 자본화 판정 기준(결과를 보고 정하지 않는다):
+//   포기비율 1~5%, bust<10%, 5개 스타일 전부 정상 영업(bust<10%), 관계/재고 성과 유지.
+const CAPITAL_LEVELS = { '70%(42000)': 0.70, '65%(39000)': 0.65, '60%(36000)': 0.60, '55%(33000)': 0.55 };
 const STYLES = {
   '소극적(cover=1)': { cover: 1, stance: null },
   '기본(cover=1.5)': { cover: null, stance: null },
@@ -55,7 +57,9 @@ function runStyle(seed, style) {
     minCash = Math.min(minCash, FF.ledger().cash);
     if (FF.isBust() && bustDay === null) bustDay = day;
   }
-  return { minCash, forgoneQty, forgoneValue, desiredValue, insolvencyDays, bust: FF.isBust(), netWorth: FF.netWorth(FF.toKernelState()) };
+  const relAvg = FF.relOf().reduce((a, b) => a + b, 0) / FF.relOf().length;
+  return { minCash, forgoneQty, forgoneValue, desiredValue, insolvencyDays, bust: FF.isBust(),
+    netWorth: FF.netWorth(FF.toKernelState()), relAvg, inventory: FF.inventory() };
 }
 
 function avg(a) { return a.reduce((x, y) => x + y, 0) / a.length; }
@@ -76,7 +80,9 @@ for (const [levelName, frac] of Object.entries(CAPITAL_LEVELS)) {
       '포기발생 시드=' + rows.filter(r => r.forgoneQty > 0).length + '/' + N_SEEDS,
       '지급불능일수 평균=' + avg(rows.map(r => r.insolvencyDays)).toFixed(2),
       'bust=' + rows.filter(r => r.bust).length + '/' + N_SEEDS,
-      'netWorth avg=' + avg(rows.map(r => r.netWorth)).toFixed(0));
+      'netWorth avg=' + avg(rows.map(r => r.netWorth)).toFixed(0),
+      'relAvg=' + avg(rows.map(r => r.relAvg)).toFixed(2),
+      'inv avg=' + avg(rows.map(r => r.inventory)).toFixed(1));
   }
   console.log('');
 }
