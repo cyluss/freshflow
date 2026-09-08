@@ -1119,7 +1119,18 @@ t('전망 3일', md.FC===FF.C.ui.fcDays);
   t('판로 중심 투영은 판로 수만큼', byCh.length === FF.C.channels.length);
   const rows = FF.channelRows();
   t('판로 중심 투영의 쿼터가 channelRows와 같다',
-    byCh.every((r, i) => r['allocation.quota'] === rows[i].quota));
+    byCh.every((r, i) => r['curr.state.allocation.quota'] === rows[i].quota));
+  t('판로 중심 투영의 배정이 stancePlan과 같다',
+    byCh.every((r, i) => r['curr.plan.allocation.assigned'] === P.preview[i]));
+  // relation.level은 curr.state(오늘)와 prev.result(어제) 둘 다 있다. 시점을 안 섞으면 둘이 안 겹친다.
+  t('같은 도메인.지표라도 시점이 다르면 안 섞인다',
+    byCh.every((r, i) => r['curr.state.relation.level'] === rows[i].rel &&
+      r['prev.result.relation.level'] === d.rel[i]));
+
+  const G = FF.factsGlobal();
+  t('전역 투영의 판매가능이 stancePlan과 같다', G['curr.plan.inventory.sellable'] === P.sellable);
+  t('전역 투영의 미배정이 stancePlan과 같다', G['curr.plan.inventory.unassigned'] === P.unassigned);
+  t('전역 투영의 pool이 stancePlan과 같다', G['curr.plan.inventory.pool'] === P.pool);
 }
 
 console.log(pass+' passed, '+fail+' failed');

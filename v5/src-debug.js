@@ -80,7 +80,7 @@ window.ffFacts=function(){
   return FF.factAxes.time.indexOf(f.time)<0||FF.factAxes.phase.indexOf(f.phase)<0||
    FF.factAxes.domain.indexOf(f.domain)<0;
  });
- return{사실수:facts.length,축위반:bad.length,목록:bad,판로중심:FF.factsByChannel()};
+ return{사실수:facts.length,축위반:bad.length,목록:bad,판로중심:FF.factsByChannel(),전역:FF.factsGlobal()};
 };
 window.ffAgree=function(){var h=FF.histOf().filter(function(r){return r.day>=3});
  if(!h.length)return 0;return +(h.filter(function(r){return r.b===FF.trend3(r.day)}).length/h.length*100).toFixed(0)};

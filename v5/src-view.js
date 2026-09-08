@@ -81,7 +81,7 @@ FV.IssueBar=function(){
 FV.ChannelBar=function(){
  FF.observe();
  if(FF.isOver())return null;
- var P=FF.stancePlan(), IP=FF.issuePlan();
+ var byCh=FF.factsByChannel(), G=FF.factsGlobal(), IP=FF.issuePlan();
  var issueOf=function(i){
   for(var k=0;k<IP.issues.length;k++)if(IP.issues[k].i===i)return IP.issues[k];
   return null;
@@ -95,28 +95,32 @@ FV.ChannelBar=function(){
   ]);
  };
  // 판단 위계 순서: 관계(장기 전략) -> 배정/주문(정책의 결과) -> 가격/최대/보장(판단 근거) -> 정책 버튼.
- var rows=P.rows.map(function(r,i){
+ // 화면은 커널 상태를 직접 읽지 않고 FF.facts()가 낸 판로 중심 투영(byCh)만 읽는다.
+ var rows=byCh.map(function(r,i){
   var issue=issueOf(i);
   var statusTxt=issue?(" · "+(issue.resolution==="accepted"?"포기함":"회복 중")):"";
-  var missTxt=P.missed[i]>=1?(FF.fInt(P.missed[i])+"t을 다른 판로에 양보"):"";
+  var missed=r['curr.plan.allocation.missed'], assigned=r['curr.plan.allocation.assigned'];
+  var order=r['curr.forecast.demand.order'], level=r['curr.plan.allocation.stance'];
+  var floor=r['curr.state.allocation.floor'];
+  var missTxt=missed>=1?(FF.fInt(missed)+"t을 다른 판로에 양보"):"";
   return FV._h("div",{class:"chan-card"},[
    FV._h("div",{class:"chan-id"},[
     FV._h("span",{class:"chan-name"},FV.say("channel",r.key))
    ]),
-   kv("관계",FV.say("relword",String(r.rel)),"chan-rel"),
+   kv("관계",FV.say("relword",String(r['curr.state.relation.level'])),"chan-rel"),
    FV._h("div",{class:"chan-alloc"},[
     FV._h("span",{class:"chan-kv-label"},"배정")," ",
-    FV._h("span",{class:"chan-kv-value"},FF.fInt(P.preview[i])+"t"),
-    " / 주문 "+FF.fInt(P.est[i])+"t"+statusTxt
+    FV._h("span",{class:"chan-kv-value"},FF.fInt(assigned)+"t"),
+    " / 주문 "+FF.fInt(order)+"t"+statusTxt
    ]),
    missTxt?FV._h("div",{class:"chan-kv-note"},missTxt):null,
    FV._h("div",{class:"chan-cond"},[
-    kv("가격",r.price+"원"),
-    kv("최대",r.cap+"t"),
-    kv("보장",r.floor>0?(r.floor+"t"):"—")
+    kv("가격",r['curr.state.finance.price']+"원"),
+    kv("최대",r['curr.state.allocation.cap']+"t"),
+    kv("보장",floor>0?(floor+"t"):"—")
    ]),
    FV._h("div",{class:"chan-policy"},STANCE_LEVELS.map(function(lv){
-    return FV._h("button",{class:"pol"+(P.levels[i]===lv?" pol-on":""),
+    return FV._h("button",{class:"pol"+(level===lv?" pol-on":""),
      onClick:function(){FF.setChannelStance(i,lv)}},FV.say("stance",String(lv)));
    }))
   ]);
@@ -124,25 +128,27 @@ FV.ChannelBar=function(){
  // 판매 가능(공급 쪽 상한)과 예상 판매(배정의 합, Σ 판로 배정)를 나란히 둔다.
  // 플레이어가 판로 세 줄을 직접 더하지 않아도 오늘 몇 t을 팔 계획인지 바로 보이게 하기 위해서다.
  // 둘이 다르면(미배정>0) 수요가 판매 가능보다 적어서 판매 가능을 다 못 채운다는 뜻이다.
- // sellable/unassigned는 stancePlan이 이미 낸 값이다. 화면은 더하고 빼지 않고 그대로 읽는다.
+ // pool/sellable/unassigned 등은 사실 투영(G)이 이미 낸 값이다. 화면은 더하고 빼지 않고 그대로 읽는다.
+ var pool=G['curr.plan.inventory.pool'], inv=G['curr.state.inventory.stock'], exp=G['curr.forecast.supply.intake'];
+ var sum=G['curr.plan.inventory.assigned'], sellable=G['curr.plan.inventory.sellable'], unassigned=G['curr.plan.inventory.unassigned'];
  var capSales=FF.capsOf().sales, old=FF.oldStock();
  return FV._h("div",{id:"kchan",class:"chan"},[
   FV._h("div",{class:"chan-head"},[
    FV._h("div",{class:"chan-head-col"},[
     FV._h("div",{class:"chan-head-main"},[
      FV._h("span",{class:"chan-head-label"},"판매 가능"),
-     FV._h("span",{class:"chan-head-value"},FF.fInt(P.pool)+"t")
+     FV._h("span",{class:"chan-head-value"},FF.fInt(pool)+"t")
     ]),
     FV._h("div",{class:"chan-head-note"},
-     "재고 "+FF.fInt(P.inv)+"t · 오늘 입고 예상 "+FF.fInt(P.exp)+"t"+
-     (P.sellable>capSales?(" · 판매 한도 "+capSales+"t"):""))
+     "재고 "+FF.fInt(inv)+"t · 오늘 입고 예상 "+FF.fInt(exp)+"t"+
+     (sellable>capSales?(" · 판매 한도 "+capSales+"t"):""))
    ]),
    FV._h("div",{class:"chan-head-col"},[
     FV._h("div",{class:"chan-head-main"},[
      FV._h("span",{class:"chan-head-label"},"예상 판매"),
-     FV._h("span",{class:"chan-head-value"},FF.fInt(P.sum)+"t")
+     FV._h("span",{class:"chan-head-value"},FF.fInt(sum)+"t")
     ]),
-    P.unassigned>=1?FV._h("div",{class:"chan-head-note"},"미배정 "+FF.fInt(P.unassigned)+"t"):null
+    unassigned>=1?FV._h("div",{class:"chan-head-note"},"미배정 "+FF.fInt(unassigned)+"t"):null
    ]),
    old>=1?FV._h("div",{class:"chan-head-old"},"오래된 재고 "+FF.fInt(old)+"t"):null
   ]),
@@ -161,7 +167,7 @@ FV.CapacityButton=function(){
  var on=FF.queued("sales");
  if(!on){
   var hit=FF.capHits("sales",5);
-  var shortfall=FF.stancePlan().missed.some(function(m){return m>=1});
+  var shortfall=FF.factsByChannel().some(function(r){return r['curr.plan.allocation.missed']>=1});
   if(!hit.n&&!hit.last&&!shortfall)return null;
  }
  var opt=FF.optionOf("sales");

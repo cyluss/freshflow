@@ -32,6 +32,8 @@ FF._factsCurrState=function(out){
  FF.channelRows().forEach(function(r){
   out.push(FF.fact("curr","state","relation",r.key,"level",r.rel));
   out.push(FF.fact("curr","state","allocation",r.key,"quota",r.quota));
+  out.push(FF.fact("curr","state","allocation",r.key,"cap",r.cap));
+  out.push(FF.fact("curr","state","allocation",r.key,"floor",r.floor));
   out.push(FF.fact("curr","state","finance",r.key,"price",r.price));
  });
 }
@@ -39,6 +41,8 @@ FF._factsCurrState=function(out){
 // 오늘(curr) 계획/전망. 하루를 넘기기 전 미리보기다. 실제 값과 다를 수 있다.
 FF._factsCurrPlan=function(out){
  var P=FF.stancePlan();
+ out.push(FF.fact("curr","plan","inventory",null,"pool",P.pool));
+ out.push(FF.fact("curr","plan","inventory",null,"assigned",P.sum));
  out.push(FF.fact("curr","plan","inventory",null,"sellable",P.sellable));
  out.push(FF.fact("curr","plan","inventory",null,"unassigned",P.unassigned));
  out.push(FF.fact("curr","forecast","supply",null,"intake",P.exp));
@@ -76,13 +80,24 @@ FF.facts=function(){
  return out;
 }
 
+// time.phase.domain.metric 을 하나의 키로 접는다. 같은 domain.metric도 시점이 다르면
+// 다른 사실이다("relation.level"은 curr.state와 prev.result에 둘 다 있다). 시점까지 넣어야 안 섞인다.
+FF._factKey=function(f){return f.time+"."+f.phase+"."+f.domain+"."+f.metric}
+
 // 판로 중심 투영. 화면(판로 카드)이 쓰기 좋은 모양이다. 사실을 판로별로 다시 묶는다.
 FF.factsByChannel=function(){
  var facts=FF.facts(), by={};
  FF.C.channels.forEach(function(c){by[c.key]={key:c.key}});
  facts.forEach(function(f){
   if(!f.channel||!by[f.channel])return;
-  by[f.channel][f.domain+"."+f.metric]=f.value;
+  by[f.channel][FF._factKey(f)]=f.value;
  });
  return FF.C.channels.map(function(c){return by[c.key]});
+}
+
+// 판로에 묶이지 않은 사실만 키로 묶는다. 화면 상단(판매 가능/미배정 등)이 쓴다.
+FF.factsGlobal=function(){
+ var facts=FF.facts(), out={};
+ facts.forEach(function(f){if(!f.channel)out[FF._factKey(f)]=f.value});
+ return out;
 }
