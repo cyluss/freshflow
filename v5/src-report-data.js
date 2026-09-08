@@ -77,7 +77,7 @@ FF._forecastOnly=function(){
  var futPhase=function(idx,W,tl){
   var a=[];
   for(var dd=1;dd<=FC;dd++){
-   var v=FF.blur(FF.hor(idx,dd,dd,FF.C,tl)), b=0;
+   var v=FF.blurredPhase(idx,dd,dd,FF.C,tl), b=0;
    for(var t=1;t<3;t++)if(v[t]>v[b])b=t;
    a.push(W[b]);
   }
@@ -104,7 +104,7 @@ FF.monthOutlook=function(){
   return spans.map(function(s){
    // 오늘 국면에서 몇 일 뒤인지로 전이를 돌린다
    return {key:s.key,from:s.from,to:s.to,
-     pct:FF.pct(FF.blur(FF.hor(idx,s.from-today+1,s.to-today+1,FF.C,tl)))};
+     pct:FF.pct(FF.blurredPhase(idx,s.from-today+1,s.to-today+1,FF.C,tl))};
   });
  };
  var T=FF.tiltOf();
