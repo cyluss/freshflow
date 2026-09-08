@@ -53,7 +53,11 @@ function open(file, seed) {
   }
   t('배분 막대 상시 노출', always);
   t('옛 구매 카드 제거', !s.q('kacts') && !s.q('kbw'));
-  t('판매 한도 버튼 있음', !!s.q('kbs'));
+  {
+   const hit = s.w.FF.capHits('sales', 5);
+   const shortfall = s.w.FF.stancePlan().missed.some(m => m >= 1);
+   t('판매 한도 버튼은 신호와 일치', !!s.q('kbs') === (hit.n > 0 || hit.last || shortfall));
+  }
   t('설비 관리 버튼 없음', !s.q('kopen'));
   t('매입 목표 제거', !s.q('kpolicy'));
   t('비교 근거 없음', !s.q('kcmp'));
@@ -213,14 +217,17 @@ function open(file, seed) {
   const s7 = open(FILE, 58207);
   for (let i = 0; i < 3; i++) { s7.q('kgo').click(); await tick() }
   const panes = [...s7.d.querySelectorAll('.pane')];
-  t('페이지 셋', panes.length === 3);
-  t('페이지 id', panes.map(p => p.id).join() === 'p0,p1,p2');
+  t('페이지 넷', panes.length === 4);
+  t('페이지 id', panes.map(p => p.id).join() === 'p0,p1,p2,p3');
   const links = [...s7.d.querySelectorAll('.tabs a')];
-  t('탭이 앵커 링크', links.length === 3 && links.every((a, i) => a.getAttribute('href') === '#p' + i));
+  t('탭이 앵커 링크', links.length === 4 && links.every((a, i) => a.getAttribute('href') === '#p' + i));
   t('두 번째 면은 사건 이력', links[1].textContent === '사건 이력');
   t('세 번째 면은 월간 전망', links[2].textContent === '월간 전망');
+  t('네 번째 면은 상세 운영', links[3].textContent === '상세 운영');
   t('세 번째 면 내용', s7.d.getElementById('p2').textContent.includes('초순'));
   t('전망은 남은 기간', s7.d.getElementById('p2').textContent.includes('남은'));
+  t('네 번째 면에 흐름도', !!s7.d.getElementById('p3').querySelector('#kchain'));
+  t('첫 면에는 흐름도 없음', !s7.d.getElementById('p0').querySelector('#kchain'));
   const pager = s7.d.querySelector('.pager');
   t('스크롤 핸들러 없음', !pager.onscroll);
   t('캐러셀 상태 변수 없음', s7.w.FF.PANE === undefined && s7.w.FF.goPane === undefined);

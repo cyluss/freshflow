@@ -3138,11 +3138,17 @@ FV.ChannelBar=function(){
  ]);
 }
 
-// 판매 한도 증설. 표시는 항상, 값은 커널의 하루 총 판매 상한이다.
+// 판매 한도 증설. 최근에 한도가 실제 병목이었거나 지금 배정에서 놓치는 물량이 있을 때만 보인다.
 FV.CapacityButton=function(){
  FF.observe();
  if(FF.isOver()||!FF.started())return null;
- var on=FF.queued("sales"), opt=FF.optionOf("sales");
+ var on=FF.queued("sales");
+ if(!on){
+  var hit=FF.capHits("sales",5);
+  var shortfall=FF.stancePlan().missed.some(function(m){return m>=1});
+  if(!hit.n&&!hit.last&&!shortfall)return null;
+ }
+ var opt=FF.optionOf("sales");
  return FV._h("button",{id:"kbs",class:"btn-cell"+(on?" opt-on":""),
    style:{borderColor:on?"var(--border-accent)":"var(--border-strong)",
      background:"transparent",opacity:(opt.affordable||on)?"1":"0.4"},
@@ -3189,6 +3195,24 @@ FV.FlowView=function(){
   <div id="kylabel" class="lbl">${d?(d.day+"일 결과"):"운영 시작 전"}</div>
   <${FV.FlowSummary} day=${d} />
   <${FV.DayResultView} />
+  <div id="kchain" class="gap-s">
+   <${FV.FlowDiagram} day=${d} inventory=${FF.inventory()} />
+  </div>`;
+}
+
+// 다음 판단에 바로 쓰이는 것만 남긴 하루 결과. 흐름도는 상세 화면으로 뺀다.
+FV.DayFlowSummary=function(){
+ var d=FF.today();
+ return FV._html`
+  <div id="kylabel" class="lbl">${d?(d.day+"일 결과"):"운영 시작 전"}</div>
+  <${FV.FlowSummary} day=${d} />
+  <${FV.DayResultView} />`;
+}
+
+// 농가 -> 입고 -> 창고 -> 판매 흐름도. 결과를 뜯어볼 때만 찾아보는 상세 화면이다.
+FV.FlowDetailView=function(){
+ var d=FF.today();
+ return FV._html`
   <div id="kchain" class="gap-s">
    <${FV.FlowDiagram} day=${d} inventory=${FF.inventory()} />
   </div>`;
@@ -3371,11 +3395,13 @@ FV.PlayPager=function(){
    <a href="#p0">어제 흐름</a>
    <a href="#p1">사건 이력</a>
    <a href="#p2">월간 전망</a>
+   <a href="#p3">상세 운영</a>
   </nav>
   <div class="pager">
-   <section class="pane" id="p0"><${FV.FlowView} /></section>
+   <section class="pane" id="p0"><${FV.DayFlowSummary} /></section>
    <section class="pane" id="p1"><${FV.EventLogView} /></section>
    <section class="pane" id="p2"><${FV.OutlookView} /></section>
+   <section class="pane" id="p3"><${FV.FlowDetailView} /></section>
   </div>`;
 }
 
