@@ -44,3 +44,36 @@ FF.contractOption=function(x,rules){
  for(var i=0;i<O.length;i++)if(O[i].x===x)return O[i];
  return null;
 }
+
+// 배분 규칙 하나: 보장 예약 -> 가중치 water-filling. 커널(실제 수요)과 미리보기(평균 수요)가 같은 함수를 쓴다.
+// pool: 오늘 나눌 총량. demand: 판로별 오늘 수요 상한. levels: 판로별 태도 단계. quota: 판로별 보장 기준량.
+// 반환: 판로별 최종 배정량(소수). 합은 min(pool, sum(demand)) 이하다.
+FF.allocatePool=function(pool,demand,levels,quota,rules){
+ var R=rules||FF.C, n=demand.length, target=demand.map(function(){return 0}), remain=demand.slice(), left=pool, i;
+ // 1단계: 보장 확보. min 은 보장 단계에서만 0이 아니므로 다른 단계는 그냥 지나간다.
+ for(i=0;i<n;i++){
+  var want=quota[i]*R.stance.min[levels[i]];
+  var need=Math.min(want,remain[i],left);
+  target[i]+=need; remain[i]-=need; left-=need;
+ }
+ // 2단계: 남는 물량을 태도 비중으로. 자기 수요에 막힌 판로의 몫은 남은 판로에 다시 나눈다(water-filling).
+ var w=levels.map(function(lv){return R.stance.weight[lv]});
+ var headroom=remain.slice(), pending=left, guard=0;
+ while(pending>R.ui.zero&&guard++<=n){
+  var wsum=0; for(i=0;i<n;i++)if(headroom[i]>R.ui.zero)wsum+=w[i];
+  if(wsum<=0)break;
+  var given=0, anyCap=false;
+  for(i=0;i<n;i++){
+   if(headroom[i]<=R.ui.zero)continue;
+   var ent=pending*w[i]/wsum;
+   if(ent>=headroom[i]-R.ui.zero){
+    target[i]+=headroom[i]; given+=headroom[i]; headroom[i]=0; anyCap=true;
+   } else {
+    target[i]+=ent; given+=ent; headroom[i]-=ent;
+   }
+  }
+  pending-=given;
+  if(!anyCap)break;
+ }
+ return target;
+}

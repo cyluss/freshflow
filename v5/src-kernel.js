@@ -149,25 +149,11 @@ FF.stepState=function(s,prod,dem,rules){
   else s.cash+=amt;                // 당일 정산은 즉시 현금
  };
  var hasStance=s.stance&&s.stance.length===nch;
- // 보장 확보: 우선순위 채우기 전에 그 판로부터 최소량을 뗀다. 나머지 판로는 건드리지 않는다.
- if(hasStance){
-  for(ci=0;ci<nch;ci++){
-   var lvl=s.stance[ci];
-   var want=CHS[ci].quota*R.stance.min[lvl];
-   var need=Math.min(want,chDem[ci]);
-   for(var lj=0;lj<s.lots.length&&need>R.ui.zero;lj++){
-    var glot=s.lots[lj];
-    if(glot.q<=R.ui.zero)continue;
-    var gage=Math.min(glot.a,R.ttl-1);
-    var gtake=Math.min(glot.q,need,Math.max(0,s.cap.sales-sold));
-    glot.q-=gtake; chDem[ci]-=gtake; sold+=gtake; toCh[ci]+=gtake; need-=gtake;
-    ageMix.push({a:glot.a,q:gtake});
-    settleSale(ci,gtake*sellUnit(ci,gage));
-   }
-  }
-  sellable=tot();
- }
- // 확보하고 남은 물량을 나눌 비중: 명시 배분이 있으면 그것, 아니면 태도에서 끌어온다, 둘 다 없으면 null(단가 순).
+ // 보장 예약 + 가중치 water-filling. 미리보기(stancePlan)와 같은 FF.allocatePool을 쓴다.
+ // pool은 물리 재고와 하루 판매 총상한 중 작은 쪽이다. 그래야 목표가 처음부터 상한을 넘지 않는다.
+ var target=hasStance?FF.allocatePool(Math.min(sellable,Math.max(0,s.cap.sales-sold)),chDem.slice(),
+   s.stance,CHS.map(function(c){return c.quota}),R):null;
+ // 명시 배분(s.alloc)이 있으면 그것으로, 태도도 배분도 없으면 null(단가 순)로 정렬 순서를 정한다.
  var effAlloc=(s.alloc&&s.alloc.length===nch)?s.alloc
    :(hasStance?s.stance.map(function(lv){return R.stance.weight[lv]}):null);
  var order=[];
@@ -176,9 +162,11 @@ FF.stepState=function(s,prod,dem,rules){
   var lot=s.lots[li];
   if(lot.q<=R.ui.zero)continue;
   var age=Math.min(lot.a,R.ttl-1);
-  // 이 lot 를 어느 판로에 넣을지: 비중이 있으면 그 순서, 없으면 단가 순
+  // 이 lot 를 어느 판로에 넣을지: 목표가 있으면 남은 목표가 큰 순, 비중만 있으면 그 순서, 없으면 단가 순
   var seq=order.slice();
-  if(effAlloc){
+  if(target){
+   seq.sort(function(a,b){return (target[b]-toCh[b])-(target[a]-toCh[a])});
+  } else if(effAlloc){
    seq.sort(function(a,b){return effAlloc[b]-effAlloc[a]});
   } else {
    seq.sort(function(a,b){
@@ -188,9 +176,11 @@ FF.stepState=function(s,prod,dem,rules){
   }
   for(var si2=0;si2<seq.length&&lot.q>R.ui.zero;si2++){
    var c2=seq[si2];
-   // 비중이 있으면 그 판로에 배정된 몫을 넘지 않는다.
+   // 목표나 비중이 있으면 그 판로에 배정된 몫을 넘지 않는다.
    var quotaLeft=chDem[c2];
-   if(effAlloc){
+   if(target){
+    quotaLeft=Math.min(quotaLeft,Math.max(0,target[c2]-toCh[c2]));
+   } else if(effAlloc){
     var wsum=0; for(var wi=0;wi<nch;wi++)wsum+=effAlloc[wi];
     if(wsum>0){
      var share=sellable*effAlloc[c2]/wsum;

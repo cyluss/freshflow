@@ -396,8 +396,8 @@ FF.oldStock=function(){
  for(var i=0;i<lots.length;i++)if(lots[i].a>=th)t+=lots[i].q;
  return FF.rInt(t);
 }
-// 오늘 배분 미리보기. 보장부터 확보하고 남는 물량을 태도 비중으로 나눈다.
-// 커널과 같은 두 단계 규칙이지만 하루치 물량을 한 덩어리로 보는 근사다. 실제는 lot 단위로 갈라져 조금 다를 수 있다.
+// 오늘 배분 미리보기. 커널과 같은 FF.allocatePool을 평균 수요로 부른다.
+// 실제 실행은 같은 함수를 실제 난수 수요로 부르므로 규칙은 같고 입력만 다르다.
 FF.stancePlan=function(){
  FF.observe();
  var rows=FF.channelRows(), n=rows.length;
@@ -406,33 +406,7 @@ FF.stancePlan=function(){
  var inv=FF.inventory(), exp=FF.expectedIntake(), caps=FF.capsOf();
  var totCap=0, i; for(i=0;i<n;i++)totCap+=rows[i].cap;
  var pool=FF.rInt(Math.min(inv+exp,totCap,caps?caps.sales:totCap));
- var left=pool, remain=est.slice(), preview=rows.map(function(){return 0});
- // 1단계: 보장 확보
- for(i=0;i<n;i++){
-  if(levels[i]!==3)continue;
-  var want=Math.min(rows[i].quota,remain[i],left);
-  preview[i]+=want; remain[i]-=want; left-=want;
- }
- // 2단계: 남는 물량을 태도 비중으로. 자기 주문에 막힌 판로의 몫은 남은 판로에 다시 나눈다(water-filling).
- // 한 번만 비례 배분하면 주문이 적어 막힌 판로의 몫이 그대로 버려져 합이 pool보다 작아진다.
- var w=levels.map(function(lv){return FF.C.stance.weight[lv]});
- var headroom=remain.slice(), pending=left, guard=0;
- while(pending>FF.C.ui.zero&&guard++<=n){
-  var wsum=0; for(i=0;i<n;i++)if(headroom[i]>FF.C.ui.zero)wsum+=w[i];
-  if(wsum<=0)break;
-  var given=0, anyCap=false;
-  for(i=0;i<n;i++){
-   if(headroom[i]<=FF.C.ui.zero)continue;
-   var ent=pending*w[i]/wsum;
-   if(ent>=headroom[i]-FF.C.ui.zero){
-    preview[i]+=headroom[i]; given+=headroom[i]; headroom[i]=0; anyCap=true;
-   } else {
-    preview[i]+=ent; given+=ent; headroom[i]-=ent;
-   }
-  }
-  pending-=given;
-  if(!anyCap)break;
- }
+ var preview=FF.allocatePool(pool,est.slice(),levels,rows.map(function(r){return r.quota}));
  // 판로마다 따로 반올림하면 합이 pool을 넘을 수 있다(quantizePct와 같은 문제).
  // 최대 나머지 방식으로 합을 pool 이하로 고정한 뒤에만 반올림한다.
  var rawSum=0; for(i=0;i<n;i++)rawSum+=preview[i];

@@ -1002,6 +1002,37 @@ t('전망 3일', md.FC===FF.C.ui.fcDays);
   t('toCh 합이 sold', Math.abs(sumToCh - out.result.sold) < 1e-6);
 }
 
+// FF.allocatePool: 자기 수요에 막힌 판로의 몫을 다른 판로로 재분배한다(water-filling)
+{
+  const demand = [5, 5, 11]; // 온라인(양보) 5, 프랜차이즈(기본) 5, 도매(우선) 11
+  const target = FF.allocatePool(20, demand, [0, 1, 2], [4, 5, 6]);
+  const sum = target.reduce((a, b) => a + b, 0);
+  t('allocatePool 합이 pool과 같다', Math.abs(sum - 20) < 1e-6, sum);
+  t('아무도 자기 주문을 넘지 않는다', target.every((v, i) => v <= demand[i] + 1e-6));
+  t('프랜차이즈는 자기 주문에 막힌다', Math.abs(target[1] - 5) < 1e-6);
+  t('도매 몫이 단순 비례보다 크다(재분배)', target[2] > 20 * 1.6 / 3.2 + 1e-6);
+
+  // 보장 단계가 있으면 그 판로부터 quota*min 만큼 먼저 확보한다
+  const withGuarantee = FF.allocatePool(20, [5, 5, 11], [0, 1, 3], [4, 5, 6]);
+  t('보장은 quota를 먼저 확보한다', withGuarantee[2] >= 6 - 1e-6);
+}
+
+// 커널도 같은 allocatePool을 쓴다: 재고가 충분하면 총주문을 그대로 채운다
+{
+  FF.reset(30699);
+  for (let i = 0; i < 5; i++) FF.stepDay(FF.Cmd.wait());
+  const s1 = FF.toKernelState();
+  s1.lots = [{ q: 25, a: 0 }];
+  s1.cap.sales = 21;
+  s1._chDemand = [5, 5, 11];
+  const world1 = { production: 0, demand: 21, supplyPhase: 1, demandPhase: 1 };
+  const out1 = FF.transition(s1, FF.Cmd.stance([0, 1, 2]), world1);
+  const toCh1 = out1.result.toCh;
+  t('물량이 있으면 총주문을 다 채운다', Math.abs(toCh1.reduce((a, b) => a + b, 0) - 21) < 1e-6, toCh1);
+  t('프랜차이즈는 주문만큼만(커널)', Math.abs(toCh1[1] - 5) < 1e-6);
+  t('도매는 자기 주문 전부(커널)', Math.abs(toCh1[2] - 11) < 1e-6);
+}
+
 // 이슈: 우선/보장에서만 하락이 이슈를 연다
 {
   FF.reset(30699);
