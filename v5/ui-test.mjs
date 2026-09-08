@@ -504,10 +504,13 @@ function open(file, seed) {
   t('머리줄에 입고 예상', /입고 예상 \d+t/.test(bar.querySelector('.chan-head-note').textContent));
   {
    const P0 = ch.w.FF.stancePlan(), sellable = P0.inv + P0.exp, capSales = ch.w.FF.capsOf().sales;
-   t('판매 가능 값은 배분 예산과 같다',
-     bar.querySelector('.chan-head-value').textContent === P0.pool + 't');
+   const values = [...bar.querySelectorAll('.chan-head-value')];
+   t('판매 가능 값은 배분 예산과 같다', values[0].textContent === P0.pool + 't');
+   t('예상 판매 값은 배정 합과 같다', values[1].textContent === P0.sum + 't');
    const noteTxt = bar.querySelector('.chan-head-note').textContent;
    t('판매 한도는 실제로 걸릴 때만', /판매 한도 \d+t/.test(noteTxt) === (sellable > capSales));
+   const unassignedTxt = [...bar.querySelectorAll('.chan-head-note')].map(x => x.textContent).join(' ');
+   t('미배정은 있을 때만', /미배정 \d+t/.test(unassignedTxt) === (P0.pool - P0.sum >= 1));
    const old = ch.w.FF.oldStock(), oldEl = bar.querySelector('.chan-head-old');
    t('오래된 재고는 있을 때만', !!oldEl === (old >= 1));
   }

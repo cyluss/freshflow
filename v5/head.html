@@ -201,12 +201,12 @@ body{font-variant-numeric:tabular-nums}
  margin:0 -20px;padding-left:20px;padding-right:20px}
 .dock .btn-full,.dock .btn-sub{margin-bottom:6px}
 .dock > :last-child{margin-bottom:0}
-.chan-head{margin-bottom:5px}
+.chan-head{display:grid;grid-template-columns:1fr 1fr;column-gap:12px;margin-bottom:5px}
 .chan-head-main{display:flex;justify-content:space-between;align-items:baseline}
 .chan-head-label{font-size:13px;color:var(--text-secondary)}
 .chan-head-value{font-size:20px;font-weight:600;color:var(--text-primary)}
 .chan-head-note{font-size:11px;color:var(--text-muted);margin-top:1px}
-.chan-head-old{font-size:11px;color:var(--text-warning);margin-top:2px}
+.chan-head-old{grid-column:1/-1;font-size:11px;color:var(--text-warning);margin-top:2px}
 .cs{width:40px;height:40px;padding:0;font-size:20px;line-height:1;font-family:inherit;background:none;
  border:1px solid var(--border-strong);border-radius:var(--radius);
  color:var(--text-secondary);cursor:pointer;flex:0 0 auto}
