@@ -1047,9 +1047,9 @@ FF.bottleneck=function(s,r,dem,rules){
 // 반환 {state, result, events}. state 는 제자리에서 전진한다.
 
 // 이슈 #11: AR factoring. runway5는 결정 시점에 관측 가능한 신호일 뿐 커널 물리를 바꾸지
-// 않는다(플레이어가 factor 여부·금액을 정한다) - 그래서 D12 목록에는 안 넣는다. 커널이 실제로
-// 하는 일은 FF.applyFactoring/FF.factorCashIn 뿐이고, 이 둘은 stepState와 같은 방식(rules 인자)
-// 으로 FF.C를 읽는다.
+// 않는다(플레이어가 factor 여부·금액을 정한다). 그래도 이 신호가 전역 규칙을 곧장 읽으면
+// stepState와 다른 기준을 몰래 섞어 쓸 위험이 있어, factorRunway도 apCreditLimit·factorCashIn과
+// 같은 D12 목록에 넣어 rules 인자 없이는 FF.C를 못 읽게 강제한다.
 // arDueWithin5Days는 오늘부터 지평(runwayDays)일 안에 만기가 오는 AR 합이다. want는 그날
 // 현금 제약을 보기 전 목표 입고량(FF.intakePhysical의 stored) - 오늘 매입에 쓸 현금까지
 // 미리 반영해서 "이 물량을 다 사고도 며칠을 버티는가"를 묻는다.
