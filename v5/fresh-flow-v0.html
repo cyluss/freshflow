@@ -492,6 +492,8 @@ FF.issueOf=function(){FF.VERSION.value;return FF.ISSUE.value||FF.C.channels.map(
 FF.signalOf=function(){FF.VERSION.value;return FF.SIGNAL.value||[]}
 FF.coverOf=function(){FF.VERSION.value;return FF.COVER.value===null?FF.C.cover:FF.COVER.value}
 FF.dayOf=function(){FF.VERSION.value;return FF.RUN.value?FF.run().day:1}
+// 오늘부터 종료일까지 남은 일수(오늘 포함). 화면 여러 곳이 이 하나만 읽는다.
+FF.daysLeft=function(){var today=FF.RUN.value?Math.min(FF.run().day,FF.C.days):1; return FF.C.days-today+1}
 FF.started=function(){FF.VERSION.value;return !!(FF.RUN.value&&FF.histOf().length)}
 FF.today=function(){FF.VERSION.value;return (FF.RUN.value&&FF.histOf().length)?FF.histOf()[FF.histOf().length-1]:null}
 FF.histLen=function(){FF.VERSION.value;return FF.RUN.value?FF.histOf().length:0}
@@ -1692,7 +1694,7 @@ FF.monthOutlook=function(){
  var M=FF.marketOf();
  if(!M)return null;
  var n=FF.C.days, today=FF.run()?Math.min(FF.run().day,n):1;
- var left=n-today+1;
+ var left=FF.daysLeft();
  if(left<3)return null;
  var w=Math.round(left/3), w2=Math.round(left*2/3);
  var spans=[{key:"early",from:today,to:today+w-1},
@@ -2005,8 +2007,10 @@ FF.stancePlan=function(){
  var sum=0; for(i=0;i<n;i++)sum+=preview[i];
  // 기회비용: 주문은 있는데 다른 판로 우선 때문에 못 받는 양이다.
  var missed=est.map(function(e,idx){return FF.rInt(Math.max(0,e-preview[idx]))});
- return {rows:rows,levels:levels,est:est,preview:preview,missed:missed,inv:FF.rInt(inv),exp:exp,
-  pool:pool,sum:FF.rInt(sum)};
+ var invR=FF.rInt(inv);
+ // 화면이 재고+입고를 다시 더하거나 pool-sum을 다시 빼지 않도록 여기서 낸다.
+ return {rows:rows,levels:levels,est:est,preview:preview,missed:missed,inv:invR,exp:exp,
+  pool:pool,sum:FF.rInt(sum),sellable:invR+exp,unassigned:Math.max(0,pool-FF.rInt(sum))};
 }
 // 회복 가능성. "가능"은 오늘 보장으로 두면 쿼터를 채울 수 있다는 뜻이다. 확정이 아니라 오늘 조건 판정이다.
 FF.issueFeasible=function(i){
@@ -2393,7 +2397,7 @@ FV.FlowDiagram=function(props){
   <div style=${{border:"1px solid var(--border)",borderRadius:"var(--radius)",overflow:"hidden"}}>
    <${FV.FlowStage} hot=${!!(d&&d.b==="supply")} loss=${lossText}>
     <${FV.FlowMetric} name="농가" value=${d?FF.fInt(prod)+"t":"—"} hot=${!!(d&&d.b==="supply")} sub=${"매입 "+mo(FF.C.farm)+"원/t"} />
-    ${d?FV._html`<${FV.SplitBar} a=${acc} b=${prod-acc} labelA=${"입고 "+FF.fInt(acc)} labelB=${"미입고 "+FF.fInt(prod-acc)} />`:null}
+    ${d?FV._html`<${FV.SplitBar} a=${acc} b=${d.wI} labelA=${"입고 "+FF.fInt(acc)} labelB=${"미입고 "+FF.fInt(d.wI)} />`:null}
    <//>
    <${FV.FlowConnector} visible=${!!d} value=${acc} max=${flowMax} />
 
@@ -3055,7 +3059,7 @@ FV.DailyLog=function(props){
    ${rows.map(function(r){return FV._html`
     <div style=${Object.assign({},grid,{padding:"3px 0",borderBottom:"0.5px solid var(--border)",color:"var(--text-primary)"})}>
      ${cell(String(r.day),false)}${cell(FF.fInt(r.prod),true)}${cell(FF.fInt(r.dem),true)}${cell(FF.fInt(r.sold),true)}
-     ${cell(FF.fInt(r.wI+r.wS),true)}${cell(FF.fInt(r.wT),true)}${cell(FF.fInt(r.missed),true)}
+     ${cell(FF.fInt((FF.lostInflow(r)||{total:0}).total),true)}${cell(FF.fInt(r.wT),true)}${cell(FF.fInt(r.missed),true)}
      ${cell(mo(r.profit),true,r.profit>=0?"var(--text-success)":"var(--text-danger)")}
     </div>`;})}
   <//>`;
@@ -3213,8 +3217,8 @@ FV.ChannelBar=function(){
  // 판매 가능(공급 쪽 상한)과 예상 판매(배정의 합, Σ 판로 배정)를 나란히 둔다.
  // 플레이어가 판로 세 줄을 직접 더하지 않아도 오늘 몇 t을 팔 계획인지 바로 보이게 하기 위해서다.
  // 둘이 다르면(미배정>0) 수요가 판매 가능보다 적어서 판매 가능을 다 못 채운다는 뜻이다.
- var sellable=P.inv+P.exp, capSales=FF.capsOf().sales, old=FF.oldStock();
- var unassigned=P.pool-P.sum;
+ // sellable/unassigned는 stancePlan이 이미 낸 값이다. 화면은 더하고 빼지 않고 그대로 읽는다.
+ var capSales=FF.capsOf().sales, old=FF.oldStock();
  return FV._h("div",{id:"kchan",class:"chan"},[
   FV._h("div",{class:"chan-head"},[
    FV._h("div",{class:"chan-head-col"},[
@@ -3224,14 +3228,14 @@ FV.ChannelBar=function(){
     ]),
     FV._h("div",{class:"chan-head-note"},
      "재고 "+FF.fInt(P.inv)+"t · 오늘 입고 예상 "+FF.fInt(P.exp)+"t"+
-     (sellable>capSales?(" · 판매 한도 "+capSales+"t"):""))
+     (P.sellable>capSales?(" · 판매 한도 "+capSales+"t"):""))
    ]),
    FV._h("div",{class:"chan-head-col"},[
     FV._h("div",{class:"chan-head-main"},[
      FV._h("span",{class:"chan-head-label"},"예상 판매"),
      FV._h("span",{class:"chan-head-value"},FF.fInt(P.sum)+"t")
     ]),
-    unassigned>=1?FV._h("div",{class:"chan-head-note"},"미배정 "+FF.fInt(unassigned)+"t"):null
+    P.unassigned>=1?FV._h("div",{class:"chan-head-note"},"미배정 "+FF.fInt(P.unassigned)+"t"):null
    ]),
    old>=1?FV._h("div",{class:"chan-head-old"},"오래된 재고 "+FF.fInt(old)+"t"):null
   ]),
@@ -3442,7 +3446,7 @@ FV.DockView=function(){
  FF.observe();
  var started=FF.started(), over=FF.isOver();
  var goText=over?"30일 종료 · 결과 확인":(started?"하루 넘기기":"첫날 운영");
- var arm=FF.SIG.fin.value, leftD=FF.C.days-FF.dayOf()+1;
+ var arm=FF.SIG.fin.value, leftD=FF.daysLeft();
  var finish=function(){
   if(!FF.SIG.fin.value){
    FF.SIG.fin.value=true;

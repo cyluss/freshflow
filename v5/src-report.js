@@ -407,7 +407,7 @@ FV.DailyLog=function(props){
    ${rows.map(function(r){return FV._html`
     <div style=${Object.assign({},grid,{padding:"3px 0",borderBottom:"0.5px solid var(--border)",color:"var(--text-primary)"})}>
      ${cell(String(r.day),false)}${cell(FF.fInt(r.prod),true)}${cell(FF.fInt(r.dem),true)}${cell(FF.fInt(r.sold),true)}
-     ${cell(FF.fInt(r.wI+r.wS),true)}${cell(FF.fInt(r.wT),true)}${cell(FF.fInt(r.missed),true)}
+     ${cell(FF.fInt((FF.lostInflow(r)||{total:0}).total),true)}${cell(FF.fInt(r.wT),true)}${cell(FF.fInt(r.missed),true)}
      ${cell(mo(r.profit),true,r.profit>=0?"var(--text-success)":"var(--text-danger)")}
     </div>`;})}
   <//>`;

@@ -113,7 +113,7 @@ FF.monthOutlook=function(){
  var M=FF.marketOf();
  if(!M)return null;
  var n=FF.C.days, today=FF.run()?Math.min(FF.run().day,n):1;
- var left=n-today+1;
+ var left=FF.daysLeft();
  if(left<3)return null;
  var w=Math.round(left/3), w2=Math.round(left*2/3);
  var spans=[{key:"early",from:today,to:today+w-1},
@@ -426,8 +426,10 @@ FF.stancePlan=function(){
  var sum=0; for(i=0;i<n;i++)sum+=preview[i];
  // 기회비용: 주문은 있는데 다른 판로 우선 때문에 못 받는 양이다.
  var missed=est.map(function(e,idx){return FF.rInt(Math.max(0,e-preview[idx]))});
- return {rows:rows,levels:levels,est:est,preview:preview,missed:missed,inv:FF.rInt(inv),exp:exp,
-  pool:pool,sum:FF.rInt(sum)};
+ var invR=FF.rInt(inv);
+ // 화면이 재고+입고를 다시 더하거나 pool-sum을 다시 빼지 않도록 여기서 낸다.
+ return {rows:rows,levels:levels,est:est,preview:preview,missed:missed,inv:invR,exp:exp,
+  pool:pool,sum:FF.rInt(sum),sellable:invR+exp,unassigned:Math.max(0,pool-FF.rInt(sum))};
 }
 // 회복 가능성. "가능"은 오늘 보장으로 두면 쿼터를 채울 수 있다는 뜻이다. 확정이 아니라 오늘 조건 판정이다.
 FF.issueFeasible=function(i){

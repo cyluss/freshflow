@@ -74,7 +74,7 @@ FV.FlowDiagram=function(props){
   <div style=${{border:"1px solid var(--border)",borderRadius:"var(--radius)",overflow:"hidden"}}>
    <${FV.FlowStage} hot=${!!(d&&d.b==="supply")} loss=${lossText}>
     <${FV.FlowMetric} name="농가" value=${d?FF.fInt(prod)+"t":"—"} hot=${!!(d&&d.b==="supply")} sub=${"매입 "+mo(FF.C.farm)+"원/t"} />
-    ${d?FV._html`<${FV.SplitBar} a=${acc} b=${prod-acc} labelA=${"입고 "+FF.fInt(acc)} labelB=${"미입고 "+FF.fInt(prod-acc)} />`:null}
+    ${d?FV._html`<${FV.SplitBar} a=${acc} b=${d.wI} labelA=${"입고 "+FF.fInt(acc)} labelB=${"미입고 "+FF.fInt(d.wI)} />`:null}
    <//>
    <${FV.FlowConnector} visible=${!!d} value=${acc} max=${flowMax} />
 

@@ -124,8 +124,8 @@ FV.ChannelBar=function(){
  // 판매 가능(공급 쪽 상한)과 예상 판매(배정의 합, Σ 판로 배정)를 나란히 둔다.
  // 플레이어가 판로 세 줄을 직접 더하지 않아도 오늘 몇 t을 팔 계획인지 바로 보이게 하기 위해서다.
  // 둘이 다르면(미배정>0) 수요가 판매 가능보다 적어서 판매 가능을 다 못 채운다는 뜻이다.
- var sellable=P.inv+P.exp, capSales=FF.capsOf().sales, old=FF.oldStock();
- var unassigned=P.pool-P.sum;
+ // sellable/unassigned는 stancePlan이 이미 낸 값이다. 화면은 더하고 빼지 않고 그대로 읽는다.
+ var capSales=FF.capsOf().sales, old=FF.oldStock();
  return FV._h("div",{id:"kchan",class:"chan"},[
   FV._h("div",{class:"chan-head"},[
    FV._h("div",{class:"chan-head-col"},[
@@ -135,14 +135,14 @@ FV.ChannelBar=function(){
     ]),
     FV._h("div",{class:"chan-head-note"},
      "재고 "+FF.fInt(P.inv)+"t · 오늘 입고 예상 "+FF.fInt(P.exp)+"t"+
-     (sellable>capSales?(" · 판매 한도 "+capSales+"t"):""))
+     (P.sellable>capSales?(" · 판매 한도 "+capSales+"t"):""))
    ]),
    FV._h("div",{class:"chan-head-col"},[
     FV._h("div",{class:"chan-head-main"},[
      FV._h("span",{class:"chan-head-label"},"예상 판매"),
      FV._h("span",{class:"chan-head-value"},FF.fInt(P.sum)+"t")
     ]),
-    unassigned>=1?FV._h("div",{class:"chan-head-note"},"미배정 "+FF.fInt(unassigned)+"t"):null
+    P.unassigned>=1?FV._h("div",{class:"chan-head-note"},"미배정 "+FF.fInt(P.unassigned)+"t"):null
    ]),
    old>=1?FV._h("div",{class:"chan-head-old"},"오래된 재고 "+FF.fInt(old)+"t"):null
   ]),
@@ -353,7 +353,7 @@ FV.DockView=function(){
  FF.observe();
  var started=FF.started(), over=FF.isOver();
  var goText=over?"30일 종료 · 결과 확인":(started?"하루 넘기기":"첫날 운영");
- var arm=FF.SIG.fin.value, leftD=FF.C.days-FF.dayOf()+1;
+ var arm=FF.SIG.fin.value, leftD=FF.daysLeft();
  var finish=function(){
   if(!FF.SIG.fin.value){
    FF.SIG.fin.value=true;

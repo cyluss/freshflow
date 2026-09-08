@@ -54,6 +54,9 @@ function open(file, seed) {
   const lost = s0.w.FF.isLossCause(today.b);
   const label = s0.q('kbn').querySelector('span').textContent;
   t('병목 라벨은 손실 여부와 일치', label === today.day + '일차 ' + (lost ? '막힌 곳' : '상태'));
+  const bnTxt = s0.q('kbn').textContent;
+  t('실제 입고 값이 정확히 일치', bnTxt.includes('실제 입고 ' + s0.w.FF.fInt(today.acc) + 't'));
+  t('생산 값이 정확히 일치', bnTxt.includes('생산 ' + s0.w.FF.fInt(today.prod) + 't'));
 }
 
 // 2. 배분 막대는 진행 중 항상 보인다
@@ -343,10 +346,19 @@ function open(file, seed) {
 {
   const s12 = open(FILE, 7);
   s12.q('kbc3').click(); await tick(); // +1.5t 계약
-  let n = 0, sawBoost = false;
+  let n = 0, sawBoost = false, boostTxtChecked = false;
   while (!s12.w.FF.isOver() && n < 60) {
     s12.q('kgo').click(); await tick(); n++;
-    if (s12.q('kcontractboost')) sawBoost = true;
+    const boostEl = s12.q('kcontractboost');
+    if (boostEl) {
+      sawBoost = true;
+      if (!boostTxtChecked) {
+        boostTxtChecked = true;
+        const today = s12.w.FF.today(), boost = s12.w.FF.contractBoostToday();
+        t('계약 발동 문구 값이 정확히 일치',
+          boostEl.textContent === '계약 발동 · 기본 ' + s12.w.FF.fInt(today.capI) + 't + 계약 ' + boost + 't');
+      }
+    }
   }
   t('계약 발동 시 콜아웃이 뜬 적 있다', sawBoost);
   const stats = s12.w.FF.contractStats();
@@ -535,16 +547,20 @@ function open(file, seed) {
   t('머리줄에 재고', /재고 \d+t/.test(bar.querySelector('.chan-head-note').textContent));
   t('머리줄에 입고 예상', /입고 예상 \d+t/.test(bar.querySelector('.chan-head-note').textContent));
   {
-   const P0 = ch.w.FF.stancePlan(), sellable = P0.inv + P0.exp, capSales = ch.w.FF.capsOf().sales;
+   const P0 = ch.w.FF.stancePlan(), capSales = ch.w.FF.capsOf().sales;
    const values = [...bar.querySelectorAll('.chan-head-value')];
    t('판매 가능 값은 배분 예산과 같다', values[0].textContent === P0.pool + 't');
    t('예상 판매 값은 배정 합과 같다', values[1].textContent === P0.sum + 't');
    const noteTxt = bar.querySelector('.chan-head-note').textContent;
-   t('판매 한도는 실제로 걸릴 때만', /판매 한도 \d+t/.test(noteTxt) === (sellable > capSales));
+   t('재고 값이 정확히 일치', noteTxt.includes('재고 ' + P0.inv + 't'));
+   t('입고 예상 값이 정확히 일치', noteTxt.includes('오늘 입고 예상 ' + P0.exp + 't'));
+   t('판매 한도는 실제로 걸릴 때만', /판매 한도 \d+t/.test(noteTxt) === (P0.sellable > capSales));
    const unassignedTxt = [...bar.querySelectorAll('.chan-head-note')].map(x => x.textContent).join(' ');
-   t('미배정은 있을 때만', /미배정 \d+t/.test(unassignedTxt) === (P0.pool - P0.sum >= 1));
+   t('미배정은 있을 때만', /미배정 \d+t/.test(unassignedTxt) === (P0.unassigned >= 1));
+   if (P0.unassigned >= 1) t('미배정 값이 정확히 일치', unassignedTxt.includes('미배정 ' + P0.unassigned + 't'));
    const old = ch.w.FF.oldStock(), oldEl = bar.querySelector('.chan-head-old');
    t('오래된 재고는 있을 때만', !!oldEl === (old >= 1));
+   if (oldEl) t('오래된 재고 값이 정확히 일치', oldEl.textContent === '오래된 재고 ' + old + 't');
   }
 
   const plan0 = ch.w.FF.stancePlan();

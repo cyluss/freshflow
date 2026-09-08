@@ -16,6 +16,8 @@ FF.issueOf=function(){FF.VERSION.value;return FF.ISSUE.value||FF.C.channels.map(
 FF.signalOf=function(){FF.VERSION.value;return FF.SIGNAL.value||[]}
 FF.coverOf=function(){FF.VERSION.value;return FF.COVER.value===null?FF.C.cover:FF.COVER.value}
 FF.dayOf=function(){FF.VERSION.value;return FF.RUN.value?FF.run().day:1}
+// 오늘부터 종료일까지 남은 일수(오늘 포함). 화면 여러 곳이 이 하나만 읽는다.
+FF.daysLeft=function(){var today=FF.RUN.value?Math.min(FF.run().day,FF.C.days):1; return FF.C.days-today+1}
 FF.started=function(){FF.VERSION.value;return !!(FF.RUN.value&&FF.histOf().length)}
 FF.today=function(){FF.VERSION.value;return (FF.RUN.value&&FF.histOf().length)?FF.histOf()[FF.histOf().length-1]:null}
 FF.histLen=function(){FF.VERSION.value;return FF.RUN.value?FF.histOf().length:0}
