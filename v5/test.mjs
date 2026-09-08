@@ -1,7 +1,7 @@
 import fs from 'fs';
 // 도메인은 헤드리스다. 진짜 소스를 그대로 싣고 화면 계층만 뺀다.
 const stub = 'var FF={},FV={};';
-const DOMAIN = ['src-core.js','src-store.js','src-access.js','src-uistate.js','src-kernel.js','src-runner.js','src-record.js','src-engine.js','src-counter.js','src-report-data.js','src-fact.js'];
+const DOMAIN = ['src-core.js','src-store.js','src-access.js','src-uistate.js','src-kernel.js','src-runner.js','src-record.js','src-engine.js','src-counter.js','src-fact.js','src-report-data.js'];
 const src = stub
  + DOMAIN.map(f => fs.readFileSync(f,'utf8')).join('\n')
  + '\nreturn FF;';
@@ -1131,6 +1131,32 @@ t('전망 3일', md.FC===FF.C.ui.fcDays);
   t('전역 투영의 판매가능이 stancePlan과 같다', G['curr.plan.inventory.sellable'] === P.sellable);
   t('전역 투영의 미배정이 stancePlan과 같다', G['curr.plan.inventory.unassigned'] === P.unassigned);
   t('전역 투영의 pool이 stancePlan과 같다', G['curr.plan.inventory.pool'] === P.pool);
+}
+
+// channelTotals/dayChannelResult: report-data가 이제 historyFacts를 거쳐 낸다.
+// 값 자체는 예전과 같아야 하므로 histOf()를 직접 더한 값과 맞대본다(회귀 없음 확인).
+{
+  FF.reset(30699);
+  FF.stepDay(FF.Cmd.stance([2, 1, 1]));
+  FF.stepDay(FF.Cmd.stance([1, 3, 0]));
+  FF.stepDay(FF.Cmd.stance([1, 3, 0]));
+  const h = FF.histOf();
+
+  const wantSold = FF.C.channels.map(() => 0), wantRev = FF.C.channels.map(() => 0);
+  h.forEach(row => FF.C.channels.forEach((c, i) => {
+    wantSold[i] += row.toCh ? row.toCh[i] : 0;
+    wantRev[i] += row.revCh ? row.revCh[i] : 0;
+  }));
+  const totals = FF.channelTotals();
+  t('channelTotals 판매 합', totals.every((r, i) => r.sold === Math.round(wantSold[i])), totals);
+  t('channelTotals 매출 합', totals.every((r, i) => r.revenue === Math.round(wantRev[i])), totals);
+
+  const last = h[h.length - 1], prev = h[h.length - 2];
+  const dr = FF.dayChannelResult();
+  t('dayChannelResult 판매/매출', dr.every((r, i) =>
+    r.sold === Math.round(last.toCh[i]) && r.revenue === Math.round(last.revCh[i])));
+  t('dayChannelResult 관계 전후', dr.every((r, i) =>
+    r.relFrom === prev.rel[i] && r.relTo === last.rel[i] && r.changed === (last.rel[i] !== prev.rel[i])));
 }
 
 console.log(pass+' passed, '+fail+' failed');

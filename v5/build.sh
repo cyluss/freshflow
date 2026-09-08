@@ -9,7 +9,7 @@ printf '<script id="lib">\n' >> $out
 cat preact-lib.js >> $out
 printf '\n</script>\n' >> $out
 printf '<script id="src-ns">\nvar FF=window.FF||(window.FF={});\nvar FV=window.FV||(window.FV={});\nFF._injected=window.preactSignals.signal;\nFF._injectedComputed=window.preactSignals.computed;\n</script>\n' >> $out
-for part in core store access uistate kernel runner record engine counter report-data fact debug render text ui-flow ui-matrix ui-chart ui-outlook report clip view boot; do
+for part in core store access uistate kernel runner record engine counter fact report-data debug render text ui-flow ui-matrix ui-chart ui-outlook report clip view boot; do
   printf '<script id="src-%s">\n(function(FF,FV){\n' "$part" >> $out
   cat src-$part.js >> $out
   printf '})(window.FF,window.FV);\n</script>\n' >> $out

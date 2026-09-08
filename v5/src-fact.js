@@ -1,12 +1,14 @@
 
-// 사실(Fact) 투영 계층. 실행 모델(GameState/World/Policy/allocatePool/stepState/History)은
+// 사실(Fact) 투영 계층의 기반. 실행 모델(GameState/World/Policy/allocatePool/stepState/History)은
 // 그대로 둔다. 여기서는 그 상태를 한 번 평평한 사실 목록으로 투영할 뿐이고, source of truth는
 // 여전히 기존 커널 상태다. 소비자(화면/복기/반사실)는 이 사실 목록에서 자신에게 맞는 모양으로
 // 다시 투영해서 쓴다. 계산 중복이 실제로 나타나는 지점만 나중에 공유 함수로 승격한다.
+// 오늘(curr) 시점 투영은 stancePlan 등을 쓰므로 report-data.js에 있다. 여기는 그보다 앞 계층이라
+// FF.histOf()/FF.C 만으로 낼 수 있는 것(뼈대, 복기용 지난 기록)만 둔다.
 
 // 서로 독립인 다섯 축. 사실 하나는 이 축의 조합 하나를 가리킨다.
-// time: 언제 시점의 값인가. phase: 확정인가 계획/전망인가. domain: 무엇에 대한 값인가.
-// channel: 판로별 값이면 그 판로, 아니면 null. metric: domain 안에서 값의 이름.
+// time: 언제 시점의 값인가(오늘 화면은 "prev"/"curr", 복기는 실제 일차). phase: 확정인가 계획/전망인가.
+// domain: 무엇에 대한 값인가. channel: 판로별 값이면 그 판로, 아니면 null. metric: domain 안에서 값의 이름.
 FF.factAxes={
  time:["prev","curr"],
  phase:["result","state","plan","forecast"],
@@ -17,87 +19,45 @@ FF.fact=function(time,phase,domain,channel,metric,value){
  return {time:time,phase:phase,domain:domain,channel:channel,metric:metric,value:value};
 }
 
-// 오늘(curr) 확정 상태. 정책을 정하기 전에도 이미 정해져 있는 값들이다.
-FF._factsCurrState=function(out){
- var caps=FF.capsOf();
- if(caps){
-  out.push(FF.fact("curr","state","capacity",null,"intake",caps.intake));
-  out.push(FF.fact("curr","state","capacity",null,"storage",caps.storage));
-  out.push(FF.fact("curr","state","capacity",null,"sales",caps.sales));
- }
- out.push(FF.fact("curr","state","inventory",null,"stock",FF.rInt(FF.inventory())));
- out.push(FF.fact("curr","state","finance",null,"cash",FF.ledger().cash));
- out.push(FF.fact("curr","state","contract",null,"active",FF.contractOf()));
- out.push(FF.fact("curr","state","contract",null,"pending",FF.pendContractOf()));
- FF.channelRows().forEach(function(r){
-  out.push(FF.fact("curr","state","relation",r.key,"level",r.rel));
-  out.push(FF.fact("curr","state","allocation",r.key,"quota",r.quota));
-  out.push(FF.fact("curr","state","allocation",r.key,"cap",r.cap));
-  out.push(FF.fact("curr","state","allocation",r.key,"floor",r.floor));
-  out.push(FF.fact("curr","state","finance",r.key,"price",r.price));
- });
-}
-
-// 오늘(curr) 계획/전망. 하루를 넘기기 전 미리보기다. 실제 값과 다를 수 있다.
-FF._factsCurrPlan=function(out){
- var P=FF.stancePlan();
- out.push(FF.fact("curr","plan","inventory",null,"pool",P.pool));
- out.push(FF.fact("curr","plan","inventory",null,"assigned",P.sum));
- out.push(FF.fact("curr","plan","inventory",null,"sellable",P.sellable));
- out.push(FF.fact("curr","plan","inventory",null,"unassigned",P.unassigned));
- out.push(FF.fact("curr","forecast","supply",null,"intake",P.exp));
- P.rows.forEach(function(r,i){
-  out.push(FF.fact("curr","plan","allocation",r.key,"stance",P.levels[i]));
-  out.push(FF.fact("curr","plan","allocation",r.key,"assigned",P.preview[i]));
-  out.push(FF.fact("curr","forecast","demand",r.key,"order",P.est[i]));
-  out.push(FF.fact("curr","plan","allocation",r.key,"missed",P.missed[i]));
- });
-}
-
-// 어제(prev) 결과. 하루를 넘긴 뒤에만 있다. 아직 없으면 아무 사실도 안 낸다.
-FF._factsPrevResult=function(out){
- var d=FF.today();
- if(!d)return;
- out.push(FF.fact("prev","result","bottleneck",null,"cause",d.b));
- var li=FF.lostInflow(d);
- out.push(FF.fact("prev","result","inventory",null,"lostInflow",li?li.total:0));
- var boost=FF.contractBoostToday();
- if(boost>0)out.push(FF.fact("prev","result","contract",null,"boost",boost));
- FF.C.channels.forEach(function(c,i){
-  out.push(FF.fact("prev","result","allocation",c.key,"sold",FF.rInt(d.toCh?d.toCh[i]:0)));
-  out.push(FF.fact("prev","result","finance",c.key,"revenue",Math.round(d.revCh?d.revCh[i]:0)));
-  out.push(FF.fact("prev","result","relation",c.key,"level",d.rel?d.rel[i]:FF.C.rel.start));
- });
-}
-
-// 지금 낼 수 있는 사실을 전부 모은다. 배열 순서는 뜻이 없다. 소비자가 원하는 축으로 다시 묶는다.
-FF.facts=function(){
- FF.observe();
- var out=[];
- FF._factsCurrState(out);
- FF._factsCurrPlan(out);
- FF._factsPrevResult(out);
- return out;
-}
-
 // time.phase.domain.metric 을 하나의 키로 접는다. 같은 domain.metric도 시점이 다르면
 // 다른 사실이다("relation.level"은 curr.state와 prev.result에 둘 다 있다). 시점까지 넣어야 안 섞인다.
 FF._factKey=function(f){return f.time+"."+f.phase+"."+f.domain+"."+f.metric}
 
-// 판로 중심 투영. 화면(판로 카드)이 쓰기 좋은 모양이다. 사실을 판로별로 다시 묶는다.
-FF.factsByChannel=function(){
- var facts=FF.facts(), by={};
- FF.C.channels.forEach(function(c){by[c.key]={key:c.key}});
- facts.forEach(function(f){
-  if(!f.channel||!by[f.channel])return;
-  by[f.channel][FF._factKey(f)]=f.value;
- });
- return FF.C.channels.map(function(c){return by[c.key]});
+// 지난 하루하루의 결과. 여기서는 time이 "prev"/"curr"가 아니라 실제 일차(정수)다.
+// 복기(review)는 이 사실들을 day 축으로 묶어 쓴다. 커널이 이미 기록해 둔 값만 옮긴다.
+// sold/revenue는 반올림하지 않은 원값이다. 하루치를 보여줄지 여러 날을 더해서 보여줄지는
+// 소비자가 정한다(먼저 반올림해서 쌓으면 날짜가 늘수록 오차가 쌓인다).
+FF.historyFacts=function(){
+ FF.observe();
+ var h=FF.histOf(), out=[], prevRel=FF.C.channels.map(function(){return FF.C.rel.start});
+ for(var d=0;d<h.length;d++){
+  var row=h[d], day=row.day, relBefore=prevRel;
+  out.push(FF.fact(day,"result","bottleneck",null,"cause",row.b));
+  FF.C.channels.forEach(function(c,i){
+   var relTo=row.rel?row.rel[i]:FF.C.rel.start, relFrom=relBefore[i];
+   out.push(FF.fact(day,"result","allocation",c.key,"sold",row.toCh?row.toCh[i]:0));
+   out.push(FF.fact(day,"result","finance",c.key,"revenue",row.revCh?row.revCh[i]:0));
+   out.push(FF.fact(day,"result","relation",c.key,"level",relTo));
+   out.push(FF.fact(day,"result","relation",c.key,"levelBefore",relFrom));
+   out.push(FF.fact(day,"result","relation",c.key,"changed",relTo!==relFrom));
+   out.push(FF.fact(day,"plan","allocation",c.key,"stance",row.stance?row.stance[i]:FF.C.stance.start));
+  });
+  prevRel=row.rel||prevRel;
+ }
+ return out;
 }
 
-// 판로에 묶이지 않은 사실만 키로 묶는다. 화면 상단(판매 가능/미배정 등)이 쓴다.
-FF.factsGlobal=function(){
- var facts=FF.facts(), out={};
- facts.forEach(function(f){if(!f.channel)out[FF._factKey(f)]=f.value});
- return out;
+// 일자 중심 투영. 복기가 쓰기 좋은 모양이다. 사실을 하루씩 다시 묶는다.
+// 한 날짜 안에서는 domain.metric만으로 안 섞인다(그 날의 time은 이미 하나로 고정돼 있다).
+FF.factsByDay=function(){
+ var facts=FF.historyFacts(), byDay={}, days=[];
+ facts.forEach(function(f){
+  if(!byDay[f.time]){byDay[f.time]={day:f.time,cause:null,channels:{}}; days.push(f.time);}
+  var row=byDay[f.time];
+  if(!f.channel){ if(f.domain==="bottleneck"&&f.metric==="cause")row.cause=f.value; return; }
+  if(!row.channels[f.channel])row.channels[f.channel]={key:f.channel};
+  row.channels[f.channel][f.domain+"."+f.metric]=f.value;
+ });
+ days.sort(function(a,b){return a-b});
+ return days.map(function(d){return byDay[d]});
 }

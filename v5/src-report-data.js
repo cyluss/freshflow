@@ -431,6 +431,88 @@ FF.stancePlan=function(){
  return {rows:rows,levels:levels,est:est,preview:preview,missed:missed,inv:invR,exp:exp,
   pool:pool,sum:FF.rInt(sum),sellable:invR+exp,unassigned:Math.max(0,pool-FF.rInt(sum))};
 }
+
+// 오늘(curr) 확정 상태. 정책을 정하기 전에도 이미 정해져 있는 값들이다.
+FF._factsCurrState=function(out){
+ var caps=FF.capsOf();
+ if(caps){
+  out.push(FF.fact("curr","state","capacity",null,"intake",caps.intake));
+  out.push(FF.fact("curr","state","capacity",null,"storage",caps.storage));
+  out.push(FF.fact("curr","state","capacity",null,"sales",caps.sales));
+ }
+ out.push(FF.fact("curr","state","inventory",null,"stock",FF.rInt(FF.inventory())));
+ out.push(FF.fact("curr","state","finance",null,"cash",FF.ledger().cash));
+ out.push(FF.fact("curr","state","contract",null,"active",FF.contractOf()));
+ out.push(FF.fact("curr","state","contract",null,"pending",FF.pendContractOf()));
+ FF.channelRows().forEach(function(r){
+  out.push(FF.fact("curr","state","relation",r.key,"level",r.rel));
+  out.push(FF.fact("curr","state","allocation",r.key,"quota",r.quota));
+  out.push(FF.fact("curr","state","allocation",r.key,"cap",r.cap));
+  out.push(FF.fact("curr","state","allocation",r.key,"floor",r.floor));
+  out.push(FF.fact("curr","state","finance",r.key,"price",r.price));
+ });
+}
+
+// 오늘(curr) 계획/전망. 하루를 넘기기 전 미리보기다. 실제 값과 다를 수 있다.
+FF._factsCurrPlan=function(out){
+ var P=FF.stancePlan();
+ out.push(FF.fact("curr","plan","inventory",null,"pool",P.pool));
+ out.push(FF.fact("curr","plan","inventory",null,"assigned",P.sum));
+ out.push(FF.fact("curr","plan","inventory",null,"sellable",P.sellable));
+ out.push(FF.fact("curr","plan","inventory",null,"unassigned",P.unassigned));
+ out.push(FF.fact("curr","forecast","supply",null,"intake",P.exp));
+ P.rows.forEach(function(r,i){
+  out.push(FF.fact("curr","plan","allocation",r.key,"stance",P.levels[i]));
+  out.push(FF.fact("curr","plan","allocation",r.key,"assigned",P.preview[i]));
+  out.push(FF.fact("curr","forecast","demand",r.key,"order",P.est[i]));
+  out.push(FF.fact("curr","plan","allocation",r.key,"missed",P.missed[i]));
+ });
+}
+
+// 어제(prev) 결과. 하루를 넘긴 뒤에만 있다. 아직 없으면 아무 사실도 안 낸다.
+FF._factsPrevResult=function(out){
+ var d=FF.today();
+ if(!d)return;
+ out.push(FF.fact("prev","result","bottleneck",null,"cause",d.b));
+ var li=FF.lostInflow(d);
+ out.push(FF.fact("prev","result","inventory",null,"lostInflow",li?li.total:0));
+ var boost=FF.contractBoostToday();
+ if(boost>0)out.push(FF.fact("prev","result","contract",null,"boost",boost));
+ FF.C.channels.forEach(function(c,i){
+  out.push(FF.fact("prev","result","allocation",c.key,"sold",FF.rInt(d.toCh?d.toCh[i]:0)));
+  out.push(FF.fact("prev","result","finance",c.key,"revenue",Math.round(d.revCh?d.revCh[i]:0)));
+  out.push(FF.fact("prev","result","relation",c.key,"level",d.rel?d.rel[i]:FF.C.rel.start));
+ });
+}
+
+// 지금 낼 수 있는 사실을 전부 모은다. 배열 순서는 뜻이 없다. 소비자가 원하는 축으로 다시 묶는다.
+FF.facts=function(){
+ FF.observe();
+ var out=[];
+ FF._factsCurrState(out);
+ FF._factsCurrPlan(out);
+ FF._factsPrevResult(out);
+ return out;
+}
+
+// 판로 중심 투영. 화면(판로 카드)이 쓰기 좋은 모양이다. 사실을 판로별로 다시 묶는다.
+FF.factsByChannel=function(){
+ var facts=FF.facts(), by={};
+ FF.C.channels.forEach(function(c){by[c.key]={key:c.key}});
+ facts.forEach(function(f){
+  if(!f.channel||!by[f.channel])return;
+  by[f.channel][FF._factKey(f)]=f.value;
+ });
+ return FF.C.channels.map(function(c){return by[c.key]});
+}
+
+// 판로에 묶이지 않은 사실만 키로 묶는다. 화면 상단(판매 가능/미배정 등)이 쓴다.
+FF.factsGlobal=function(){
+ var facts=FF.facts(), out={};
+ facts.forEach(function(f){if(!f.channel)out[FF._factKey(f)]=f.value});
+ return out;
+}
+
 // 회복 가능성. "가능"은 오늘 보장으로 두면 쿼터를 채울 수 있다는 뜻이다. 확정이 아니라 오늘 조건 판정이다.
 FF.issueFeasible=function(i){
  var left=FF.C.days-FF.dayOf();
@@ -466,15 +548,13 @@ FF.contractStats=function(){
 // 당일 결과. 판로별 판매량과 매출과 관계 변화를 하루 실행 직후 보여준다.
 FF.dayChannelResult=function(){
  FF.observe();
- var h=FF.histOf();
- if(!h.length)return null;
- var today=h[h.length-1], prev=h.length>1?h[h.length-2]:null;
- var relBefore=prev?prev.rel:FF.C.channels.map(function(){return FF.C.rel.start});
- return FF.C.channels.map(function(c,i){
-  var sold=today.toCh?today.toCh[i]:0, rev=today.revCh?today.revCh[i]:0;
-  var relTo=today.rel?today.rel[i]:FF.C.rel.start, relFrom=relBefore[i];
-  return {key:c.key,sold:FF.rInt(sold),revenue:Math.round(rev),
-   relFrom:relFrom,relTo:relTo,changed:relTo!==relFrom};
+ var days=FF.factsByDay();
+ if(!days.length)return null;
+ var today=days[days.length-1];
+ return FF.C.channels.map(function(c){
+  var row=today.channels[c.key]||{};
+  return {key:c.key,sold:FF.rInt(row["allocation.sold"]||0),revenue:Math.round(row["finance.revenue"]||0),
+   relFrom:row["relation.levelBefore"],relTo:row["relation.level"],changed:!!row["relation.changed"]};
  });
 }
 // 사건 이력. 지금까지 발생한 관계 신호를 그대로 돌려준다. 화면 문구는 여기 없다.
@@ -491,13 +571,14 @@ FF.relPortfolio=function(){
 // 판로별 누적 판매와 매출. 하루치가 아니라 이번 판 전체 합이다.
 FF.channelTotals=function(){
  FF.observe();
- var h=FF.histOf(), n=FF.C.channels.length, sold=[], rev=[];
- for(var i=0;i<n;i++){sold.push(0);rev.push(0)}
- for(var d=0;d<h.length;d++)for(i=0;i<n;i++){
-  sold[i]+=h[d].toCh?h[d].toCh[i]:0;
-  rev[i]+=h[d].revCh?h[d].revCh[i]:0;
- }
- return FF.C.channels.map(function(c,i){return {key:c.key,sold:FF.rInt(sold[i]),revenue:Math.round(rev[i])}});
+ var facts=FF.historyFacts(), sold={}, rev={};
+ FF.C.channels.forEach(function(c){sold[c.key]=0;rev[c.key]=0});
+ facts.forEach(function(f){
+  if(!f.channel||sold[f.channel]===undefined)return;
+  if(f.domain==="allocation"&&f.metric==="sold")sold[f.channel]+=f.value;
+  if(f.domain==="finance"&&f.metric==="revenue")rev[f.channel]+=f.value;
+ });
+ return FF.C.channels.map(function(c){return {key:c.key,sold:FF.rInt(sold[c.key]),revenue:Math.round(rev[c.key])}});
 }
 // 관계 전환점. 언제 무엇이 바뀌었고 그날 어떤 태도를 두고 있었는지 남긴다.
 FF.relTimeline=function(){
@@ -513,16 +594,16 @@ FF.relTimeline=function(){
 // 주요 결정 복기. 판로 태도가 바뀐 날마다 전후와 그날 관계를 남긴다.
 FF.policyChanges=function(){
  FF.observe();
- var h=FF.histOf(), out=[], prev=null;
- for(var d=0;d<h.length;d++){
-  var st=h[d].stance||[];
-  if(prev){
-   for(var i=0;i<FF.C.channels.length;i++){
-    if(st[i]!==prev[i])out.push({day:h[d].day,i:i,from:prev[i],to:st[i],relAfter:h[d].rel[i]});
-   }
+ var days=FF.factsByDay(), out=[], prevSt=null;
+ days.forEach(function(row){
+  var st=FF.C.channels.map(function(c){return row.channels[c.key]["allocation.stance"]});
+  if(prevSt){
+   FF.C.channels.forEach(function(c,i){
+    if(st[i]!==prevSt[i])out.push({day:row.day,i:i,from:prevSt[i],to:st[i],relAfter:row.channels[c.key]["relation.level"]});
+   });
   }
-  prev=st;
- }
+  prevSt=st;
+ });
  return out;
 }
 FF.issuePlan=function(){

@@ -1577,6 +1577,73 @@ FF._modContribRef=function(){
 
 })(window.FF,window.FV);
 </script>
+<script id="src-fact">
+(function(FF,FV){
+
+// 사실(Fact) 투영 계층의 기반. 실행 모델(GameState/World/Policy/allocatePool/stepState/History)은
+// 그대로 둔다. 여기서는 그 상태를 한 번 평평한 사실 목록으로 투영할 뿐이고, source of truth는
+// 여전히 기존 커널 상태다. 소비자(화면/복기/반사실)는 이 사실 목록에서 자신에게 맞는 모양으로
+// 다시 투영해서 쓴다. 계산 중복이 실제로 나타나는 지점만 나중에 공유 함수로 승격한다.
+// 오늘(curr) 시점 투영은 stancePlan 등을 쓰므로 report-data.js에 있다. 여기는 그보다 앞 계층이라
+// FF.histOf()/FF.C 만으로 낼 수 있는 것(뼈대, 복기용 지난 기록)만 둔다.
+
+// 서로 독립인 다섯 축. 사실 하나는 이 축의 조합 하나를 가리킨다.
+// time: 언제 시점의 값인가(오늘 화면은 "prev"/"curr", 복기는 실제 일차). phase: 확정인가 계획/전망인가.
+// domain: 무엇에 대한 값인가. channel: 판로별 값이면 그 판로, 아니면 null. metric: domain 안에서 값의 이름.
+FF.factAxes={
+ time:["prev","curr"],
+ phase:["result","state","plan","forecast"],
+ domain:["inventory","capacity","supply","demand","allocation","relation","bottleneck","contract","finance"]
+};
+
+FF.fact=function(time,phase,domain,channel,metric,value){
+ return {time:time,phase:phase,domain:domain,channel:channel,metric:metric,value:value};
+}
+
+// time.phase.domain.metric 을 하나의 키로 접는다. 같은 domain.metric도 시점이 다르면
+// 다른 사실이다("relation.level"은 curr.state와 prev.result에 둘 다 있다). 시점까지 넣어야 안 섞인다.
+FF._factKey=function(f){return f.time+"."+f.phase+"."+f.domain+"."+f.metric}
+
+// 지난 하루하루의 결과. 여기서는 time이 "prev"/"curr"가 아니라 실제 일차(정수)다.
+// 복기(review)는 이 사실들을 day 축으로 묶어 쓴다. 커널이 이미 기록해 둔 값만 옮긴다.
+// sold/revenue는 반올림하지 않은 원값이다. 하루치를 보여줄지 여러 날을 더해서 보여줄지는
+// 소비자가 정한다(먼저 반올림해서 쌓으면 날짜가 늘수록 오차가 쌓인다).
+FF.historyFacts=function(){
+ FF.observe();
+ var h=FF.histOf(), out=[], prevRel=FF.C.channels.map(function(){return FF.C.rel.start});
+ for(var d=0;d<h.length;d++){
+  var row=h[d], day=row.day, relBefore=prevRel;
+  out.push(FF.fact(day,"result","bottleneck",null,"cause",row.b));
+  FF.C.channels.forEach(function(c,i){
+   var relTo=row.rel?row.rel[i]:FF.C.rel.start, relFrom=relBefore[i];
+   out.push(FF.fact(day,"result","allocation",c.key,"sold",row.toCh?row.toCh[i]:0));
+   out.push(FF.fact(day,"result","finance",c.key,"revenue",row.revCh?row.revCh[i]:0));
+   out.push(FF.fact(day,"result","relation",c.key,"level",relTo));
+   out.push(FF.fact(day,"result","relation",c.key,"levelBefore",relFrom));
+   out.push(FF.fact(day,"result","relation",c.key,"changed",relTo!==relFrom));
+   out.push(FF.fact(day,"plan","allocation",c.key,"stance",row.stance?row.stance[i]:FF.C.stance.start));
+  });
+  prevRel=row.rel||prevRel;
+ }
+ return out;
+}
+
+// 일자 중심 투영. 복기가 쓰기 좋은 모양이다. 사실을 하루씩 다시 묶는다.
+// 한 날짜 안에서는 domain.metric만으로 안 섞인다(그 날의 time은 이미 하나로 고정돼 있다).
+FF.factsByDay=function(){
+ var facts=FF.historyFacts(), byDay={}, days=[];
+ facts.forEach(function(f){
+  if(!byDay[f.time]){byDay[f.time]={day:f.time,cause:null,channels:{}}; days.push(f.time);}
+  var row=byDay[f.time];
+  if(!f.channel){ if(f.domain==="bottleneck"&&f.metric==="cause")row.cause=f.value; return; }
+  if(!row.channels[f.channel])row.channels[f.channel]={key:f.channel};
+  row.channels[f.channel][f.domain+"."+f.metric]=f.value;
+ });
+ days.sort(function(a,b){return a-b});
+ return days.map(function(d){return byDay[d]});
+}
+})(window.FF,window.FV);
+</script>
 <script id="src-report-data">
 (function(FF,FV){
 
@@ -2012,141 +2079,6 @@ FF.stancePlan=function(){
  return {rows:rows,levels:levels,est:est,preview:preview,missed:missed,inv:invR,exp:exp,
   pool:pool,sum:FF.rInt(sum),sellable:invR+exp,unassigned:Math.max(0,pool-FF.rInt(sum))};
 }
-// 회복 가능성. "가능"은 오늘 보장으로 두면 쿼터를 채울 수 있다는 뜻이다. 확정이 아니라 오늘 조건 판정이다.
-FF.issueFeasible=function(i){
- var left=FF.C.days-FF.dayOf();
- if(left<FF.C.rel.up)return "low";
- return FF.estChannelDemand(i)>=FF.C.channels[i].quota-FF.C.ui.zero?"ok":"hard";
-}
-// 오늘 계약으로 기본 입고 한도를 넘겨 추가로 받은 양. 계약이 없거나 안 걸렸으면 0이다.
-// 계약 크기가 0.5t 단위라서 정수로 반올림하면 1.5t이 2t으로 보인다. 소수 첫째 자리까지 남긴다.
-FF.contractBoostToday=function(){
- var d=FF.today();
- if(!d||d.capI===undefined)return 0;
- return Math.round(Math.max(0,d.acc-d.capI)*10)/10;
-}
-// 초과분 계약 누적 효과. 발동일수와 추가 입고는 기록에서 바로 센다.
-// 순이익 기여는 계약 없이 다시 돌린 결과와의 차이(반사실)를 modRows에서 그대로 가져온다.
-FF.contractStats=function(){
- FF.observe();
- var mods=FF.logOf().mods, m=null, i;
- for(i=0;i<mods.length;i++)if(mods[i].kind==="contract")m=mods[i];
- if(!m)return null;
- var h=FF.histOf(), hitDays=0, extra=0;
- for(i=0;i<h.length;i++){
-  if(h[i].day<=m.day||h[i].capI===undefined)continue;
-  var over=Math.max(0,h[i].acc-h[i].capI);
-  if(over>=FF.C.ui.zero){hitDays++; extra+=over;}
- }
- var rows=FF.modRows(), contrib=0;
- for(i=0;i<rows.length;i++)if(rows[i].kind==="contract")contrib=rows[i].contrib;
- var opt=FF.contractOption(m.size||0);
- return {size:m.size||0,cost:opt?opt.price:0,hitDays:hitDays,extra:FF.rInt(extra),contrib:contrib};
-}
-// 화면이 그릴 신호와 이슈. 도메인 규칙은 여기 없다. 코드값만 옮긴다.
-// 당일 결과. 판로별 판매량과 매출과 관계 변화를 하루 실행 직후 보여준다.
-FF.dayChannelResult=function(){
- FF.observe();
- var h=FF.histOf();
- if(!h.length)return null;
- var today=h[h.length-1], prev=h.length>1?h[h.length-2]:null;
- var relBefore=prev?prev.rel:FF.C.channels.map(function(){return FF.C.rel.start});
- return FF.C.channels.map(function(c,i){
-  var sold=today.toCh?today.toCh[i]:0, rev=today.revCh?today.revCh[i]:0;
-  var relTo=today.rel?today.rel[i]:FF.C.rel.start, relFrom=relBefore[i];
-  return {key:c.key,sold:FF.rInt(sold),revenue:Math.round(rev),
-   relFrom:relFrom,relTo:relTo,changed:relTo!==relFrom};
- });
-}
-// 사건 이력. 지금까지 발생한 관계 신호를 그대로 돌려준다. 화면 문구는 여기 없다.
-FF.relLogOf=function(){FF.VERSION.value;return FF.RUN.value?FF.logOf().relLog:[]}
-// 관계 포트폴리오 복기. 판로마다 이번 판 전체의 관계 경로를 낸다.
-FF.relPortfolio=function(){
- FF.observe();
- var h=FF.histOf();
- return FF.C.channels.map(function(c,i){
-  var series=h.map(function(row){return row.rel?row.rel[i]:FF.C.rel.start});
-  return {key:c.key,series:series,final:series.length?series[series.length-1]:FF.C.rel.start};
- });
-}
-// 판로별 누적 판매와 매출. 하루치가 아니라 이번 판 전체 합이다.
-FF.channelTotals=function(){
- FF.observe();
- var h=FF.histOf(), n=FF.C.channels.length, sold=[], rev=[];
- for(var i=0;i<n;i++){sold.push(0);rev.push(0)}
- for(var d=0;d<h.length;d++)for(i=0;i<n;i++){
-  sold[i]+=h[d].toCh?h[d].toCh[i]:0;
-  rev[i]+=h[d].revCh?h[d].revCh[i]:0;
- }
- return FF.C.channels.map(function(c,i){return {key:c.key,sold:FF.rInt(sold[i]),revenue:Math.round(rev[i])}});
-}
-// 관계 전환점. 언제 무엇이 바뀌었고 그날 어떤 태도를 두고 있었는지 남긴다.
-FF.relTimeline=function(){
- FF.observe();
- var log=FF.relLogOf(), h=FF.histOf();
- return log.map(function(s){
-  var row=null;
-  for(var d=0;d<h.length;d++)if(h[d].day===s.day){row=h[d];break}
-  var level=(row&&row.stance)?row.stance[s.i]:FF.C.stance.start;
-  return {type:s.type,i:s.i,day:s.day,from:s.from,to:s.to,level:level};
- });
-}
-// 주요 결정 복기. 판로 태도가 바뀐 날마다 전후와 그날 관계를 남긴다.
-FF.policyChanges=function(){
- FF.observe();
- var h=FF.histOf(), out=[], prev=null;
- for(var d=0;d<h.length;d++){
-  var st=h[d].stance||[];
-  if(prev){
-   for(var i=0;i<FF.C.channels.length;i++){
-    if(st[i]!==prev[i])out.push({day:h[d].day,i:i,from:prev[i],to:st[i],relAfter:h[d].rel[i]});
-   }
-  }
-  prev=st;
- }
- return out;
-}
-FF.issuePlan=function(){
- FF.observe();
- var issues=FF.issueOf(), rel=FF.relOf();
- var P=FF.stancePlan();
- var openList=[];
- for(var i=0;i<issues.length;i++){
-  if(!issues[i])continue;
-  openList.push({i:i,since:issues[i].since,resolution:issues[i].resolution,
-   days:FF.dayOf()-issues[i].since,rel:rel[i],feasible:FF.issueFeasible(i),
-   level:P.levels[i],preview:P.preview[i],quota:P.rows[i].quota});
- }
- return {signals:FF.signalOf(),issues:openList};
-}
-// 이슈를 의도적 포기로 표시한다. 게임 규칙은 바뀌지 않는다. 화면 상태만 바뀐다.
-FF.acceptIssue=function(i){
- var issues=FF.issueOf().slice();
- if(issues[i])issues[i]={since:issues[i].since,resolution:"accepted"};
- FF.setIssue(issues); FF.repaint();
-}
-})(window.FF,window.FV);
-</script>
-<script id="src-fact">
-(function(FF,FV){
-
-// 사실(Fact) 투영 계층. 실행 모델(GameState/World/Policy/allocatePool/stepState/History)은
-// 그대로 둔다. 여기서는 그 상태를 한 번 평평한 사실 목록으로 투영할 뿐이고, source of truth는
-// 여전히 기존 커널 상태다. 소비자(화면/복기/반사실)는 이 사실 목록에서 자신에게 맞는 모양으로
-// 다시 투영해서 쓴다. 계산 중복이 실제로 나타나는 지점만 나중에 공유 함수로 승격한다.
-
-// 서로 독립인 다섯 축. 사실 하나는 이 축의 조합 하나를 가리킨다.
-// time: 언제 시점의 값인가. phase: 확정인가 계획/전망인가. domain: 무엇에 대한 값인가.
-// channel: 판로별 값이면 그 판로, 아니면 null. metric: domain 안에서 값의 이름.
-FF.factAxes={
- time:["prev","curr"],
- phase:["result","state","plan","forecast"],
- domain:["inventory","capacity","supply","demand","allocation","relation","bottleneck","contract","finance"]
-};
-
-FF.fact=function(time,phase,domain,channel,metric,value){
- return {time:time,phase:phase,domain:domain,channel:channel,metric:metric,value:value};
-}
 
 // 오늘(curr) 확정 상태. 정책을 정하기 전에도 이미 정해져 있는 값들이다.
 FF._factsCurrState=function(out){
@@ -2211,10 +2143,6 @@ FF.facts=function(){
  return out;
 }
 
-// time.phase.domain.metric 을 하나의 키로 접는다. 같은 domain.metric도 시점이 다르면
-// 다른 사실이다("relation.level"은 curr.state와 prev.result에 둘 다 있다). 시점까지 넣어야 안 섞인다.
-FF._factKey=function(f){return f.time+"."+f.phase+"."+f.domain+"."+f.metric}
-
 // 판로 중심 투영. 화면(판로 카드)이 쓰기 좋은 모양이다. 사실을 판로별로 다시 묶는다.
 FF.factsByChannel=function(){
  var facts=FF.facts(), by={};
@@ -2231,6 +2159,119 @@ FF.factsGlobal=function(){
  var facts=FF.facts(), out={};
  facts.forEach(function(f){if(!f.channel)out[FF._factKey(f)]=f.value});
  return out;
+}
+
+// 회복 가능성. "가능"은 오늘 보장으로 두면 쿼터를 채울 수 있다는 뜻이다. 확정이 아니라 오늘 조건 판정이다.
+FF.issueFeasible=function(i){
+ var left=FF.C.days-FF.dayOf();
+ if(left<FF.C.rel.up)return "low";
+ return FF.estChannelDemand(i)>=FF.C.channels[i].quota-FF.C.ui.zero?"ok":"hard";
+}
+// 오늘 계약으로 기본 입고 한도를 넘겨 추가로 받은 양. 계약이 없거나 안 걸렸으면 0이다.
+// 계약 크기가 0.5t 단위라서 정수로 반올림하면 1.5t이 2t으로 보인다. 소수 첫째 자리까지 남긴다.
+FF.contractBoostToday=function(){
+ var d=FF.today();
+ if(!d||d.capI===undefined)return 0;
+ return Math.round(Math.max(0,d.acc-d.capI)*10)/10;
+}
+// 초과분 계약 누적 효과. 발동일수와 추가 입고는 기록에서 바로 센다.
+// 순이익 기여는 계약 없이 다시 돌린 결과와의 차이(반사실)를 modRows에서 그대로 가져온다.
+FF.contractStats=function(){
+ FF.observe();
+ var mods=FF.logOf().mods, m=null, i;
+ for(i=0;i<mods.length;i++)if(mods[i].kind==="contract")m=mods[i];
+ if(!m)return null;
+ var h=FF.histOf(), hitDays=0, extra=0;
+ for(i=0;i<h.length;i++){
+  if(h[i].day<=m.day||h[i].capI===undefined)continue;
+  var over=Math.max(0,h[i].acc-h[i].capI);
+  if(over>=FF.C.ui.zero){hitDays++; extra+=over;}
+ }
+ var rows=FF.modRows(), contrib=0;
+ for(i=0;i<rows.length;i++)if(rows[i].kind==="contract")contrib=rows[i].contrib;
+ var opt=FF.contractOption(m.size||0);
+ return {size:m.size||0,cost:opt?opt.price:0,hitDays:hitDays,extra:FF.rInt(extra),contrib:contrib};
+}
+// 화면이 그릴 신호와 이슈. 도메인 규칙은 여기 없다. 코드값만 옮긴다.
+// 당일 결과. 판로별 판매량과 매출과 관계 변화를 하루 실행 직후 보여준다.
+FF.dayChannelResult=function(){
+ FF.observe();
+ var days=FF.factsByDay();
+ if(!days.length)return null;
+ var today=days[days.length-1];
+ return FF.C.channels.map(function(c){
+  var row=today.channels[c.key]||{};
+  return {key:c.key,sold:FF.rInt(row["allocation.sold"]||0),revenue:Math.round(row["finance.revenue"]||0),
+   relFrom:row["relation.levelBefore"],relTo:row["relation.level"],changed:!!row["relation.changed"]};
+ });
+}
+// 사건 이력. 지금까지 발생한 관계 신호를 그대로 돌려준다. 화면 문구는 여기 없다.
+FF.relLogOf=function(){FF.VERSION.value;return FF.RUN.value?FF.logOf().relLog:[]}
+// 관계 포트폴리오 복기. 판로마다 이번 판 전체의 관계 경로를 낸다.
+FF.relPortfolio=function(){
+ FF.observe();
+ var h=FF.histOf();
+ return FF.C.channels.map(function(c,i){
+  var series=h.map(function(row){return row.rel?row.rel[i]:FF.C.rel.start});
+  return {key:c.key,series:series,final:series.length?series[series.length-1]:FF.C.rel.start};
+ });
+}
+// 판로별 누적 판매와 매출. 하루치가 아니라 이번 판 전체 합이다.
+FF.channelTotals=function(){
+ FF.observe();
+ var facts=FF.historyFacts(), sold={}, rev={};
+ FF.C.channels.forEach(function(c){sold[c.key]=0;rev[c.key]=0});
+ facts.forEach(function(f){
+  if(!f.channel||sold[f.channel]===undefined)return;
+  if(f.domain==="allocation"&&f.metric==="sold")sold[f.channel]+=f.value;
+  if(f.domain==="finance"&&f.metric==="revenue")rev[f.channel]+=f.value;
+ });
+ return FF.C.channels.map(function(c){return {key:c.key,sold:FF.rInt(sold[c.key]),revenue:Math.round(rev[c.key])}});
+}
+// 관계 전환점. 언제 무엇이 바뀌었고 그날 어떤 태도를 두고 있었는지 남긴다.
+FF.relTimeline=function(){
+ FF.observe();
+ var log=FF.relLogOf(), h=FF.histOf();
+ return log.map(function(s){
+  var row=null;
+  for(var d=0;d<h.length;d++)if(h[d].day===s.day){row=h[d];break}
+  var level=(row&&row.stance)?row.stance[s.i]:FF.C.stance.start;
+  return {type:s.type,i:s.i,day:s.day,from:s.from,to:s.to,level:level};
+ });
+}
+// 주요 결정 복기. 판로 태도가 바뀐 날마다 전후와 그날 관계를 남긴다.
+FF.policyChanges=function(){
+ FF.observe();
+ var days=FF.factsByDay(), out=[], prevSt=null;
+ days.forEach(function(row){
+  var st=FF.C.channels.map(function(c){return row.channels[c.key]["allocation.stance"]});
+  if(prevSt){
+   FF.C.channels.forEach(function(c,i){
+    if(st[i]!==prevSt[i])out.push({day:row.day,i:i,from:prevSt[i],to:st[i],relAfter:row.channels[c.key]["relation.level"]});
+   });
+  }
+  prevSt=st;
+ });
+ return out;
+}
+FF.issuePlan=function(){
+ FF.observe();
+ var issues=FF.issueOf(), rel=FF.relOf();
+ var P=FF.stancePlan();
+ var openList=[];
+ for(var i=0;i<issues.length;i++){
+  if(!issues[i])continue;
+  openList.push({i:i,since:issues[i].since,resolution:issues[i].resolution,
+   days:FF.dayOf()-issues[i].since,rel:rel[i],feasible:FF.issueFeasible(i),
+   level:P.levels[i],preview:P.preview[i],quota:P.rows[i].quota});
+ }
+ return {signals:FF.signalOf(),issues:openList};
+}
+// 이슈를 의도적 포기로 표시한다. 게임 규칙은 바뀌지 않는다. 화면 상태만 바뀐다.
+FF.acceptIssue=function(i){
+ var issues=FF.issueOf().slice();
+ if(issues[i])issues[i]={since:issues[i].since,resolution:"accepted"};
+ FF.setIssue(issues); FF.repaint();
 }
 })(window.FF,window.FV);
 </script>

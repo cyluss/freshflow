@@ -10,7 +10,7 @@ import fs from 'fs';
 
 const stub = 'var FF={},FV={};';
 const DOMAIN = ['src-core.js','src-store.js','src-access.js','src-uistate.js','src-kernel.js',
-  'src-runner.js','src-record.js','src-engine.js','src-counter.js','src-report-data.js'];
+  'src-runner.js','src-record.js','src-engine.js','src-counter.js','src-fact.js','src-report-data.js'];
 const src = stub + DOMAIN.map(f => fs.readFileSync(f, 'utf8')).join('\n') + '\nreturn FF;';
 const FF = new Function(src)();
 
