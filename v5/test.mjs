@@ -11,7 +11,7 @@ let pass=0, fail=0;
 const t=(name,cond,info)=>{ if(cond)pass++; else{fail++;console.log('FAIL',name,info===undefined?'':info)} };
 
 FF.reset(30699);
-t('초기 현금', FF.C.cash===120000);
+t('초기 현금', FF.C.cash===84000);
 t('초기 일차', FF.run().day===1);
 for(let i=0;i<30;i++) FF.stepDay(FF.Cmd.wait());
 t('30일 종료', FF.isOver()===true);

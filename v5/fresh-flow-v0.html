@@ -260,12 +260,18 @@ FF._injectedComputed=window.preactSignals.computed;
 //   유지비 1.3 무조건 선매수 억제
 //   sd 2.5     입고가 값어치 있는 판을 만든다
 //   dd 3       판매가 값어치 있는 판을 만든다
+// 경제 기준선 v3(이슈 #10). 초기자본을 60000->42000으로 낮췄다. v2 자본은 300시드x5스타일
+// 전부에서 현금이 실제 매입을 막는 일이 사실상 없어(포기비율 0.1%대) Cash가 운전자본이
+// 아니라 누적 점수처럼 작동했다. 42000은 포기비율 1.21%·bust 4.1%로 5개 스타일 전부에서
+// bust<10%를 만족하는 가장 낮은 자본이다(사전에 선언한 70/65/60/55% 중 70%만 통과했다).
+// 고정비(fixed)는 그대로 둔다 - 같은 강도로 맞춘 고정비 인상 시나리오와 비교했을 때 제약의
+// 시점·모양·사전식별 가능성이 사실상 같아서, 구조를 하나 더 바꿀 근거가 없었다.
 // 확정 도메인(Quantity/Money)은 실제 값의 2배를 내부 단위로 쓴다. 1 unit = 0.5(t 또는 원).
 // 그래서 이 상수들은 실제 크기의 2배로 적혀 있다(예: intake:40은 실제 20t). 단가류(price/rel/stance
 // 같은 비율·요율)는 Money와 Quantity가 같은 배수로 커지므로 그대로 둔다. sm/dm/sd/dd처럼 확률
 // 분포를 나타내는 값도 실 단위 그대로 두고, 확정 수량으로 넘어오는 경계(입고 목표량 계산,
 // 판로별 예상 수요, 생산·수요 난수 확정)에서만 2를 곱해 양자화한다.
-FF.C={days:30,cash:120000,sm:[14,20,27],sd:2.5,dm:[10,20,32],dd:3,stay:0.8,
+FF.C={days:30,cash:84000,sm:[14,20,27],sd:2.5,dm:[10,20,32],dd:3,stay:0.8,
 cap:{intake:40,storage:80,sales:42},ui:{nearCap:.8,storeMid:.5,storeFull:.8,dwellFast:1,dwellSlow:2.5,lowDays:2,armMs:6000,newArmMs:4000,recentWin:5,fcDays:3,eps:.05,matrixDays:7,dwellWin:7,logRows:6,nearTop:.9,zero:1e-9},chart:{w:340,h:96,pad:4,barH:22,gap:6},// 증설은 판매 한도만 산다. 상류는 초과분 매입 계약으로 대체했다.
 step:{sales:2},cost:{sales:618},
 // 초과분 매입 계약. 첫날에 크기를 고른다. 한도를 넘은 물량을 하루 최대 X(내부단위) 더 받는다.
@@ -2095,9 +2101,13 @@ FF.channelRows=function(){
 FF.rInt=function(n){return Math.round(n)}
 // 오늘 판로가 받을 수 있는 양은 이월 재고뿐 아니라 오늘 입고분도 포함한다.
 // 오늘 생산은 정책을 정하기 전에 이미 확정되어 있다(FF.revealToday). 더 이상 국면 평균으로
-// 추정하지 않는다. 다만 실제 입고(커널의 acc)는 생산·입고한도뿐 아니라 목표재고(need)로도
-// 막힌다. 그래서 이 함수는 커널의 stepState와 같은 공식(FF.intakeNeed + 계약분)을 그대로 쓴다.
-// 하나만 계산해서 둘 다 쓰면, 여기와 커널이 서로 다른 값을 낼 위험이 없다.
+// 추정하지 않는다. 실제 입고(커널의 stored)는 생산·입고한도·목표재고(need)뿐 아니라
+// 창고 여유(storage)와 현금(cash) 두 곳에서 더 막힐 수 있다. 그래서 이 함수는 커널의
+// stepState와 같은 공식을 끝까지(창고·현금 단계까지) 그대로 쓴다. 하나만 계산해서 둘 다
+// 쓰면, 여기와 커널이 서로 다른 값을 낼 위험이 없다. stepState는 오늘 만기인 매출채권을
+// 입고 예산을 보기 전에 먼저 현금으로 바꾸므로, 여기서도 오늘 만기 AR을 현금에 더한다.
+// 이슈 #10으로 초기자본이 낮아져서 현금이 실제로 입고를 막는 날이 생기자, 이 단계들이
+// 빠진 미리보기가 실제 입고와 어긋나는 게 invariant sweep에서 드러났다.
 FF.todayIntake=function(){
  var M=FF.marketOf(), caps=FF.capsOf();
  if(!M||!caps)return 0;
@@ -2107,7 +2117,14 @@ FF.todayIntake=function(){
  var contract=FF.effectiveContract();
  var over=Math.max(0,prod-caps.intake);
  var extra=contract>0?Math.min(over,contract,Math.max(0,need-base)):0;
- return FF.rInt(base+extra);
+ var acc=base+extra;
+ var freeNow=Math.max(0,caps.storage-FF.inventory());
+ var stored=Math.min(acc,freeNow);
+ var day=FF.dayOf(), arDueToday=(FF.arOf()||[]).filter(function(x){return x.at<=day})
+   .reduce(function(a,x){return a+x.amt},0);
+ var budget=Math.max(0,FF.ledger().cash+arDueToday-FF.C.fixed);
+ var payable=FF.C.farm>0?Math.min(stored,Math.floor(budget/FF.C.farm)):stored;
+ return FF.rInt(payable);
 }
 // 오늘 판로별 예상 수요 한도. 커널이 world 로 뽑는 값과 같은 공식을 국면 평균으로 대신 쓴다.
 // 실제 값은 이것과 다를 수 있다. 화면은 이것으로 미리보기만 만든다.

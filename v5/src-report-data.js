@@ -342,9 +342,13 @@ FF.channelRows=function(){
 FF.rInt=function(n){return Math.round(n)}
 // 오늘 판로가 받을 수 있는 양은 이월 재고뿐 아니라 오늘 입고분도 포함한다.
 // 오늘 생산은 정책을 정하기 전에 이미 확정되어 있다(FF.revealToday). 더 이상 국면 평균으로
-// 추정하지 않는다. 다만 실제 입고(커널의 acc)는 생산·입고한도뿐 아니라 목표재고(need)로도
-// 막힌다. 그래서 이 함수는 커널의 stepState와 같은 공식(FF.intakeNeed + 계약분)을 그대로 쓴다.
-// 하나만 계산해서 둘 다 쓰면, 여기와 커널이 서로 다른 값을 낼 위험이 없다.
+// 추정하지 않는다. 실제 입고(커널의 stored)는 생산·입고한도·목표재고(need)뿐 아니라
+// 창고 여유(storage)와 현금(cash) 두 곳에서 더 막힐 수 있다. 그래서 이 함수는 커널의
+// stepState와 같은 공식을 끝까지(창고·현금 단계까지) 그대로 쓴다. 하나만 계산해서 둘 다
+// 쓰면, 여기와 커널이 서로 다른 값을 낼 위험이 없다. stepState는 오늘 만기인 매출채권을
+// 입고 예산을 보기 전에 먼저 현금으로 바꾸므로, 여기서도 오늘 만기 AR을 현금에 더한다.
+// 이슈 #10으로 초기자본이 낮아져서 현금이 실제로 입고를 막는 날이 생기자, 이 단계들이
+// 빠진 미리보기가 실제 입고와 어긋나는 게 invariant sweep에서 드러났다.
 FF.todayIntake=function(){
  var M=FF.marketOf(), caps=FF.capsOf();
  if(!M||!caps)return 0;
@@ -354,7 +358,14 @@ FF.todayIntake=function(){
  var contract=FF.effectiveContract();
  var over=Math.max(0,prod-caps.intake);
  var extra=contract>0?Math.min(over,contract,Math.max(0,need-base)):0;
- return FF.rInt(base+extra);
+ var acc=base+extra;
+ var freeNow=Math.max(0,caps.storage-FF.inventory());
+ var stored=Math.min(acc,freeNow);
+ var day=FF.dayOf(), arDueToday=(FF.arOf()||[]).filter(function(x){return x.at<=day})
+   .reduce(function(a,x){return a+x.amt},0);
+ var budget=Math.max(0,FF.ledger().cash+arDueToday-FF.C.fixed);
+ var payable=FF.C.farm>0?Math.min(stored,Math.floor(budget/FF.C.farm)):stored;
+ return FF.rInt(payable);
 }
 // 오늘 판로별 예상 수요 한도. 커널이 world 로 뽑는 값과 같은 공식을 국면 평균으로 대신 쓴다.
 // 실제 값은 이것과 다를 수 있다. 화면은 이것으로 미리보기만 만든다.
