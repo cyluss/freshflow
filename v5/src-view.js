@@ -81,23 +81,36 @@ FV.ChannelBar=function(){
   return null;
  };
  var STANCE_LEVELS=[0,1,2,3];
+ // 라벨과 값을 같은 순서, 같은 칸 너비로 둔다. 판로 셋을 나란히 봤을 때 같은 줄끼리 비교되게 하기 위해서다.
+ var kv=function(label,value){
+  return FV._h("div",{class:"chan-kv"},[
+   FV._h("span",{class:"chan-kv-label"},label), " ",
+   FV._h("span",{class:"chan-kv-value"},value)
+  ]);
+ };
  var rows=P.rows.map(function(r,i){
   var issue=issueOf(i);
   var statusTxt=issue?(" · "+(issue.resolution==="accepted"?"포기함":"회복 중")):"";
-  var missTxt=P.missed[i]>=1?(" · 다른 판로 우선으로 "+FF.fInt(P.missed[i])+"t 못 받음"):"";
-  var condTxt=r.price+"원 · 주문 "+FF.fInt(P.est[i])+"t · 최대 "+r.cap+"t"+
-   (r.floor>0?(" · 보장 "+r.floor+"t"):"");
+  var missTxt=P.missed[i]>=1?("다른 판로 우선으로 "+FF.fInt(P.missed[i])+"t 못 받음"):"";
   return FV._h("div",{class:"chan-card"},[
    FV._h("div",{class:"chan-id"},[
     FV._h("span",{class:"chan-name"},FV.say("channel",r.key)),
     FV._h("span",{class:"chan-rel"},FV.say("relword",String(r.rel))+" "+r.rel)
    ]),
-   FV._h("div",{class:"chan-cond"},condTxt),
+   FV._h("div",{class:"chan-cond"},[
+    kv("가격",r.price+"원"),
+    kv("주문",FF.fInt(P.est[i])+"t"),
+    kv("최대",r.cap+"t"),
+    kv("보장",r.floor>0?(r.floor+"t"):"—")
+   ]),
    FV._h("div",{class:"chan-policy"},STANCE_LEVELS.map(function(lv){
     return FV._h("button",{class:"pol"+(P.levels[i]===lv?" pol-on":""),
      onClick:function(){FF.setChannelStance(i,lv)}},FV.say("stance",String(lv)));
    })),
-   FV._h("div",{class:"chan-preview"},"예상 "+FF.fInt(P.preview[i])+"t"+statusTxt+missTxt)
+   FV._h("div",{class:"chan-preview"},[
+    kv("예상",FF.fInt(P.preview[i])+"t"+statusTxt),
+    missTxt?FV._h("div",{class:"chan-kv-note"},missTxt):null
+   ])
   ]);
  });
  return FV._h("div",{id:"kchan",class:"chan"},[
