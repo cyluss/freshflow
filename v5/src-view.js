@@ -14,7 +14,8 @@ FV.FlowSummary=function(props){
   <div id="kbn" class="sub-p">
    <span style=${{fontSize:"12px",color:"var(--text-muted)"}}>어제 막힌 곳</span><br />
    <span style=${{color:"var(--text-warning)"}}>${FV.BL[d.b]}</span><br />
-   <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>${FV.causeLine(d)}</span>
+   <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>${FV.causeLine(d)}</span><br />
+   <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>실제 입고 ${FF.fInt(d.acc)}t · 생산 ${FF.fInt(d.prod)}t</span>
   </div>`;
 }
 
