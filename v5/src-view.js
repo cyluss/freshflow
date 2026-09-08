@@ -116,10 +116,15 @@ FV.ChannelBar=function(){
    }))
   ]);
  });
+ // 재고와 입고 예상은 같은 단계(오늘 판매 후보)라서 더해서 보여준다.
+ // 판매 한도는 다른 단계(그 후보 중 오늘 실제로 팔 수 있는 양)이므로 실제로 걸릴 때만 보여준다.
+ var sellable=P.inv+P.exp, capSales=FF.capsOf().sales;
  return FV._h("div",{id:"kchan",class:"chan"},[
   FV._h("div",{class:"chan-head"},[
    FV._h("div",{class:"chan-head-num"},"재고 "+FF.fInt(P.inv)+"t · 오래된 재고 "+FF.fInt(FF.oldStock())+"t"),
-   FV._h("div",{class:"chan-head-note"},"입고 예상 "+FF.fInt(P.exp)+"t · 판매 한도 "+FF.capsOf().sales+"t")
+   FV._h("div",{class:"chan-head-note"},
+    "입고 예상 "+FF.fInt(P.exp)+"t · 판매 가능 "+FF.fInt(sellable)+"t"+
+    (sellable>capSales?(" · 판매 한도 "+capSales+"t"):""))
   ]),
   rows,
   FV._h("div",{class:"chan-sum"},[

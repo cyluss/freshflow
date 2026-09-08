@@ -487,7 +487,12 @@ function open(file, seed) {
 
   t('머리줄에 재고', /재고 \d+t/.test(bar.querySelector('.chan-head-num').textContent));
   t('머리줄에 오래된 재고', /오래된 재고 \d+t/.test(bar.querySelector('.chan-head-num').textContent));
-  t('머리줄에 판매 한도', /판매 한도 \d+t/.test(bar.querySelector('.chan-head-note').textContent));
+  t('머리줄에 판매 가능', /판매 가능 \d+t/.test(bar.querySelector('.chan-head-note').textContent));
+  {
+   const P0 = ch.w.FF.stancePlan(), sellable = P0.inv + P0.exp, capSales = ch.w.FF.capsOf().sales;
+   const noteTxt = bar.querySelector('.chan-head-note').textContent;
+   t('판매 한도는 실제로 걸릴 때만', /판매 한도 \d+t/.test(noteTxt) === (sellable > capSales));
+  }
 
   const plan0 = ch.w.FF.stancePlan();
   t('기본값은 전부 기본 단계', plan0.levels.every(v => v === 1));
