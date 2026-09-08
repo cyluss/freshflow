@@ -3,9 +3,15 @@
 // 그대로 쓰고, 매일 stepDay 전에 FF.setProd로 확정 생산량을 개입시키는 방식과 stepDay 뒤에
 // FF.addCash로 결제 시점만 되돌리는 방식으로만 오버레이한다.
 //
-// 네 방식은 서로 섞지 않는 순수 전략이다. prepaid/option이 예측을 낮게 잡아 실제 부족이
-// 예약량(Q)을 넘어도 그날 cash로 보충하지 않는다. cash/credit도 실제 부족을 그대로 전액
-// 받아들인다(예약 상한이 없다).
+// FALLBACK=false(순수 정책, 1차 결과): prepaid/option이 예측을 낮게 잡아 실제 부족이 예약량
+// (Q)을 넘어도 그날 cash로 보충하지 않는다. 이 결과 cash가 판로 태도와 무관하게 압도했고,
+// discount를 5%->50%까지 올려도 격차가 거의 줄지 않아 순수 정책 자체의 실패로 판정했다.
+//
+// FALLBACK=true(2차, 기본값): 순수 전략을 구제하는 밸런싱이 아니라 예측의 정보가치를
+// 분리해서 재는 실험이다. prepaid는 과소예측 위험만 없앤다(부족분을 그날 cash로 보충하되
+// 과다예약분은 그대로 보관비를 문다). option은 과소예측 위험도 없애고 과다예측 위험도
+// 옵션료로만 가격화한다(행사는 실제 필요분까지만 하므로 물리적 과잉재고가 안 생긴다).
+// cash/credit은 애초에 예약 상한이 없어 이 구분과 무관하다.
 import fs from 'fs';
 
 const stub = 'var FF={},FV={};';
@@ -21,10 +27,11 @@ const PREPAID_DISCOUNT = process.argv[5] !== undefined ? Number(process.argv[5])
 const OPTION_PREMIUM_RATE = process.argv[6] !== undefined ? Number(process.argv[6]) : 0.02;
 const OPTION_EXERCISE_DISCOUNT = process.argv[7] !== undefined ? Number(process.argv[7]) : 0.02;
 const N_SEEDS = process.argv[8] !== undefined ? Number(process.argv[8]) : 300;
+const FALLBACK = process.argv[9] !== undefined ? process.argv[9] !== 'false' : true;
 
 console.log('파라미터: nLead=' + N_LEAD, 'creditFee=' + CREDIT_FEE, 'creditLag=' + CREDIT_LAG,
   'prepaidDiscount=' + PREPAID_DISCOUNT, 'optionPremium=' + OPTION_PREMIUM_RATE,
-  'optionDiscount=' + OPTION_EXERCISE_DISCOUNT, 'seeds=' + N_SEEDS);
+  'optionDiscount=' + OPTION_EXERCISE_DISCOUNT, 'seeds=' + N_SEEDS, 'fallback=' + FALLBACK);
 
 const STANCES = {
   base: null,          // 기본: 태도 명령 없음(단가 순 배분)
@@ -78,6 +85,7 @@ function runPolicy(seed, policyKey, stanceKey) {
     const prod = FF.prodOf();
     const unitCost = FF.C.farm;
     let boost = 0;
+    let prepaidRefundBase = 0, optionRefundBase = 0; // 이미 선불/행사대금으로 낸 부분만 자연청구를 취소한다
 
     const realNeed = computeExtra(0);
     if (realNeed > 0) emergencyDays++;
@@ -100,10 +108,14 @@ function runPolicy(seed, policyKey, stanceKey) {
       }
       const due = deliveries.find(x => x.day === day);
       if (due) {
-        boost = due.qty;
         forecastEvents++;
         const gap = due.qty - realNeed;
         if (gap > 0) forecastOver += gap; else forecastUnder += -gap;
+        // 순수 정책: 예약한 Q만 온다(과소예약이면 그날 부족이 그대로 남는다).
+        // 폴백: 실제 부족이 Q를 넘으면 초과분만 그날 cash로 보충한다. 과다예약(Q>실제부족)
+        // 비용은 그대로 남긴다 - 이게 prepaid가 계속 지는 "과대예측 위험"이다.
+        prepaidRefundBase = due.qty;
+        boost = FALLBACK ? Math.max(due.qty, realNeed) : due.qty;
       }
     } else if (policyKey === 'option') {
       if (day + N_LEAD <= FF.C.days) {
@@ -120,10 +132,11 @@ function runPolicy(seed, policyKey, stanceKey) {
         forecastEvents++;
         const gap = opt.qty - realNeed;
         if (gap > 0) forecastOver += gap; else forecastUnder += -gap;
-        if (exercised > 0) {
-          boost = exercised;
-          FF.addCash(-exercised * unitCost * (1 - OPTION_EXERCISE_DISCOUNT)); // 행사대금(할인가) 지금 지급
-        }
+        if (exercised > 0) FF.addCash(-exercised * unitCost * (1 - OPTION_EXERCISE_DISCOUNT)); // 행사대금(할인가) 지금 지급
+        optionRefundBase = exercised;
+        // 순수 정책: Q를 넘는 실제 부족은 그냥 미달로 남긴다.
+        // 폴백: Q를 넘는 초과분만 그날 cash로 보충한다. 옵션료는 이미 냈으니 그 손실만 남는다.
+        boost = FALLBACK ? Math.max(exercised, realNeed) : exercised;
       }
     }
 
@@ -145,10 +158,11 @@ function runPolicy(seed, policyKey, stanceKey) {
 
     // 사후 정산: 커널은 boost분을 오늘 자동으로 unitCost 전액 청구했다(stored*farm).
     // cash는 그 청구가 곧 의도한 가격이라 그대로 둔다. credit은 이미 선지급으로 상쇄했다.
-    // prepaid/option은 대금을 이미(선불/행사대금으로) 냈으므로 오늘 자동 청구를 전액 취소한다.
-    if (boost > 0 && (policyKey === 'prepaid' || policyKey === 'option')) {
-      FF.addCash(boost * unitCost);
-    }
+    // prepaid/option은 예약분(refundBase)만 이미 선불/행사대금으로 냈으므로 그만큼만 오늘
+    // 자동 청구를 취소한다. 폴백으로 추가된 초과분은 cash와 똑같이 오늘 자연 청구가 곧
+    // 의도한 가격이라 그대로 둔다.
+    if (prepaidRefundBase > 0) FF.addCash(prepaidRefundBase * unitCost);
+    if (optionRefundBase > 0) FF.addCash(optionRefundBase * unitCost);
   }
 
   const outstandingAP = ap.reduce((s, x) => s + x.amt, 0);
