@@ -485,13 +485,17 @@ function open(file, seed) {
     [...r.querySelectorAll('.pol')].map(b => b.textContent).join() === '양보,기본,우선,보장'));
   t('기본 단계가 켜져 있다', rows.every(r => r.querySelector('.pol-on').textContent === '기본'));
 
-  t('머리줄에 재고', /재고 \d+t/.test(bar.querySelector('.chan-head-num').textContent));
-  t('머리줄에 오래된 재고', /오래된 재고 \d+t/.test(bar.querySelector('.chan-head-num').textContent));
-  t('머리줄에 판매 가능', /판매 가능 \d+t/.test(bar.querySelector('.chan-head-note').textContent));
+  t('머리줄 판매 가능은 가장 크게', /판매 가능/.test(bar.querySelector('.chan-head-main').textContent));
+  t('머리줄에 재고', /재고 \d+t/.test(bar.querySelector('.chan-head-note').textContent));
+  t('머리줄에 입고 예상', /입고 예상 \d+t/.test(bar.querySelector('.chan-head-note').textContent));
   {
    const P0 = ch.w.FF.stancePlan(), sellable = P0.inv + P0.exp, capSales = ch.w.FF.capsOf().sales;
+   t('판매 가능 값은 배분 예산과 같다',
+     bar.querySelector('.chan-head-value').textContent === P0.pool + 't');
    const noteTxt = bar.querySelector('.chan-head-note').textContent;
    t('판매 한도는 실제로 걸릴 때만', /판매 한도 \d+t/.test(noteTxt) === (sellable > capSales));
+   const old = ch.w.FF.oldStock(), oldEl = bar.querySelector('.chan-head-old');
+   t('오래된 재고는 있을 때만', !!oldEl === (old >= 1));
   }
 
   const plan0 = ch.w.FF.stancePlan();

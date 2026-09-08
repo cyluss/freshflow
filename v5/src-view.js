@@ -116,15 +116,19 @@ FV.ChannelBar=function(){
    }))
   ]);
  });
- // 재고와 입고 예상은 같은 단계(오늘 판매 후보)라서 더해서 보여준다.
- // 판매 한도는 다른 단계(그 후보 중 오늘 실제로 팔 수 있는 양)이므로 실제로 걸릴 때만 보여준다.
- var sellable=P.inv+P.exp, capSales=FF.capsOf().sales;
+ // 판매 가능(P.pool)이 오늘 세 판로에 나눌 예산이므로 맨 위에 가장 크게 둔다.
+ // 재고/입고 예상은 그 예산의 구성이고, 오래된 재고는 있을 때만 보는 조건부 신호다.
+ var sellable=P.inv+P.exp, capSales=FF.capsOf().sales, old=FF.oldStock();
  return FV._h("div",{id:"kchan",class:"chan"},[
   FV._h("div",{class:"chan-head"},[
-   FV._h("div",{class:"chan-head-num"},"재고 "+FF.fInt(P.inv)+"t · 오래된 재고 "+FF.fInt(FF.oldStock())+"t"),
+   FV._h("div",{class:"chan-head-main"},[
+    FV._h("span",{class:"chan-head-label"},"판매 가능"),
+    FV._h("span",{class:"chan-head-value"},FF.fInt(P.pool)+"t")
+   ]),
    FV._h("div",{class:"chan-head-note"},
-    "입고 예상 "+FF.fInt(P.exp)+"t · 판매 가능 "+FF.fInt(sellable)+"t"+
-    (sellable>capSales?(" · 판매 한도 "+capSales+"t"):""))
+    "재고 "+FF.fInt(P.inv)+"t · 오늘 입고 예상 "+FF.fInt(P.exp)+"t"+
+    (sellable>capSales?(" · 판매 한도 "+capSales+"t"):"")),
+   old>=1?FV._h("div",{class:"chan-head-old"},"오래된 재고 "+FF.fInt(old)+"t"):null
   ]),
   rows,
   FV._h("div",{class:"chan-sum"},[

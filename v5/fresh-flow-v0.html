@@ -202,8 +202,11 @@ body{font-variant-numeric:tabular-nums}
 .dock .btn-full,.dock .btn-sub{margin-bottom:6px}
 .dock > :last-child{margin-bottom:0}
 .chan-head{margin-bottom:5px}
-.chan-head-num{font-size:14px;color:var(--text-primary);font-weight:500}
+.chan-head-main{display:flex;justify-content:space-between;align-items:baseline}
+.chan-head-label{font-size:13px;color:var(--text-secondary)}
+.chan-head-value{font-size:20px;font-weight:600;color:var(--text-primary)}
 .chan-head-note{font-size:11px;color:var(--text-muted);margin-top:1px}
+.chan-head-old{font-size:11px;color:var(--text-warning);margin-top:2px}
 .cs{width:40px;height:40px;padding:0;font-size:20px;line-height:1;font-family:inherit;background:none;
  border:1px solid var(--border-strong);border-radius:var(--radius);
  color:var(--text-secondary);cursor:pointer;flex:0 0 auto}
@@ -3126,15 +3129,19 @@ FV.ChannelBar=function(){
    }))
   ]);
  });
- // 재고와 입고 예상은 같은 단계(오늘 판매 후보)라서 더해서 보여준다.
- // 판매 한도는 다른 단계(그 후보 중 오늘 실제로 팔 수 있는 양)이므로 실제로 걸릴 때만 보여준다.
- var sellable=P.inv+P.exp, capSales=FF.capsOf().sales;
+ // 판매 가능(P.pool)이 오늘 세 판로에 나눌 예산이므로 맨 위에 가장 크게 둔다.
+ // 재고/입고 예상은 그 예산의 구성이고, 오래된 재고는 있을 때만 보는 조건부 신호다.
+ var sellable=P.inv+P.exp, capSales=FF.capsOf().sales, old=FF.oldStock();
  return FV._h("div",{id:"kchan",class:"chan"},[
   FV._h("div",{class:"chan-head"},[
-   FV._h("div",{class:"chan-head-num"},"재고 "+FF.fInt(P.inv)+"t · 오래된 재고 "+FF.fInt(FF.oldStock())+"t"),
+   FV._h("div",{class:"chan-head-main"},[
+    FV._h("span",{class:"chan-head-label"},"판매 가능"),
+    FV._h("span",{class:"chan-head-value"},FF.fInt(P.pool)+"t")
+   ]),
    FV._h("div",{class:"chan-head-note"},
-    "입고 예상 "+FF.fInt(P.exp)+"t · 판매 가능 "+FF.fInt(sellable)+"t"+
-    (sellable>capSales?(" · 판매 한도 "+capSales+"t"):""))
+    "재고 "+FF.fInt(P.inv)+"t · 오늘 입고 예상 "+FF.fInt(P.exp)+"t"+
+    (sellable>capSales?(" · 판매 한도 "+capSales+"t"):"")),
+   old>=1?FV._h("div",{class:"chan-head-old"},"오래된 재고 "+FF.fInt(old)+"t"):null
   ]),
   rows,
   FV._h("div",{class:"chan-sum"},[
