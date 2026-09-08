@@ -12,12 +12,14 @@ FV.FlowSummary=function(props){
  if(!d)return FV._html`<div id="kbn" class="sub-p"></div>`;
  // 병목 표시는 실제로 뭔가 놓쳤을 때만 쓴다. 수요가 적어 여력이 남은 날은 정상 상태이지 장애가 아니다.
  var lost=FF.isLossCause(d.b);
+ var boost=FF.contractBoostToday();
  return FV._html`
   <div id="kbn" class="sub-p">
    <span style=${{fontSize:"12px",color:"var(--text-muted)"}}>${lost?"어제 막힌 곳":"어제 상태"}</span><br />
    <span style=${{color:lost?"var(--text-warning)":"var(--text-secondary)"}}>${FV.BL[d.b]}</span><br />
    <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>${FV.causeLine(d)}</span><br />
    <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>실제 입고 ${FF.fInt(d.acc)}t · 생산 ${FF.fInt(d.prod)}t</span>
+   ${boost>=0.5?FV._html`<br /><span id="kcontractboost" style=${{fontSize:"12px",color:"var(--text-success)"}}>계약 발동 · 기본 ${FF.fInt(d.capI)}t + 계약 ${boost}t</span>`:null}
   </div>`;
 }
 

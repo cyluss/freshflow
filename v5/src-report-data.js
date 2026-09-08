@@ -178,9 +178,11 @@ FF.finAfterTop=function(){
  return {state:"other",day:t.day,kind:t.kind,gain:t.gain};
 }
 
+// 계약은 ContractStatsView가 따로 자세히 보여주므로 여기서는 되풀이하지 않는다.
 FF.contribRows=function(){
  var c=FF.modContrib()||[];
- return FF.logOf().mods.map(function(m,i){return {day:m.day,kind:m.kind,contrib:c[i]||0}});
+ return FF.logOf().mods.map(function(m,i){return {day:m.day,kind:m.kind,contrib:c[i]||0}})
+  .filter(function(r){return r.kind!=="contract"});
 }
 
 FF.recoverStats=function(k){
@@ -429,6 +431,31 @@ FF.issueFeasible=function(i){
  var left=FF.C.days-FF.dayOf();
  if(left<FF.C.rel.up)return "low";
  return FF.estChannelDemand(i)>=FF.C.channels[i].quota-FF.C.ui.zero?"ok":"hard";
+}
+// 오늘 계약으로 기본 입고 한도를 넘겨 추가로 받은 양. 계약이 없거나 안 걸렸으면 0이다.
+// 계약 크기가 0.5t 단위라서 정수로 반올림하면 1.5t이 2t으로 보인다. 소수 첫째 자리까지 남긴다.
+FF.contractBoostToday=function(){
+ var d=FF.today();
+ if(!d||d.capI===undefined)return 0;
+ return Math.round(Math.max(0,d.acc-d.capI)*10)/10;
+}
+// 초과분 계약 누적 효과. 발동일수와 추가 입고는 기록에서 바로 센다.
+// 순이익 기여는 계약 없이 다시 돌린 결과와의 차이(반사실)를 modRows에서 그대로 가져온다.
+FF.contractStats=function(){
+ FF.observe();
+ var mods=FF.logOf().mods, m=null, i;
+ for(i=0;i<mods.length;i++)if(mods[i].kind==="contract")m=mods[i];
+ if(!m)return null;
+ var h=FF.histOf(), hitDays=0, extra=0;
+ for(i=0;i<h.length;i++){
+  if(h[i].day<=m.day||h[i].capI===undefined)continue;
+  var over=Math.max(0,h[i].acc-h[i].capI);
+  if(over>=FF.C.ui.zero){hitDays++; extra+=over;}
+ }
+ var rows=FF.modRows(), contrib=0;
+ for(i=0;i<rows.length;i++)if(rows[i].kind==="contract")contrib=rows[i].contrib;
+ var opt=FF.contractOption(m.size||0);
+ return {size:m.size||0,cost:opt?opt.price:0,hitDays:hitDays,extra:FF.rInt(extra),contrib:contrib};
 }
 // 화면이 그릴 신호와 이슈. 도메인 규칙은 여기 없다. 코드값만 옮긴다.
 // 당일 결과. 판로별 판매량과 매출과 관계 변화를 하루 실행 직후 보여준다.

@@ -327,6 +327,26 @@ function open(file, seed) {
   t('둘째 날부터 선택지 없음', !s11.q('kbc0') && !s11.q('kopening'));
 }
 
+// 15b. 초과분 계약이 발동하면 그날 알려주고, 종료 후 누적 효과를 보여준다
+{
+  const s12 = open(FILE, 7);
+  s12.q('kbc3').click(); await tick(); // +1.5t 계약
+  let n = 0, sawBoost = false;
+  while (!s12.w.FF.isOver() && n < 60) {
+    s12.q('kgo').click(); await tick(); n++;
+    if (s12.q('kcontractboost')) sawBoost = true;
+  }
+  t('계약 발동 시 콜아웃이 뜬 적 있다', sawBoost);
+  const stats = s12.w.FF.contractStats();
+  t('종료 후 계약 통계 존재', !!stats && stats.size === 1.5);
+  const perfFold = s12.d.querySelector('[data-fold="perf"]');
+  perfFold.click(); await tick();
+  const perfTxt = s12.q('kbrief').textContent;
+  t('종료 화면에 초과분 계약 통계', perfTxt.includes('초과분 계약') && perfTxt.includes('발동') && /추가 입고 [\d.]+t/.test(perfTxt));
+  t('계약 기여 문구', perfTxt.includes('계약 기여'));
+  t('오류 없음', s12.errs.length === 0);
+}
+
 
 // 16. 화면에 내부 코드값이 새지 않는다
 {

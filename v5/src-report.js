@@ -139,6 +139,17 @@ FV.missedBriefNode=function(){
   <//>`;
 }
 
+// 초과분 계약 누적 효과. 첫날 선택과 30일 뒤 결과를 잇는 긴 피드백 고리라서 따로 보여준다.
+FV.ContractStatsView=function(){
+ var c=FF.contractStats();
+ if(!c||c.size<=0)return null;
+ return FV._html`<${FV._F}>
+  <${FV.StatRow} label="초과분 계약" value=${"+"+c.size+"t"} note=${mo(c.cost)+"원"} />
+  <${FV.StatRow} label="발동" value=${c.hitDays+"일"} note=${"추가 입고 "+FF.fInt(c.extra)+"t"} />
+  <${FV.StatRow} label="계약 기여" value=${(c.contrib>=0?"+":"")+mo(c.contrib)} note="계약 없이 다시 돌린 결과와의 차이" />
+ <//>`;
+}
+
 FV.contribNode=function(){
  var rows=FF.contribRows();
  if(!rows.length)return null;
@@ -233,6 +244,7 @@ FV.endCardNode=function(){
        <${FV._F}>
         <${FV.StatRow} label="무투자 대비" value=${(E.vsIdle>=0?"+":"")+mo(E.vsIdle)} note="내 투자 묶음의 효과" />
         <${FV.StatRow} label="증설" value=${(E.buysContract+E.buysSales===0)?"없음":((E.buysContract?("계약 +"+E.contractSize+"t · "):"")+"판매 "+E.buysSales+"회")} note=${mo(E.spent)+" 투입"} />
+        <${FV.ContractStatsView} />
         ${FV.contribNode()}
         ${FV.finBriefNode()}
         <${FV.StatRow} label="사후 기준 대비" value=${(E.vsHindsight>=0?"+":"")+mo(E.vsHindsight)} note=${"기준 "+(E.baseContract?("계약 +"+E.baseContract+"t · "):"")+"판매 "+E.baseSales+"회"} />
