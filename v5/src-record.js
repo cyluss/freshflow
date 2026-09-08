@@ -115,7 +115,9 @@ FF.recordIssues=function(prevRel,r){
     issues[i]={since:day,resolution:null};
     signals.push({type:curRel[i]<prevRel[i]?"decline":"stuck",i:i,day:day,from:prevRel[i],to:curRel[i]});
    }
-  } else if(curRel[i]>prevRel[i]&&issues[i]){
+  } else if(issues[i]){
+   // 회복 판정은 관계가 올랐는가(curRel>prevRel)가 아니라 지금 쿼터를 채우고 있는가로 본다.
+   // 관계가 이미 최고 단계면 더 오를 수 없어서 전자로는 영영 닫히지 않는다(issue #4).
    signals.push({type:"recover",i:i,day:day,from:prevRel[i],to:curRel[i]});
    issues[i]=null;
   }

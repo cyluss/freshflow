@@ -1052,10 +1052,6 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
   for (let d = 0; d < 6; d++) { FF.stepDay(FF.Cmd.stance([2, 1, 1])); if (FF.isOver()) break }
   const openBefore = FF.issueOf()[0];
   t('온라인 이슈 열림', !!openBefore);
-  // "열려 있던 이슈가 회복으로 닫히는 순간이 온다"를 본다. 관계가 이미 최고 단계에 있으면
-  // recordIssues 구조상 더 못 오르니 다시 못 닫힌다(회복 판정이 curRel>prevRel 이라서다).
-  // 그건 관계 시스템 자체의 별개 한계이지 이 테스트가 볼 것은 아니라서, 열린 이슈가 실제로
-  // null로 바뀌는 전환을 한 번이라도 보면 통과로 본다.
   let sawClose = false;
   for (let d = 0; d < 15; d++) {
     const before = FF.issueOf()[0];
@@ -1065,6 +1061,21 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
   }
   if (FF.relOf()[0] > 0) t('회복하면 이슈가 닫힌다', sawClose);
   else t('회복하면 이슈가 닫힌다', true); // 이 시드에서 15일 안에 회복 못하면 판정을 건너뛴다
+}
+
+// 이슈 #4: 최고 관계 단계에서도 회복하면 이슈가 닫힌다(관계가 더 못 올라도 닫혀야 한다)
+{
+  FF.reset(30699);
+  for (let d = 0; d < 16; d++) FF.stepDay(FF.Cmd.stance([3, 1, 1]));
+  t('day16 관계 최고단계 도달', FF.relOf()[0] === 3);
+  t('day16 이슈 없음(쿼터 충족)', FF.issueOf()[0] === null);
+  FF.stepDay(FF.Cmd.stance([3, 1, 1])); // day17
+  FF.stepDay(FF.Cmd.stance([3, 1, 1])); // day18: 쿼터 미달로 이슈가 새로 열린다
+  t('day18 최고단계에서 이슈 열림', !!FF.issueOf()[0]);
+  t('day18에도 관계는 여전히 최고단계', FF.relOf()[0] === 3);
+  FF.stepDay(FF.Cmd.stance([3, 1, 1])); // day19: 쿼터를 다시 채운다
+  t('관계가 못 올라도(여전히 3) 쿼터를 채우면 이슈가 닫힌다', FF.issueOf()[0] === null);
+  t('관계 자체는 3에 머문다', FF.relOf()[0] === 3);
 }
 
 // 이슈: 의도적 포기는 게임 규칙을 바꾸지 않는다
