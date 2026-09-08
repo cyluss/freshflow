@@ -110,10 +110,10 @@ function open(file, seed) {
   }
   t('결과 카드 존재', !!s.q('kbrief'));
   const folds = s.d.querySelectorAll('[data-fold]');
-  t('접이식 여섯 개', folds.length === 6);
+  t('접이식 다섯 개', folds.length === 5);
   t('접이식 초기 접힘', [...folds].every(e => e.parentElement.open === false));
   const foldOf = k => s.d.querySelector('[data-fold="' + k + '"]').parentElement;
-  for (const k of ['ops', 'mods', 'miss', 'log', 'relport', 'polreview']) {
+  for (const k of ['perf', 'ops', 'mods', 'miss', 'log']) {
     const e = s.d.querySelector('[data-fold="' + k + '"]');
     t('fold ' + k + ' 존재', !!e);
     t('fold ' + k + ' 접힘', foldOf(k).open === false && !foldOf(k).querySelector('.fold-body'));
@@ -238,6 +238,7 @@ function open(file, seed) {
     }
     s8.q('kgo').click(); await tick(); m++;
   }
+  s8.d.querySelector('[data-fold="perf"]').click(); await tick();
   const rows = [...s8.q('kbrief').querySelectorAll('.stat-row')];
   t('요약 줄이 있다', rows.length >= 6, rows.length + '줄');
   t('요약이 전부 3칸', rows.every(r => r.children.length === 3));

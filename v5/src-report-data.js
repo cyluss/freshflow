@@ -461,6 +461,28 @@ FF.relPortfolio=function(){
   return {key:c.key,series:series,final:series.length?series[series.length-1]:FF.C.rel.start};
  });
 }
+// 판로별 누적 판매와 매출. 하루치가 아니라 이번 판 전체 합이다.
+FF.channelTotals=function(){
+ FF.observe();
+ var h=FF.histOf(), n=FF.C.channels.length, sold=[], rev=[];
+ for(var i=0;i<n;i++){sold.push(0);rev.push(0)}
+ for(var d=0;d<h.length;d++)for(i=0;i<n;i++){
+  sold[i]+=h[d].toCh?h[d].toCh[i]:0;
+  rev[i]+=h[d].revCh?h[d].revCh[i]:0;
+ }
+ return FF.C.channels.map(function(c,i){return {key:c.key,sold:FF.rInt(sold[i]),revenue:Math.round(rev[i])}});
+}
+// 관계 전환점. 언제 무엇이 바뀌었고 그날 어떤 태도를 두고 있었는지 남긴다.
+FF.relTimeline=function(){
+ FF.observe();
+ var log=FF.relLogOf(), h=FF.histOf();
+ return log.map(function(s){
+  var row=null;
+  for(var d=0;d<h.length;d++)if(h[d].day===s.day){row=h[d];break}
+  var level=(row&&row.stance)?row.stance[s.i]:FF.C.stance.start;
+  return {type:s.type,i:s.i,day:s.day,from:s.from,to:s.to,level:level};
+ });
+}
 // 주요 결정 복기. 판로 태도가 바뀐 날마다 전후와 그날 관계를 남긴다.
 FF.policyChanges=function(){
  FF.observe();

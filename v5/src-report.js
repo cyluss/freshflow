@@ -165,6 +165,27 @@ FV.RelPortfolioView=function(){
  <//>`;
 }
 
+// 관계 전환점. 언제 무엇이 바뀌었고 그날 어떤 태도였는지 한 줄로 남긴다.
+FV.RelTimelineView=function(){
+ var T=FF.relTimeline();
+ if(!T.length)return FV._html`<div style=${{fontSize:"12px",color:"var(--text-muted)"}}>관계 변화가 없었다</div>`;
+ return FV._html`<${FV._F}>
+  ${T.map(function(t){
+    return FV._html`<div class="dr-row">${t.day}일 ${FV.say("channel",FF.C.channels[t.i].key)} ${FV.say("signal",t.type)}
+     · 관계 ${FV.say("relword",String(t.from))} → ${FV.say("relword",String(t.to))}
+     · 그날 태도 ${FV.say("stance",String(t.level))}</div>`;
+  })}
+ <//>`;
+}
+
+// 관계 형성. 최종 관계와 30일 경로, 그리고 무엇이 언제 바뀌었는지를 함께 보여준다.
+FV.RelFormationView=function(){
+ return FV._html`<${FV._F}>
+  <${FV.RelPortfolioView} />
+  <${FV.RelTimelineView} />
+ <//>`;
+}
+
 // 주요 결정 복기. 판로 태도가 바뀐 날마다 전후와 그날 관계를 나열한다.
 FV.PolicyReviewView=function(){
  var changes=FF.policyChanges();
@@ -178,32 +199,49 @@ FV.PolicyReviewView=function(){
  <//>`;
 }
 
+// 판로별 성과. 이번 판 전체의 판매와 매출을 판로마다 보여준다.
+FV.EarningsView=function(){
+ var E=FF.endCardData(), rows=FF.channelTotals();
+ return FV._html`<${FV._F}>
+  <${FV.StatRow} label="최종 현금" value=${mo(E.cash)} note=${"시드 "+E.seed} />
+  ${rows.map(function(r){
+    return FV._html`<${FV.StatRow} label=${FV.say("channel",r.key)} value=${FF.fInt(r.sold)+"t 판매"} note=${mo(r.revenue)} />`;
+  })}
+ <//>`;
+}
+
 FV.endCardNode=function(){
  var E=FF.endCardData();
 
- var headNode=FV._html`
-  <${FV._F}>
-   <div style=${{fontSize:"15px",fontWeight:"600",marginBottom:"2px"}}>${E.bust?"현금 소진 · 운영 중단":FF.C.days+"일 운영 결과"}</div>
-   <${FV.Section} title="성과">
-    <${FV.StatRow} label="최종 현금" value=${mo(E.cash)} note=${"시드 "+E.seed} />
-    <${FV.StatRow} label="무투자 대비" value=${(E.vsIdle>=0?"+":"")+mo(E.vsIdle)} note="내 투자 묶음의 효과" />
-   <//>
-   <${FV.Section} title="내 결정">
-    <${FV.StatRow} label="증설" value=${(E.buysContract+E.buysSales===0)?"없음":((E.buysContract?("계약 +"+E.contractSize+"t · "):"")+"판매 "+E.buysSales+"회")} note=${mo(E.spent)+" 투입"} />
-    ${FV.contribNode()}
-    ${FV.finBriefNode()}
-   <//>
-   <${FV.Section} title="복기">
-    <${FV.StatRow} label="사후 기준 대비" value=${(E.vsHindsight>=0?"+":"")+mo(E.vsHindsight)} note=${"기준 "+(E.baseContract?("계약 +"+E.baseContract+"t · "):"")+"판매 "+E.baseSales+"회"} />
-    ${FV.missedBriefNode()}
-    ${FV.finAfterNode()}
-   <//>
-  <//>`;
-
+ var titleNode=FV._html`
+  <div style=${{fontSize:"15px",fontWeight:"600",marginBottom:"2px"}}>${E.bust?"현금 소진 · 운영 중단":FF.C.days+"일 운영 결과"}</div>`;
 
  return FV._html`
   <${FV._F}>
-   ${headNode}
+   ${titleNode}
+   <${FV.Section} title="나는 어떻게 벌었나">
+    <${FV.EarningsView} />
+   <//>
+   <${FV.Section} title="어떤 관계를 만들었나">
+    <${FV.RelFormationView} />
+   <//>
+   <${FV.Section} title="내 결정이 무엇을 바꿨나">
+    <${FV.PolicyReviewView} />
+   <//>
+   <${FV.Fold} id="perf" title="성과 분석"
+     render=${function(){return FV._html`
+       <${FV._F}>
+        <${FV.StatRow} label="무투자 대비" value=${(E.vsIdle>=0?"+":"")+mo(E.vsIdle)} note="내 투자 묶음의 효과" />
+        <${FV.StatRow} label="증설" value=${(E.buysContract+E.buysSales===0)?"없음":((E.buysContract?("계약 +"+E.contractSize+"t · "):"")+"판매 "+E.buysSales+"회")} note=${mo(E.spent)+" 투입"} />
+        ${FV.contribNode()}
+        ${FV.finBriefNode()}
+        <${FV.StatRow} label="사후 기준 대비" value=${(E.vsHindsight>=0?"+":"")+mo(E.vsHindsight)} note=${"기준 "+(E.baseContract?("계약 +"+E.baseContract+"t · "):"")+"판매 "+E.baseSales+"회"} />
+        ${FV.missedBriefNode()}
+        ${FV.finAfterNode()}
+        <div style=${{marginTop:"8px",fontSize:"11px",color:"var(--text-muted)"}}>
+         사후 기준은 30일을 미리 알 때 같은 횟수로 얻는 최선이다. 사는 날은 이틀 간격으로 고정했다.
+        </div>
+       <//>`}} />
    <${FV.Fold} id="ops" title="운영 결과"
      render=${function(){return FV._html`<${FV.OperationResult} data=${E} />`}} />
    <${FV.Fold} id="mods" title="투자 분석"
@@ -220,13 +258,6 @@ FV.endCardNode=function(){
        <//>`}} />
    <${FV.Fold} id="log" title="전체 기록"
      render=${function(){return FV._html`<${FV.FullLog} />`}} />
-   <${FV.Fold} id="relport" title="관계 포트폴리오 복기"
-     render=${function(){return FV._html`<${FV.RelPortfolioView} />`}} />
-   <${FV.Fold} id="polreview" title="주요 결정 복기"
-     render=${function(){return FV._html`<${FV.PolicyReviewView} />`}} />
-   <div style=${{marginTop:"8px",fontSize:"11px",color:"var(--text-muted)"}}>
-    사후 기준은 30일을 미리 알 때 같은 횟수로 얻는 최선이다. 사는 날은 이틀 간격으로 고정했다.
-   </div>
   <//>`;
 }
 
