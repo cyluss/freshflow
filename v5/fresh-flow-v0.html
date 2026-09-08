@@ -285,6 +285,11 @@ contract:{until:1,max:1,options:[
 maint:{intake:26,storage:8,sales:33},ttl:5,q:[1,1,1,1,.8],
 // settle 은 판매 대금이 며칠 뒤 현금이 되는지다. 0 이면 당일이다.
 // 판로 셋. 가격은 나이별이고 관계가 오르면 단가와 주문량과 최소 보장이 오른다.
+// price는 판로 자체 비용(플랫폼/결제/채널 판매비용 등)까지 이미 반영된 순수취 단가다.
+// 그래서 온라인(settle 0)에 별도 판매수수료를 더 두지 않는다. 다만 이 순수취 단가는
+// 미래 현금흐름의 현재가치까지 반영한 것은 아니다 - 얼마를 받는가(price)와 언제 받는가
+// (settle)는 서로 다른 축이다. settle을 앞당기는 비용(예: AR factoring)은 price의 중복
+// 차감이 아니라 그 시간차를 없애는 별도 가격이다.
 channels:[
  {key:"online", cap:12, settle:0,  quota:8,  price:[955,895,545,0,0]},
  {key:"fran",   cap:12, settle:14, quota:10, price:[905,905,875,760,0]},
