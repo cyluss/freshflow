@@ -65,9 +65,6 @@ FF.reset(30699);
 for(let i=0;i<10;i++) FF.stepDay(FF.Cmd.wait());
 const iv=FF.invStats();
 t('invStats 수치형', iv===null || (typeof iv.lossPct==='number' && typeof iv.win==='number'));
-t('capWord 코드', ['at','near','free'].includes(FF.capWord(20,20)));
-t('capWord 여유', FF.capWord(1,20)==='free');
-t('storeWord 가득', FF.storeWord(FF.C.cap.storage)==='full');
 
 
 // timeline 구조화
@@ -116,14 +113,15 @@ t('종료 후 예측 없음', cd.FC===0 && cd.supplyBand.length===0);
 t('mods 배열', Array.isArray(cd.mods));
 
 
-// matrixData 계산 분리
+// forecastOnly 계산 분리: 지난 상태 표는 뺐다. 앞으로의 생산/수요 전망만 남는다.
 FF.reset(31236);
 for(let i=0;i<5;i++) FF.stepDay(FF.Cmd.wait());
-const md=FF.matrixData();
-t('matrixData 7행', md.rows.length===7);
-t('행 이름', md.rows.map(r=>r.name).join()==='supply,intake,storage,sales,demand,event,mod');
-t('셀 구조', md.rows[0].cells.every(c=>typeof c.code==='string'&&typeof c.warn==='boolean'));
-t('전망 3일', md.FC===FF.C.ui.fcDays);
+const fo=FF.forecastOnly();
+t('전망 3일', fo.FC===FF.C.ui.fcDays);
+t('생산 전망 길이', fo.supply.length===fo.FC);
+t('수요 전망 길이', fo.demand.length===fo.FC);
+t('생산 전망 코드', fo.supply.every(v=>['low','mid','high'].includes(v)));
+t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)));
 
 
 // 물리 한 벌 대조: 임의 계획에서 재생과 실플레이가 일치한다
@@ -645,7 +643,7 @@ t('전망 3일', md.FC===FF.C.ui.fcDays);
 
     monthOutlook: 'days,demand,left,supply,today',
 
-    matrixData:   'FC,days,left,over,rows'
+    forecastOnly: 'FC,demand,supply'
   };
   const got = {
     lostInflow: FF.lostInflow(FF.today()),
@@ -654,7 +652,7 @@ t('전망 3일', md.FC===FF.C.ui.fcDays);
 
     monthOutlook: FF.monthOutlook(),
 
-    matrixData: FF.matrixData()
+    forecastOnly: FF.forecastOnly()
   };
   const bad = Object.keys(CONTRACT).filter(k => keys(got[k]) !== CONTRACT[k]);
   t('표시 데이터 계약 유지', bad.length === 0, bad.map(k => k + ': ' + keys(got[k])).join(' | '));

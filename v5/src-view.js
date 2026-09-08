@@ -7,6 +7,9 @@ FV.MOUNT=null;
 
 
 FV.FlowSummary=function(props){
+ // 안의 펼치기(FV.OPEN)가 열리고 닫히는 것은 props.day가 안 바뀌므로, 이 컴포넌트가 직접
+ // 구독하지 않으면 다시 그려지지 않는다. 다른 상호작용 컴포넌트와 같은 이유로 observe를 부른다.
+ FF.observe();
  var d=props.day;
  if(FF.isOver())return FV._html`<div id="kbn" class="sub-p">${FF.isBust()?"현금 소진":FF.C.days+"일 운영 결과"}</div>`;
  if(!d)return FV._html`<div id="kbn" class="sub-p"></div>`;
@@ -14,13 +17,19 @@ FV.FlowSummary=function(props){
  // "어제"라고만 쓰면 지금 보고 있는 오늘의 예상치와 섞여 읽힌다. 날짜 숫자를 직접 박아 시점을 명확히 한다.
  var lost=FF.isLossCause(d.b);
  var boost=FF.contractBoostToday();
+ // 판로별 상세는 펼치기로 내린다. 여기서는 하루 전체 총계만 보인다.
+ var revTotal=(d.revCh||[]).reduce(function(a,b){return a+b},0);
  return FV._html`
   <div id="kbn" class="sub-p">
    <span style=${{fontSize:"12px",color:"var(--text-muted)"}}>${d.day+"일차 "+(lost?"막힌 곳":"상태")}</span><br />
    <span style=${{color:lost?"var(--text-warning)":"var(--text-secondary)"}}>${FV.BL[d.b]}</span><br />
    <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>${FV.causeLine(d)}</span><br />
-   <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>실제 입고 ${FF.fInt(d.acc)}t · 생산 ${FF.fInt(d.prod)}t</span>
+   <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>실제 입고 ${FF.fInt(d.acc)}t · 생산 ${FF.fInt(d.prod)}t</span><br />
+   <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>판매 ${FF.fInt(d.sold)}t / 주문 ${FF.fInt(d.dem)}t · 매출 ${mo(Math.round(revTotal))}원</span>
    ${boost>=0.5?FV._html`<br /><span id="kcontractboost" style=${{fontSize:"12px",color:"var(--text-success)"}}>계약 발동 · 기본 ${FF.fInt(d.capI)}t + 계약 ${boost}t</span>`:null}
+   <div style=${{marginTop:"6px"}}>
+    <${FV.Fold} id="dayresult" title="판로별 상세" render=${function(){return FV._html`<${FV.DayResultView} />`}} />
+   </div>
   </div>`;
 }
 
@@ -212,23 +221,15 @@ FV.DayResultView=function(){
  }));
 }
 
+// 판로별 상세는 FlowSummary 안의 펼치기가 이미 보여준다. 여기서는 되풀이하지 않는다.
 FV.FlowView=function(){
  var d=FF.today();
  return FV._html`
   <div id="kylabel" class="lbl">${d?(d.day+"일 결과"):"운영 시작 전"}</div>
   <${FV.FlowSummary} day=${d} />
-  <${FV.DayResultView} />
   <div id="kchain" class="gap-s">
    <${FV.FlowDiagram} day=${d} inventory=${FF.inventory()} />
   </div>`;
-}
-
-// 판로별 판매·매출 상세. 막힌 곳 요약은 이미 위쪽에 올라가 있으므로 여기서는 되풀이하지 않는다.
-FV.DayFlowSummary=function(){
- var d=FF.today();
- return FV._html`
-  <div id="kylabel" class="lbl">${d?(d.day+"일 결과"):"운영 시작 전"}</div>
-  <${FV.DayResultView} />`;
 }
 
 // 농가 -> 입고 -> 창고 -> 판매 흐름도. 결과를 뜯어볼 때만 찾아보는 상세 화면이다.
@@ -302,7 +303,7 @@ FV.OpeningView=function(){
 FV.ForecastView=function(){
  FF.observe();
  if(!FF.started()||FF.isOver())return null;
- return FV._html`<div id="kchart" class="gap-m"><${FV.ForecastMatrix} matrix=${FF.matrixData()} /></div>`;
+ return FV._html`<div id="kchart" class="gap-m"><${FV.ForecastMatrix} matrix=${FF.forecastOnly()} /></div>`;
 }
 
 FV.TimelineChartView=function(){
@@ -410,20 +411,19 @@ FV.EventLogView=function(){
  return FV._h("div",{class:"rellog"},rows);
 }
 
+// 어제 흐름은 이제 FlowSummary가 상단에서 직접 보여준다. 탭을 셋으로 줄인다.
 FV.PlayPager=function(){
  if(!FF.histLen()||FF.isOver())return null;
  return FV._html`
   <nav class="tabs">
-   <a href="#p0">어제 흐름</a>
-   <a href="#p1">사건 이력</a>
-   <a href="#p2">월간 전망</a>
-   <a href="#p3">상세 운영</a>
+   <a href="#p0">사건 이력</a>
+   <a href="#p1">월간 전망</a>
+   <a href="#p2">상세 운영</a>
   </nav>
   <div class="pager">
-   <section class="pane" id="p0"><${FV.DayFlowSummary} /></section>
-   <section class="pane" id="p1"><${FV.EventLogView} /></section>
-   <section class="pane" id="p2"><${FV.OutlookView} /></section>
-   <section class="pane" id="p3"><${FV.FlowDetailView} /></section>
+   <section class="pane" id="p0"><${FV.EventLogView} /></section>
+   <section class="pane" id="p1"><${FV.OutlookView} /></section>
+   <section class="pane" id="p2"><${FV.FlowDetailView} /></section>
   </div>`;
 }
 

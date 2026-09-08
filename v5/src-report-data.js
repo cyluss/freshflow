@@ -40,8 +40,6 @@ FF.invStats=function(){
  var dm=FF.dwellMedian(FF.C.ui.dwellWin);
  return {lossPct:Math.round(p.loss*100),med:dm?dm.med:null,p90:dm?dm.p90:null,win:FF.C.ui.dwellWin};
 }
-FF.capWord=function(v,cap){return v>=cap-FF.C.ui.eps?"at":(v>=cap*FF.C.ui.nearCap?"near":"free")};
-FF.storeWord=function(v){var r=v/FF.C.cap.storage;return r>=FF.C.ui.storeFull?"full":(r>=FF.C.ui.storeMid?"mid":"free")};
 
 FF.maintOf=function(k){return FF.C.step[k]*(k==="intake"?FF.C.maint.intake:FF.C.maint.sales)};
 FF.lostInflow=function(d){
@@ -68,15 +66,14 @@ FF.trend3=function(day){
 
 
 
-FF._matrixData=function(){
+// 앞으로 며칠의 생산·수요 국면 전망. 오늘 확정 상태와 어제 결과는 이미 다른 곳에서 보여주므로
+// 지난 며칠의 입고/창고/판매/사건/투자를 표로 되풀이하지 않는다. 지금 판단에 쓸 정보만 남긴다.
+FF._forecastOnly=function(){
  var h=FF.histOf();
  if(h.length<2)return null;
- var days=h.slice(-FF.C.ui.matrixDays);
  var FC=(!FF.isOver()&&FF.run().day<=FF.C.days)?FF.C.ui.fcDays:0;
+ if(!FC)return null;
  var SUP=["low","mid","high"], DEM=["weak","mid","strong"];
- var modOn={}, evOn={};
- FF.logOf().mods.forEach(function(m){modOn[m.day]=m.kind});
- FF.logOf().evlog.forEach(function(e){evOn[e.day]=e.b});
  var futPhase=function(idx,W,tl){
   var a=[];
   for(var dd=1;dd<=FC;dd++){
@@ -86,28 +83,12 @@ FF._matrixData=function(){
   }
   return a;
  };
- var mk=function(name,group,vals,fut,warn){
-  return {name:name,group:group,cells:vals.map(function(v){
-   return {code:v, warn:warn?warn(v):false, muted:(v===null)};
-  }), future:(fut||[])};
- };
- return {
-  days:days.map(function(r){return r.day}), FC:FC,
-  left:Math.max(0,FF.C.days-FF.run().day+1), over:FF.isOver(),
-  rows:[
-   mk("supply","supply",days.map(function(r){return SUP[r.si]}),FC?futPhase(FF.marketOf().si,SUP,FF.tiltOf().supply):null,function(v){return v==="low"}),
-   mk("intake","cap",days.map(function(r){return FF.capWord(r.acc,r.capI)}),null,function(v){return v==="at"}),
-   mk("storage","store",days.map(function(r){return FF.storeWord(r.end)}),null,function(v){return v==="full"}),
-   mk("sales","cap",days.map(function(r){return FF.capWord(r.sold,r.capS)}),null,function(v){return v==="at"}),
-   mk("demand","demand",days.map(function(r){return DEM[r.di]}),FC?futPhase(FF.marketOf().di,DEM,FF.tiltOf().demand):null,function(v){return v==="weak"}),
-   mk("event","event",days.map(function(r){return evOn[r.day]||null}),null,function(v){return v!==null}),
-   mk("mod","kind",days.map(function(r){return modOn[r.day]||null}),null,null)
-  ]
- };
+ return {FC:FC,
+  supply:futPhase(FF.marketOf().si,SUP,FF.tiltOf().supply),
+  demand:futPhase(FF.marketOf().di,DEM,FF.tiltOf().demand)};
 }
 
-
-FF.matrixData=FF.memo(FF._matrixData);
+FF.forecastOnly=FF.memo(FF._forecastOnly);
 
 FF.monthOutlook=function(){
  var M=FF.marketOf();

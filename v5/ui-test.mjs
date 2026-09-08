@@ -57,6 +57,27 @@ function open(file, seed) {
   const bnTxt = s0.q('kbn').textContent;
   t('실제 입고 값이 정확히 일치', bnTxt.includes('실제 입고 ' + s0.w.FF.fInt(today.acc) + 't'));
   t('생산 값이 정확히 일치', bnTxt.includes('생산 ' + s0.w.FF.fInt(today.prod) + 't'));
+  const revTotal = Math.round((today.revCh || []).reduce((a, b) => a + b, 0));
+  t('판매/주문 총계가 정확히 일치', bnTxt.includes(
+    '판매 ' + s0.w.FF.fInt(today.sold) + 't / 주문 ' + s0.w.FF.fInt(today.dem) + 't'));
+  t('매출 총계가 정확히 일치', bnTxt.includes('매출 ' + s0.w.mo(revTotal) + '원'));
+
+  // 판로별 상세는 어제 결과 안의 펼치기로 접혀 있다가, 펼치면 예전 dayresult와 같은 내용을 보인다
+  const foldHead = s0.d.querySelector('[data-fold="dayresult"]');
+  t('판로별 상세 펼치기 존재', !!foldHead);
+  t('접힌 상태에서는 목록 없음', !s0.q('kdayresult'));
+  foldHead.click(); await tick();
+  const dr = [...s0.q('kdayresult').querySelectorAll('.dr-row')];
+  const want = s0.w.FF.dayChannelResult();
+  t('펼치면 판로 수만큼 행이 보인다', dr.length === want.length);
+  t('행 내용이 dayChannelResult와 일치', dr.every((el, i) =>
+    el.textContent.includes(s0.w.FF.fInt(want[i].sold) + 't') &&
+    el.textContent.includes(s0.w.mo(want[i].revenue))));
+  foldHead.click(); await tick();
+  t('다시 접으면 목록이 사라진다', !s0.q('kdayresult'));
+
+  t('상세 운영 탭에는 어제 흐름 탭이 없다',
+    [...s0.d.querySelectorAll('.tabs a')].every(a => a.textContent !== '어제 흐름'));
 }
 
 // 2. 배분 막대는 진행 중 항상 보인다
@@ -212,19 +233,18 @@ function open(file, seed) {
 }
 
 
-// 10. 예보표
+// 10. 예보표: 지난 상태 표는 뺐다. 앞으로의 생산/수요 전망만 남는다.
 {
   const s6 = open(FILE, 31236);
   for (let i = 0; i < 4; i++) { s6.q('kgo').click(); await tick() }
   const chart = s6.q('kchart');
   t('예보표 존재', !!chart);
   const lines = [...chart.querySelectorAll('div')].filter(x => x.style.display === 'flex');
-  t('머리 + 7행', lines.length === 8);
-  const names = lines.slice(1).map(x => x.firstElementChild.textContent);
-  t('행 이름 일곱', names.join() === '생산,입고,창고,판매,수요,사건,투자');
-  const fut = lines[0].textContent;
-  t('전망 열 셋', ['+1','+2','+3'].every(x => fut.includes(x)));
-  t('남은 일수 표시', chart.textContent.includes('남은'));
+  t('행 둘(생산/수요)', lines.length === 2);
+  const names = lines.map(x => x.firstElementChild.textContent);
+  t('행 이름', names.join() === '생산,수요');
+  t('앞으로 표시', chart.textContent.includes('앞으로'));
+  t('지난 상태 표 없음', !chart.textContent.includes('입고') && !chart.textContent.includes('창고'));
   t('예보표 오류 없음', s6.errs.length === 0);
 }
 
@@ -234,16 +254,16 @@ function open(file, seed) {
   const s7 = open(FILE, 58207);
   for (let i = 0; i < 3; i++) { s7.q('kgo').click(); await tick() }
   const panes = [...s7.d.querySelectorAll('.pane')];
-  t('페이지 넷', panes.length === 4);
-  t('페이지 id', panes.map(p => p.id).join() === 'p0,p1,p2,p3');
+  t('페이지 셋', panes.length === 3);
+  t('페이지 id', panes.map(p => p.id).join() === 'p0,p1,p2');
   const links = [...s7.d.querySelectorAll('.tabs a')];
-  t('탭이 앵커 링크', links.length === 4 && links.every((a, i) => a.getAttribute('href') === '#p' + i));
-  t('두 번째 면은 사건 이력', links[1].textContent === '사건 이력');
-  t('세 번째 면은 월간 전망', links[2].textContent === '월간 전망');
-  t('네 번째 면은 상세 운영', links[3].textContent === '상세 운영');
-  t('세 번째 면 내용', s7.d.getElementById('p2').textContent.includes('초순'));
-  t('전망은 남은 기간', s7.d.getElementById('p2').textContent.includes('남은'));
-  t('네 번째 면에 흐름도', !!s7.d.getElementById('p3').querySelector('#kchain'));
+  t('탭이 앵커 링크', links.length === 3 && links.every((a, i) => a.getAttribute('href') === '#p' + i));
+  t('첫 번째 면은 사건 이력', links[0].textContent === '사건 이력');
+  t('두 번째 면은 월간 전망', links[1].textContent === '월간 전망');
+  t('세 번째 면은 상세 운영', links[2].textContent === '상세 운영');
+  t('두 번째 면 내용', s7.d.getElementById('p1').textContent.includes('초순'));
+  t('전망은 남은 기간', s7.d.getElementById('p1').textContent.includes('남은'));
+  t('세 번째 면에 흐름도', !!s7.d.getElementById('p2').querySelector('#kchain'));
   t('첫 면에는 흐름도 없음', !s7.d.getElementById('p0').querySelector('#kchain'));
   const pager = s7.d.querySelector('.pager');
   t('스크롤 핸들러 없음', !pager.onscroll);

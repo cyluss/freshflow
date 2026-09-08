@@ -1688,8 +1688,6 @@ FF.invStats=function(){
  var dm=FF.dwellMedian(FF.C.ui.dwellWin);
  return {lossPct:Math.round(p.loss*100),med:dm?dm.med:null,p90:dm?dm.p90:null,win:FF.C.ui.dwellWin};
 }
-FF.capWord=function(v,cap){return v>=cap-FF.C.ui.eps?"at":(v>=cap*FF.C.ui.nearCap?"near":"free")};
-FF.storeWord=function(v){var r=v/FF.C.cap.storage;return r>=FF.C.ui.storeFull?"full":(r>=FF.C.ui.storeMid?"mid":"free")};
 
 FF.maintOf=function(k){return FF.C.step[k]*(k==="intake"?FF.C.maint.intake:FF.C.maint.sales)};
 FF.lostInflow=function(d){
@@ -1716,15 +1714,14 @@ FF.trend3=function(day){
 
 
 
-FF._matrixData=function(){
+// 앞으로 며칠의 생산·수요 국면 전망. 오늘 확정 상태와 어제 결과는 이미 다른 곳에서 보여주므로
+// 지난 며칠의 입고/창고/판매/사건/투자를 표로 되풀이하지 않는다. 지금 판단에 쓸 정보만 남긴다.
+FF._forecastOnly=function(){
  var h=FF.histOf();
  if(h.length<2)return null;
- var days=h.slice(-FF.C.ui.matrixDays);
  var FC=(!FF.isOver()&&FF.run().day<=FF.C.days)?FF.C.ui.fcDays:0;
+ if(!FC)return null;
  var SUP=["low","mid","high"], DEM=["weak","mid","strong"];
- var modOn={}, evOn={};
- FF.logOf().mods.forEach(function(m){modOn[m.day]=m.kind});
- FF.logOf().evlog.forEach(function(e){evOn[e.day]=e.b});
  var futPhase=function(idx,W,tl){
   var a=[];
   for(var dd=1;dd<=FC;dd++){
@@ -1734,28 +1731,12 @@ FF._matrixData=function(){
   }
   return a;
  };
- var mk=function(name,group,vals,fut,warn){
-  return {name:name,group:group,cells:vals.map(function(v){
-   return {code:v, warn:warn?warn(v):false, muted:(v===null)};
-  }), future:(fut||[])};
- };
- return {
-  days:days.map(function(r){return r.day}), FC:FC,
-  left:Math.max(0,FF.C.days-FF.run().day+1), over:FF.isOver(),
-  rows:[
-   mk("supply","supply",days.map(function(r){return SUP[r.si]}),FC?futPhase(FF.marketOf().si,SUP,FF.tiltOf().supply):null,function(v){return v==="low"}),
-   mk("intake","cap",days.map(function(r){return FF.capWord(r.acc,r.capI)}),null,function(v){return v==="at"}),
-   mk("storage","store",days.map(function(r){return FF.storeWord(r.end)}),null,function(v){return v==="full"}),
-   mk("sales","cap",days.map(function(r){return FF.capWord(r.sold,r.capS)}),null,function(v){return v==="at"}),
-   mk("demand","demand",days.map(function(r){return DEM[r.di]}),FC?futPhase(FF.marketOf().di,DEM,FF.tiltOf().demand):null,function(v){return v==="weak"}),
-   mk("event","event",days.map(function(r){return evOn[r.day]||null}),null,function(v){return v!==null}),
-   mk("mod","kind",days.map(function(r){return modOn[r.day]||null}),null,null)
-  ]
- };
+ return {FC:FC,
+  supply:futPhase(FF.marketOf().si,SUP,FF.tiltOf().supply),
+  demand:futPhase(FF.marketOf().di,DEM,FF.tiltOf().demand)};
 }
 
-
-FF.matrixData=FF.memo(FF._matrixData);
+FF.forecastOnly=FF.memo(FF._forecastOnly);
 
 FF.monthOutlook=function(){
  var M=FF.marketOf();
@@ -2586,39 +2567,22 @@ FV.MatrixCell=function(props){
  }}>${props.text}</span>`;
 }
 
-FV.MatrixHeader=function(props){
- var M=props.matrix;
- return FV._html`<div style=${{display:"flex",gap:"2px"}}>
-  <span style=${{width:"26px",flexShrink:"0"}}></span>
-  ${M.days.map(function(d){return FV._html`<${FV.MatrixCell} text=${String(d)} color="var(--text-muted)" />`;})}
-  ${Array.from({length:M.FC},function(_,i){return FV._html`<${FV.MatrixCell} text=${"+"+(i+1)} color="var(--text-muted)" />`;})}
- </div>`;
-}
-
-FV.MatrixRow=function(props){
- var r=props.row, fc=props.fc;
- return FV._html`<div style=${{display:"flex",gap:"2px",padding:"2px 0"}}>
-  <span style=${{width:"26px",flexShrink:"0",fontSize:"11px",color:"var(--text-secondary)"}}>${FV.say("row",r.name)}</span>
-  ${r.cells.map(function(c){
-    var text=c.muted?"·":(r.group==="kind"?FV.lblOf(c.code):FV.say(r.group,c.code));
-    return FV._html`<${FV.MatrixCell} text=${text} warn=${c.warn} muted=${c.muted} />`;})}
-  ${Array.from({length:fc},function(_,i){
-    var fv=r.future[i];
-    return FV._html`<${FV.MatrixCell} text=${fv?FV.say(r.group,fv):"·"} color="var(--text-muted)" />`;})}
- </div>`;
-}
-
+// 생산·수요 전망만 남긴 표. 지난 며칠의 상태는 어제 결과/오늘 확정치가 이미 보여준다.
 FV.ForecastMatrix=function(props){
  var M=props.matrix;
  if(!M)return null;
- var summary="최근 "+M.days.length+"일 상태"+(M.FC?" · 오른쪽은 앞 "+M.FC+"일 전망":"")+(M.over?"":" · 남은 "+M.left+"일");
+ var row=function(label,group,vals){
+  return FV._html`<div style=${{display:"flex",gap:"2px",padding:"2px 0"}}>
+   <span style=${{width:"26px",flexShrink:"0",fontSize:"11px",color:"var(--text-secondary)"}}>${label}</span>
+   ${vals.map(function(v){return FV._html`<${FV.MatrixCell} text=${FV.say(group,v)} color="var(--text-muted)" />`;})}
+  </div>`;
+ };
  return FV._html`<div>
-  <div style=${{fontSize:"11px",color:"var(--text-muted)",marginBottom:"4px"}}>${summary}</div>
-  <${FV.MatrixHeader} matrix=${M} />
-  ${M.rows.map(function(r){return FV._html`<${FV.MatrixRow} row=${r} fc=${M.FC} />`;})}
+  <div style=${{fontSize:"11px",color:"var(--text-muted)",marginBottom:"4px"}}>앞으로 ${M.FC}일</div>
+  ${row(FV.say("row","supply"),"supply",M.supply)}
+  ${row(FV.say("row","demand"),"demand",M.demand)}
  </div>`;
 }
-
 })(window.FF,window.FV);
 </script>
 <script id="src-ui-chart">
@@ -3256,6 +3220,9 @@ FV.MOUNT=null;
 
 
 FV.FlowSummary=function(props){
+ // 안의 펼치기(FV.OPEN)가 열리고 닫히는 것은 props.day가 안 바뀌므로, 이 컴포넌트가 직접
+ // 구독하지 않으면 다시 그려지지 않는다. 다른 상호작용 컴포넌트와 같은 이유로 observe를 부른다.
+ FF.observe();
  var d=props.day;
  if(FF.isOver())return FV._html`<div id="kbn" class="sub-p">${FF.isBust()?"현금 소진":FF.C.days+"일 운영 결과"}</div>`;
  if(!d)return FV._html`<div id="kbn" class="sub-p"></div>`;
@@ -3263,13 +3230,19 @@ FV.FlowSummary=function(props){
  // "어제"라고만 쓰면 지금 보고 있는 오늘의 예상치와 섞여 읽힌다. 날짜 숫자를 직접 박아 시점을 명확히 한다.
  var lost=FF.isLossCause(d.b);
  var boost=FF.contractBoostToday();
+ // 판로별 상세는 펼치기로 내린다. 여기서는 하루 전체 총계만 보인다.
+ var revTotal=(d.revCh||[]).reduce(function(a,b){return a+b},0);
  return FV._html`
   <div id="kbn" class="sub-p">
    <span style=${{fontSize:"12px",color:"var(--text-muted)"}}>${d.day+"일차 "+(lost?"막힌 곳":"상태")}</span><br />
    <span style=${{color:lost?"var(--text-warning)":"var(--text-secondary)"}}>${FV.BL[d.b]}</span><br />
    <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>${FV.causeLine(d)}</span><br />
-   <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>실제 입고 ${FF.fInt(d.acc)}t · 생산 ${FF.fInt(d.prod)}t</span>
+   <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>실제 입고 ${FF.fInt(d.acc)}t · 생산 ${FF.fInt(d.prod)}t</span><br />
+   <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>판매 ${FF.fInt(d.sold)}t / 주문 ${FF.fInt(d.dem)}t · 매출 ${mo(Math.round(revTotal))}원</span>
    ${boost>=0.5?FV._html`<br /><span id="kcontractboost" style=${{fontSize:"12px",color:"var(--text-success)"}}>계약 발동 · 기본 ${FF.fInt(d.capI)}t + 계약 ${boost}t</span>`:null}
+   <div style=${{marginTop:"6px"}}>
+    <${FV.Fold} id="dayresult" title="판로별 상세" render=${function(){return FV._html`<${FV.DayResultView} />`}} />
+   </div>
   </div>`;
 }
 
@@ -3461,23 +3434,15 @@ FV.DayResultView=function(){
  }));
 }
 
+// 판로별 상세는 FlowSummary 안의 펼치기가 이미 보여준다. 여기서는 되풀이하지 않는다.
 FV.FlowView=function(){
  var d=FF.today();
  return FV._html`
   <div id="kylabel" class="lbl">${d?(d.day+"일 결과"):"운영 시작 전"}</div>
   <${FV.FlowSummary} day=${d} />
-  <${FV.DayResultView} />
   <div id="kchain" class="gap-s">
    <${FV.FlowDiagram} day=${d} inventory=${FF.inventory()} />
   </div>`;
-}
-
-// 판로별 판매·매출 상세. 막힌 곳 요약은 이미 위쪽에 올라가 있으므로 여기서는 되풀이하지 않는다.
-FV.DayFlowSummary=function(){
- var d=FF.today();
- return FV._html`
-  <div id="kylabel" class="lbl">${d?(d.day+"일 결과"):"운영 시작 전"}</div>
-  <${FV.DayResultView} />`;
 }
 
 // 농가 -> 입고 -> 창고 -> 판매 흐름도. 결과를 뜯어볼 때만 찾아보는 상세 화면이다.
@@ -3551,7 +3516,7 @@ FV.OpeningView=function(){
 FV.ForecastView=function(){
  FF.observe();
  if(!FF.started()||FF.isOver())return null;
- return FV._html`<div id="kchart" class="gap-m"><${FV.ForecastMatrix} matrix=${FF.matrixData()} /></div>`;
+ return FV._html`<div id="kchart" class="gap-m"><${FV.ForecastMatrix} matrix=${FF.forecastOnly()} /></div>`;
 }
 
 FV.TimelineChartView=function(){
@@ -3659,20 +3624,19 @@ FV.EventLogView=function(){
  return FV._h("div",{class:"rellog"},rows);
 }
 
+// 어제 흐름은 이제 FlowSummary가 상단에서 직접 보여준다. 탭을 셋으로 줄인다.
 FV.PlayPager=function(){
  if(!FF.histLen()||FF.isOver())return null;
  return FV._html`
   <nav class="tabs">
-   <a href="#p0">어제 흐름</a>
-   <a href="#p1">사건 이력</a>
-   <a href="#p2">월간 전망</a>
-   <a href="#p3">상세 운영</a>
+   <a href="#p0">사건 이력</a>
+   <a href="#p1">월간 전망</a>
+   <a href="#p2">상세 운영</a>
   </nav>
   <div class="pager">
-   <section class="pane" id="p0"><${FV.DayFlowSummary} /></section>
-   <section class="pane" id="p1"><${FV.EventLogView} /></section>
-   <section class="pane" id="p2"><${FV.OutlookView} /></section>
-   <section class="pane" id="p3"><${FV.FlowDetailView} /></section>
+   <section class="pane" id="p0"><${FV.EventLogView} /></section>
+   <section class="pane" id="p1"><${FV.OutlookView} /></section>
+   <section class="pane" id="p2"><${FV.FlowDetailView} /></section>
   </div>`;
 }
 
