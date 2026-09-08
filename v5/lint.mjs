@@ -3,7 +3,7 @@ import fs from 'fs';
 import * as acorn from 'acorn';
 import * as walk from 'acorn-walk';
 
-const FILES = ['src-core.js','src-store.js','src-access.js','src-uistate.js','src-kernel.js','src-runner.js','src-record.js','src-engine.js','src-counter.js','src-report-data.js','src-debug.js','src-render.js','src-text.js','src-ui-flow.js','src-ui-matrix.js','src-ui-chart.js','src-ui-outlook.js','src-report.js','src-clip.js','src-view.js','src-boot.js'];
+const FILES = ['src-core.js','src-store.js','src-access.js','src-uistate.js','src-kernel.js','src-runner.js','src-record.js','src-engine.js','src-counter.js','src-report-data.js','src-fact.js','src-debug.js','src-render.js','src-text.js','src-ui-flow.js','src-ui-matrix.js','src-ui-chart.js','src-ui-outlook.js','src-report.js','src-clip.js','src-view.js','src-boot.js'];
 const problems = [];
 const decl = new Set();          // FF.x = ... 로 선언된 것
 const refs  = new Map();         // FF.x 참조 횟수 (선언 제외)
@@ -161,7 +161,7 @@ for (const [name, n] of globalsUsed) problems.push(`미정의 식별자 ${name} 
 
 // D6. 도메인 계층에는 화면 문구를 두지 않는다
 {
-  const DOMAIN = ['src-store.js','src-access.js','src-uistate.js','src-kernel.js','src-runner.js','src-record.js','src-engine.js','src-counter.js','src-report-data.js'];
+  const DOMAIN = ['src-store.js','src-access.js','src-uistate.js','src-kernel.js','src-runner.js','src-record.js','src-engine.js','src-counter.js','src-report-data.js','src-fact.js'];
   const HANGUL = /[\uac00-\ud7a3]/;
   const ALLOW = /^\s*(\/\/|\*|\/\*)/;                      // 주석은 허용
   for (const f of DOMAIN) {

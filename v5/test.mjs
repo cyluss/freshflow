@@ -1,7 +1,7 @@
 import fs from 'fs';
 // 도메인은 헤드리스다. 진짜 소스를 그대로 싣고 화면 계층만 뺀다.
 const stub = 'var FF={},FV={};';
-const DOMAIN = ['src-core.js','src-store.js','src-access.js','src-uistate.js','src-kernel.js','src-runner.js','src-record.js','src-engine.js','src-counter.js','src-report-data.js'];
+const DOMAIN = ['src-core.js','src-store.js','src-access.js','src-uistate.js','src-kernel.js','src-runner.js','src-record.js','src-engine.js','src-counter.js','src-report-data.js','src-fact.js'];
 const src = stub
  + DOMAIN.map(f => fs.readFileSync(f,'utf8')).join('\n')
  + '\nreturn FF;';
@@ -1088,6 +1088,38 @@ t('전망 3일', md.FC===FF.C.ui.fcDays);
   const changes = FF.policyChanges();
   t('변화 전 값이 undefined 가 아니다', changes.every(c => c.from !== undefined));
   t('변화가 감지된다', changes.length === 2); // [1,1,1] -> [2,3,1]: 세 번째 판로만 그대로다
+}
+
+// FF.facts: 읽기 전용 투영이다. 실행 상태를 바꾸지 않고, 이미 있는 값만 축에 맞춰 옮긴다
+{
+  FF.reset(30699);
+  FF.stepDay(FF.Cmd.stance([2, 1, 1]));
+  const facts = FF.facts();
+  t('사실 목록이 비어있지 않다', facts.length > 0);
+  const axesOk = facts.every(f =>
+    FF.factAxes.time.includes(f.time) &&
+    FF.factAxes.phase.includes(f.phase) &&
+    FF.factAxes.domain.includes(f.domain) &&
+    (f.channel === null || FF.C.channels.some(c => c.key === f.channel)));
+  t('모든 사실이 정의된 축 값만 쓴다', axesOk);
+
+  const P = FF.stancePlan();
+  const find = (time, phase, domain, channel, metric) =>
+    facts.find(f => f.time === time && f.phase === phase && f.domain === domain && f.channel === channel && f.metric === metric);
+  t('재고 사실이 FF.inventory와 같다', find('curr', 'state', 'inventory', null, 'stock').value === FF.rInt(FF.inventory()));
+  t('판매가능 사실이 stancePlan과 같다', find('curr', 'plan', 'inventory', null, 'sellable').value === P.sellable);
+  t('미배정 사실이 stancePlan과 같다', find('curr', 'plan', 'inventory', null, 'unassigned').value === P.unassigned);
+
+  const d = FF.today();
+  t('어제 병목 사실이 기록과 같다', find('prev', 'result', 'bottleneck', null, 'cause').value === d.b);
+  const c0 = FF.C.channels[0].key;
+  t('판로별 판매 사실이 기록과 같다', find('prev', 'result', 'allocation', c0, 'sold').value === FF.rInt(d.toCh[0]));
+
+  const byCh = FF.factsByChannel();
+  t('판로 중심 투영은 판로 수만큼', byCh.length === FF.C.channels.length);
+  const rows = FF.channelRows();
+  t('판로 중심 투영의 쿼터가 channelRows와 같다',
+    byCh.every((r, i) => r['allocation.quota'] === rows[i].quota));
 }
 
 console.log(pass+' passed, '+fail+' failed');
