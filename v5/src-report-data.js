@@ -358,12 +358,13 @@ FF.todayIntake=function(){
 }
 // 오늘 판로별 예상 수요 한도. 커널이 world 로 뽑는 값과 같은 공식을 국면 평균으로 대신 쓴다.
 // 실제 값은 이것과 다를 수 있다. 화면은 이것으로 미리보기만 만든다.
+// FF.C.dm은 실 단위 전망이고 cap2/fl(채널 cap·quota 기반)은 확정 수량 척도라 d0에만 2를 곱해 맞춘다.
 FF.estChannelDemand=function(i){
  var M=FF.marketOf(); if(!M)return 0;
  var CH=FF.C.channels, R=FF.C.rel, rel=FF.relOf()[i]===undefined?R.start:FF.relOf()[i];
  var totCap=0; for(var k=0;k<CH.length;k++)totCap+=CH[k].cap;
  var cap2=CH[i].cap*R.cap[rel];
- var d0=FF.C.dm[M.di]*CH[i].cap/totCap;
+ var d0=FF.C.dm[M.di]*2*CH[i].cap/totCap;
  var fl=CH[i].key==="fran"?CH[i].quota*R.floor[rel]:0;
  return Math.min(cap2,Math.max(d0,fl));
 }
@@ -401,18 +402,9 @@ FF.stancePlan=function(){
  var inv=FF.inventory(), invR=FF.rInt(inv), exp=FF.todayIntake(), caps=FF.capsOf();
  var totCap=0, i; for(i=0;i<n;i++)totCap+=rows[i].cap;
  var pool=Math.min(invR+exp,totCap,caps?caps.sales:totCap);
- var preview=FF.allocatePool(pool,est.slice(),levels,rows.map(function(r){return r.quota}));
- // 판로마다 따로 반올림하면 합이 pool을 넘을 수 있다(quantizePct와 같은 문제).
- // 최대 나머지 방식으로 합을 pool 이하로 고정한 뒤에만 반올림한다.
- var rawSum=0; for(i=0;i<n;i++)rawSum+=preview[i];
- var floor=preview.map(function(v){return Math.floor(v+FF.C.ui.zero)});
- var flooredSum=0; for(i=0;i<n;i++)flooredSum+=floor[i];
- var target=Math.min(pool,Math.round(rawSum));
- var order=preview.map(function(v,idx){return {i:idx,rem:v-floor[idx]}})
-   .sort(function(a,b){return (b.rem-a.rem)||(a.i-b.i)});
- var give=Math.max(0,target-flooredSum);
- for(var k=0;k<give&&k<n;k++)floor[order[k].i]+=1;
- preview=floor;
+ // allocatePool은 소수를 낸다. 커널 실행과 같은 FF.roundAllocation으로 한 번만 정수화한다.
+ var preview=FF.roundAllocation(FF.allocatePool(pool,est.slice(),levels,
+   rows.map(function(r){return r.quota})),pool);
  var sum=0; for(i=0;i<n;i++)sum+=preview[i];
  // 기회비용: 주문은 있는데 다른 판로 우선 때문에 못 받는 양이다.
  var missed=est.map(function(e,idx){return FF.rInt(Math.max(0,e-preview[idx]))});
@@ -510,11 +502,11 @@ FF.issueFeasible=function(i){
  return FF.estChannelDemand(i)>=FF.C.channels[i].quota-FF.C.ui.zero?"ok":"hard";
 }
 // 오늘 계약으로 기본 입고 한도를 넘겨 추가로 받은 양. 계약이 없거나 안 걸렸으면 0이다.
-// 계약 크기가 0.5t 단위라서 정수로 반올림하면 1.5t이 2t으로 보인다. 소수 첫째 자리까지 남긴다.
+// acc/capI가 이제 확정 정수라 소수가 남을 일이 없다.
 FF.contractBoostToday=function(){
  var d=FF.today();
  if(!d||d.capI===undefined)return 0;
- return Math.round(Math.max(0,d.acc-d.capI)*10)/10;
+ return Math.max(0,d.acc-d.capI);
 }
 // 초과분 계약 누적 효과. 발동일수와 추가 입고는 기록에서 바로 센다.
 // 순이익 기여는 계약 없이 다시 돌린 결과와의 차이(반사실)를 modRows에서 그대로 가져온다.

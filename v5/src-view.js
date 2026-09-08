@@ -26,7 +26,7 @@ FV.FlowSummary=function(props){
    <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>${FV.causeLine(d)}</span><br />
    <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>실제 입고 ${FF.fInt(d.acc)}t · 생산 ${FF.fInt(d.prod)}t</span><br />
    <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>판매 ${FF.fInt(d.sold)}t / 주문 ${FF.fInt(d.dem)}t · 매출 ${mo(Math.round(revTotal))}원</span>
-   ${boost>=0.5?FV._html`<br /><span id="kcontractboost" style=${{fontSize:"12px",color:"var(--text-success)"}}>계약 발동 · 기본 ${FF.fInt(d.capI)}t + 계약 ${boost}t</span>`:null}
+   ${boost>=1?FV._html`<br /><span id="kcontractboost" style=${{fontSize:"12px",color:"var(--text-success)"}}>계약 발동 · 기본 ${FF.fInt(d.capI)}t + 계약 ${boost}t</span>`:null}
    <div style=${{marginTop:"6px"}}>
     <${FV.Fold} id="dayresult" title="판로별 상세" render=${function(){return FV._html`<${FV.DayResultView} />`}} />
    </div>
@@ -111,7 +111,8 @@ FV.ChannelBar=function(){
   var missed=r['curr.plan.allocation.missed'], assigned=r['curr.plan.allocation.assigned'];
   var order=r['curr.forecast.demand.order'], level=r['curr.plan.allocation.stance'];
   var floor=r['curr.state.allocation.floor'];
-  var missTxt=missed>=1?(FF.fInt(missed)+"t을 다른 판로에 양보"):"";
+  // 임계값은 실제 1t(내부 2단위)를 기준으로 한다. 이 자료형은 1 unit = 0.5t다.
+  var missTxt=missed>=2?(FF.fInt(missed)+"t을 다른 판로에 양보"):"";
   return FV._h("div",{class:"chan-card"},[
    FV._h("div",{class:"chan-id"},[
     FV._h("span",{class:"chan-name"},FV.say("channel",r.key))
@@ -157,9 +158,9 @@ FV.ChannelBar=function(){
      FV._h("span",{class:"chan-head-label"},"예상 판매"),
      FV._h("span",{class:"chan-head-value"},FF.fInt(sum)+"t")
     ]),
-    unassigned>=1?FV._h("div",{class:"chan-head-note"},"미배정 "+FF.fInt(unassigned)+"t"):null
+    unassigned>=2?FV._h("div",{class:"chan-head-note"},"미배정 "+FF.fInt(unassigned)+"t"):null
    ]),
-   old>=1?FV._h("div",{class:"chan-head-old"},"오래된 재고 "+FF.fInt(old)+"t"):null
+   old>=2?FV._h("div",{class:"chan-head-old"},"오래된 재고 "+FF.fInt(old)+"t"):null
   ]),
   rows,
   FV._h("div",{class:"chan-sum"},[
@@ -176,7 +177,7 @@ FV.CapacityButton=function(){
  var on=FF.queued("sales");
  if(!on){
   var hit=FF.capHits("sales",5);
-  var shortfall=FF.factsByChannel().some(function(r){return r['curr.plan.allocation.missed']>=1});
+  var shortfall=FF.factsByChannel().some(function(r){return r['curr.plan.allocation.missed']>=2});
   if(!hit.n&&!hit.last&&!shortfall)return null;
  }
  var opt=FF.optionOf("sales");

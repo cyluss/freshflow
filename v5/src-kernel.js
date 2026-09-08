@@ -62,21 +62,26 @@ FF.World=function(seed,rules){
   // 생산은 턴이 시작될 때(정책을 정하기 전) 미리 확정한다. 수요는 하루를 실행할 때만 실현된다.
   // 그래서 둘을 분리해 서로 다른 시점에 뽑는다. 참조 재생(러너)은 여전히 next()로 같이 뽑는다.
   nextProduction:function(){
-   var out={production:Math.max(0,rngS.norm(R.sm[si],R.sd)),supplyPhase:si};
+   // sm/sd는 실 단위 분포다. 여기서 확정 수량(2배 내부단위)으로 양자화한다. 확률 세계에서
+   // 확정 세계로 넘어오는 경계는 이 한 곳뿐이다.
+   var raw=Math.max(0,rngS.norm(R.sm[si],R.sd));
+   var out={production:Math.round(raw*2),supplyPhase:si};
    si=FF.mvSeq(rngS,si,R,ts);
    out.nextSupplyPhase=si;
    return out;
   },
   nextDemand:function(){
-   var dem=Math.max(0,rngD.norm(R.dm[di],R.dd));
+   var rawDem=Math.max(0,rngD.norm(R.dm[di],R.dd));
+   var dem=Math.round(rawDem*2);
    // 판로별 수요. 전체 수요를 상한 비율로 나누고 판로마다 다른 변동을 준다.
+   // c.cap은 이미 확정 수량 척도라 비율(c.cap/totCap)은 그대로 쓴다.
    var totCap=0, ci;
    for(ci=0;ci<R.channels.length;ci++)totCap+=R.channels[ci].cap;
    var chDem=[];
    for(ci=0;ci<R.channels.length;ci++){
     var c=R.channels[ci];
     var vol=(c.key==="whole")?0.2:0.4;
-    chDem.push(Math.max(0,dem*(c.cap/totCap)*(1-vol+rngD.next()*vol*2)));
+    chDem.push(Math.round(Math.max(0,rawDem*(c.cap/totCap)*(1-vol+rngD.next()*vol*2))*2));
    }
    var out={demand:dem,chDemand:chDem,demandPhase:di};
    di=FF.mvSeq(rngD,di,R,td);
@@ -99,11 +104,14 @@ FF.World=function(seed,rules){
 // 지금 들고 있는 재고를 뺀 나머지다. 실제 입고(acc)는 이 값과 생산·입고한도 중 가장 작은 쪽이다.
 // 커널과 미리보기가 이 함수 하나를 같이 쓴다. 따로 두면(예: 미리보기가 국면 평균을 따로 계산하면)
 // 둘이 갈라져도 알아채기 어렵다.
+// capSales/totalInv는 확정 수량(2배 내부단위)이고, FF.expD는 실 단위 전망이라 그대로 섞으면
+// 척도가 안 맞는다. expD 쪽에 2를 곱해 확정 수량과 같은 척도로 맞춘 뒤, 결과를 확정 도메인
+// 진입점에서 한 번만 반올림한다(그 뒤로는 min()에 그대로 쓰이므로 여기서 정수가 확정돼야 한다).
 FF.intakeNeed=function(di,capSales,cover,totalInv,rules){
  var R=rules||FF.C;
- var on=Math.min(capSales,FF.expD(di,1,3,R)), om=Math.min(capSales,FF.expD(di,4,7,R));
+ var on=Math.min(capSales,FF.expD(di,1,3,R)*2), om=Math.min(capSales,FF.expD(di,4,7,R)*2);
  var cv=(cover===undefined)?R.cover:cover;
- return Math.max(0,cv*on+R.alpha*Math.max(0,om-on)*R.mid-totalInv);
+ return Math.round(Math.max(0,cv*on+R.alpha*Math.max(0,om-on)*R.mid-totalInv));
 }
 
 FF.stepState=function(s,prod,dem,rules){
@@ -141,8 +149,10 @@ FF.stepState=function(s,prod,dem,rules){
  var byNeed=Math.max(0,rest-byStore);
  var stored=Math.min(acc,freeNow), wS=acc-stored;
  // 매입은 지금 손에 있는 현금으로만 한다. 모자라면 그만큼 덜 받는다.
+ // budget/farm을 그대로 쓰면 소수가 나온다. 현금으로 못 사는 몫이라 올림이 아니라 내림이어야
+ // 한도를 넘지 않는다(정수 확정 도메인 경계).
  var budget=Math.max(0,s.cash-R.fixed);
- var payable=(R.farm>0)?Math.min(stored,budget/R.farm):stored;
+ var payable=(R.farm>0)?Math.min(stored,Math.floor(budget/R.farm)):stored;
  var short=stored-payable;
  if(short>R.ui.zero){ stored=payable; wS+=short; }
  if(stored>0)s.lots.push({q:stored,a:0});
@@ -154,13 +164,15 @@ FF.stepState=function(s,prod,dem,rules){
  var chDem=[];
  for(var ci=0;ci<nch;ci++){chDem.push(0);toCh.push(0);revCh.push(0)}
  // 오늘 판로 수요는 world 가 준다. 없으면 전체 수요를 상한 비율로 나눈다.
+ // 판로마다 독립된 상한(비율·보장 기준 조합)이라 총합을 보존할 필요는 없지만, 이 값이
+ // 태도/명시배분 없이도 판매 상한으로 그대로 쓰이므로(quotaLeft) 정수여야 판매량이 안 샌다.
  var src=s._chDemand||null;
  for(ci=0;ci<nch;ci++){
   var rl2=relv[ci]===undefined?R.rel.start:relv[ci];
   var cap2=CHS[ci].cap*R.rel.cap[rl2];
   var d0=src?src[ci]:(dem*CHS[ci].cap/ (function(){var t=0;for(var z=0;z<nch;z++)t+=CHS[z].cap;return t})());
   var fl=CHS[ci].quota*R.rel.floor[rl2];
-  chDem[ci]=Math.min(cap2,Math.max(d0,(CHS[ci].key==="fran")?fl:0));
+  chDem[ci]=Math.round(Math.min(cap2,Math.max(d0,(CHS[ci].key==="fran")?fl:0)));
  }
  // 나이가 오래된 lot 부터 본다. 한 판로에 팔고 대금을 잡는 공통 처리다.
  s.lots.sort(function(a,b){return b.a-a.a});
@@ -177,8 +189,11 @@ FF.stepState=function(s,prod,dem,rules){
  var hasStance=s.stance&&s.stance.length===nch;
  // 보장 예약 + 가중치 water-filling. 미리보기(stancePlan)와 같은 FF.allocatePool을 쓴다.
  // pool은 물리 재고와 하루 판매 총상한 중 작은 쪽이다. 그래야 목표가 처음부터 상한을 넘지 않는다.
- var target=hasStance?FF.allocatePool(Math.min(sellable,Math.max(0,s.cap.sales-sold)),chDem.slice(),
-   s.stance,CHS.map(function(c){return c.quota}),R):null;
+ var pool=Math.min(sellable,Math.max(0,s.cap.sales-sold));
+ // allocatePool은 소수를 낸다. lot.q가 정수인 만큼 실제 판매도 끝까지 정수로 남으려면
+ // 이 target도 미리보기와 같은 방식(FF.roundAllocation)으로 한 번 정수화해야 한다.
+ var target=hasStance?FF.roundAllocation(FF.allocatePool(pool,chDem.slice(),
+   s.stance,CHS.map(function(c){return c.quota}),R),pool):null;
  // 명시 배분(s.alloc)이 있으면 그것으로, 태도도 배분도 없으면 null(단가 순)로 정렬 순서를 정한다.
  var effAlloc=(s.alloc&&s.alloc.length===nch)?s.alloc
    :(hasStance?s.stance.map(function(lv){return R.stance.weight[lv]}):null);
@@ -217,7 +232,7 @@ FF.stepState=function(s,prod,dem,rules){
    if(take<=R.ui.zero)continue;
    lot.q-=take; chDem[c2]-=take; sold+=take; toCh[c2]+=take;
    ageMix.push({a:lot.a,q:take});
-   var amt=take*sellUnit(c2,age);
+   var amt=FF.tradeAmount(sellUnit(c2,age),take);
    settleSale(c2,amt);
   }
  }
@@ -254,8 +269,10 @@ FF.stepState=function(s,prod,dem,rules){
 
 
 // 병목 판정. 그날의 사실이므로 커널의 일부다.
+// lossOut은 r.missed를 그대로 쓴다. dem-r.sold로 다시 계산하면, 판로별 수요(chDem)가
+// 독립적으로 반올림되면서 총합이 dem과 살짝 어긋나는 경우 판정(ship/stock)과 손실량이 갈릴 수 있다.
 FF.bottleneck=function(s,r,dem,rules){
- var eps=(rules||FF.C).ui.eps, lossOut=Math.max(0,dem-r.sold);
+ var eps=(rules||FF.C).ui.eps, lossOut=r.missed;
  var cand=[
   ["ship",  (r.sold>=s.cap.sales-eps&&dem>r.sold+eps)?lossOut:0],
   ["stock", (r.sold<dem-eps&&r.sellable<=r.sold+eps)?lossOut:0],

@@ -117,9 +117,9 @@ function open(file, seed) {
   t('선택지 넷', [0,1,2,3].every(i => !!s.q('kbc' + i)));
   t('첫날 판매 한도 버튼 없음', !s.q('kbs'));
   s.q('kbc2').click(); await tick();
-  t('선택 후 대기열 1', s.w.FF.queueOf().length === 1 && s.w.FF.queueOf()[0].size === 1);
+  t('선택 후 대기열 1', s.w.FF.queueOf().length === 1 && s.w.FF.queueOf()[0].size === 2);
   s.q('kbc3').click(); await tick();
-  t('다른 크기로 교체', s.w.FF.queueOf().length === 1 && s.w.FF.queueOf()[0].size === 1.5);
+  t('다른 크기로 교체', s.w.FF.queueOf().length === 1 && s.w.FF.queueOf()[0].size === 3);
   s.q('kbc0').click(); await tick();
   t('노출 없음 선택', s.w.FF.queueOf().length === 0);
 
@@ -335,7 +335,7 @@ function open(file, seed) {
 {
   const s11 = open(FILE, 84206);
   const bi = s11.q('kbc3').textContent;
-  t('선택지 표기', bi.includes('+1.5t'));
+  t('선택지 표기', bi.includes('+3t'));
   t('선택지 설명', bi.includes('한도 넘는 날'));
   s11.q('kbc0').click(); await tick();
   let n = 0;
@@ -345,7 +345,7 @@ function open(file, seed) {
   // 흐름 화면과 같은 말을 쓴다
   const flow = s11.q('kchain').textContent;
   t('흐름도 판매 표기', flow.includes('판매') && !flow.includes('출하'));
-  t('흐름도 하루 한도', flow.includes('하루 한도 20t') && flow.includes('하루 한도 21t'));
+  t('흐름도 하루 한도', flow.includes('하루 한도 40t') && flow.includes('하루 한도 42t'));
 
   t('둘째 날부터 선택지 없음', !s11.q('kbc0') && !s11.q('kopening'));
 }
@@ -353,19 +353,19 @@ function open(file, seed) {
 // 15b. 계약이 활성화되면(어제 사서 오늘부터) 판매 가능/입고 예상 미리보기에도 반영된다
 {
   const s12b = open(FILE, 7);
-  s12b.q('kbc3').click(); await tick(); // +1.5t 계약
+  s12b.q('kbc3').click(); await tick(); // +3(내부단위) 계약
   t('첫날은 계약이 아직 안 걸린다', s12b.w.FF.effectiveContract() === 0);
   s12b.q('kgo').click(); await tick(); // 1일차 실행 -> 2일차: 계약이 오늘부터 유효
-  t('둘째 날부터 계약이 유효', s12b.w.FF.effectiveContract() === 1.5);
+  t('둘째 날부터 계약이 유효', s12b.w.FF.effectiveContract() === 3);
   const caps = s12b.w.FF.capsOf();
-  const expected = Math.round(Math.min(s12b.w.FF.prodOf(), caps.intake + 1.5));
+  const expected = Math.round(Math.min(s12b.w.FF.prodOf(), caps.intake + 3));
   t('확정 입고가 기본 한도+계약을 반영', s12b.w.FF.todayIntake() === expected);
 }
 
 // 15c. 초과분 계약이 발동하면 그날 알려주고, 종료 후 누적 효과를 보여준다
 {
   const s12 = open(FILE, 7);
-  s12.q('kbc3').click(); await tick(); // +1.5t 계약
+  s12.q('kbc3').click(); await tick(); // +3(내부단위) 계약
   let n = 0, sawBoost = false, boostTxtChecked = false;
   while (!s12.w.FF.isOver() && n < 60) {
     s12.q('kgo').click(); await tick(); n++;
@@ -382,7 +382,7 @@ function open(file, seed) {
   }
   t('계약 발동 시 콜아웃이 뜬 적 있다', sawBoost);
   const stats = s12.w.FF.contractStats();
-  t('종료 후 계약 통계 존재', !!stats && stats.size === 1.5);
+  t('종료 후 계약 통계 존재', !!stats && stats.size === 3);
   const perfFold = s12.d.querySelector('[data-fold="perf"]');
   perfFold.click(); await tick();
   const perfTxt = s12.q('kbrief').textContent;
