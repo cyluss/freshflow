@@ -42,6 +42,20 @@ function open(file, seed) {
   t('로드 오류 없음', errs.length === 0);
 }
 
+// 1b. 병목 라벨은 실제 손실이 있을 때만 "막힌 곳"이다
+{
+  const s0 = open(FILE, 31236);
+  s0.q('kbc0').click(); await tick();
+  s0.q('kgo').click(); await tick();
+  t('isLossCause 분류', s0.w.FF.isLossCause('ship') && s0.w.FF.isLossCause('stock') &&
+    s0.w.FF.isLossCause('intake') && s0.w.FF.isLossCause('store') &&
+    !s0.w.FF.isLossCause('demand') && !s0.w.FF.isLossCause('supply') && !s0.w.FF.isLossCause('policy'));
+  const today = s0.w.FF.today();
+  const lost = s0.w.FF.isLossCause(today.b);
+  const label = s0.q('kbn').querySelector('span').textContent;
+  t('병목 라벨은 손실 여부와 일치', label === (lost ? '어제 막힌 곳' : '어제 상태'));
+}
+
 // 2. 배분 막대는 진행 중 항상 보인다
 {
   const s = open(FILE, 31236);

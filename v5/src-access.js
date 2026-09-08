@@ -1,3 +1,6 @@
+// 어제 병목(b)이 실제로 뭔가 놓친 경우인지. supply/demand/policy는 용량이 남았을 뿐 손실이 아니다.
+FF.isLossCause=function(b){return b==="intake"||b==="store"||b==="ship"||b==="stock"}
+
 // 내일 적용될 증설. 화면이 쓰는 읽기 접근자다.
 // 지금 매입 목표. 화면과 커널 어댑터가 쓴다.
 FF.arOf=function(){FF.VERSION.value;return FF.AR.value||[]}
