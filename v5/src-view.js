@@ -190,12 +190,11 @@ FV.FlowView=function(){
   </div>`;
 }
 
-// 다음 판단에 바로 쓰이는 것만 남긴 하루 결과. 흐름도는 상세 화면으로 뺀다.
+// 판로별 판매·매출 상세. 막힌 곳 요약은 이미 위쪽에 올라가 있으므로 여기서는 되풀이하지 않는다.
 FV.DayFlowSummary=function(){
  var d=FF.today();
  return FV._html`
   <div id="kylabel" class="lbl">${d?(d.day+"일 결과"):"운영 시작 전"}</div>
-  <${FV.FlowSummary} day=${d} />
   <${FV.DayResultView} />`;
 }
 
@@ -406,6 +405,7 @@ FV.App=function(){
    <${FV.GameResultView} />
    <${FV.OpeningView} />
 
+   ${(!fresh&&!over)?FV._html`<${FV.FlowSummary} day=${FF.today()} />`:null}
    <${FV.IssueBar} />
    <${FV.ChannelBar} />
    <${FV.CapacityButton} />
