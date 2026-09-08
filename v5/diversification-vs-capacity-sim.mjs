@@ -24,9 +24,12 @@ const WEIGHTED_SETTLE = Math.round(ORIGINAL_CHANNELS.reduce((s, c) => s + c.cap 
 const BLENDED_PRICE = [0, 1, 2, 3, 4].map(a =>
   ORIGINAL_CHANNELS.reduce((s, c) => s + c.cap * c.price[a], 0) / TOTAL_CAP);
 const MERGED_CHANNEL = { key: 'merged', cap: TOTAL_CAP, settle: WEIGHTED_SETTLE, quota: TOTAL_QUOTA, price: BLENDED_PRICE };
+// 후속: 정산시간 혼입을 제거한 버전. settle=0(가장 빠른 채널 기준)으로 맞춰서 현금흐름
+// confound 없이 순수 물리적 diversification 효과(DIO·꼬리재고)만 남긴다.
+const MERGED_FAST_SETTLE = { key: 'merged_settle0', cap: TOTAL_CAP, settle: 0, quota: TOTAL_QUOTA, price: BLENDED_PRICE };
 console.log('merged channel:', JSON.stringify(MERGED_CHANNEL));
 
-const CONDS = { all3: ORIGINAL_CHANNELS, merged: [MERGED_CHANNEL] };
+const CONDS = { all3: ORIGINAL_CHANNELS, merged: [MERGED_CHANNEL], merged_settle0: [MERGED_FAST_SETTLE] };
 const EFF_CAP = Math.min(CAP_SALES, TOTAL_CAP); // 둘 다 같은 유효capacity를 쓴다
 const LOAD_RATIOS = [0.8, 1.0, 1.2, 1.5];
 
@@ -79,11 +82,12 @@ for (const [condName, channels] of Object.entries(CONDS)) {
 
 for (const ratio of LOAD_RATIOS) {
   console.log(`\n========== 부하비율=${ratio} (같은 유효capacity=${EFF_CAP}, n=${N_SEEDS}) ==========`);
-  const a3 = results.all3[ratio], mg = results.merged[ratio];
+  const a3 = results.all3[ratio], mg = results.merged[ratio], mg0 = results.merged_settle0[ratio];
   console.table([
     { 조건: 'all3(3판로 분산)', DIO: a3.dio.toFixed(3), 꼬리재고: a3.tailEnd.toFixed(2), 부패율: a3.wasteRate.toFixed(3) + '%', netWorth: Math.round(a3.netWorth), missed: a3.missed.toFixed(1), 평균관계: a3.rel.toFixed(2), bust: a3.bustPct.toFixed(1) + '%' },
-    { 조건: 'merged(단일 가상판로)', DIO: mg.dio.toFixed(3), 꼬리재고: mg.tailEnd.toFixed(2), 부패율: mg.wasteRate.toFixed(3) + '%', netWorth: Math.round(mg.netWorth), missed: mg.missed.toFixed(1), 평균관계: mg.rel.toFixed(2), bust: mg.bustPct.toFixed(1) + '%' },
+    { 조건: 'merged(가중평균 정산5일)', DIO: mg.dio.toFixed(3), 꼬리재고: mg.tailEnd.toFixed(2), 부패율: mg.wasteRate.toFixed(3) + '%', netWorth: Math.round(mg.netWorth), missed: mg.missed.toFixed(1), 평균관계: mg.rel.toFixed(2), bust: mg.bustPct.toFixed(1) + '%' },
+    { 조건: 'merged_settle0(정산0일)', DIO: mg0.dio.toFixed(3), 꼬리재고: mg0.tailEnd.toFixed(2), 부패율: mg0.wasteRate.toFixed(3) + '%', netWorth: Math.round(mg0.netWorth), missed: mg0.missed.toFixed(1), 평균관계: mg0.rel.toFixed(2), bust: mg0.bustPct.toFixed(1) + '%' },
   ]);
-  const dSold = a3.soldPerSeed.map((v, i) => v - mg.soldPerSeed[i]);
-  console.log(`판매량 차이(all3-merged, 같은 seed): avg=${avg(dSold).toFixed(2)}, DIO 차이(merged-all3)=${(mg.dio - a3.dio).toFixed(3)}일, 꼬리재고 차이(merged-all3)=${(mg.tailEnd - a3.tailEnd).toFixed(2)}`);
+  const dSold = a3.soldPerSeed.map((v, i) => v - mg0.soldPerSeed[i]);
+  console.log(`판매량 차이(all3-merged_settle0, 같은 seed): avg=${avg(dSold).toFixed(2)}, DIO 차이(merged_settle0-all3)=${(mg0.dio - a3.dio).toFixed(3)}일, 꼬리재고 차이=${(mg0.tailEnd - a3.tailEnd).toFixed(2)}`);
 }
