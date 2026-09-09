@@ -1407,7 +1407,7 @@ FF.recordDay=function(r,ev){
   missed:r.missed,ageMix:r.ageMix,wI:r.wI,wIcap:r.wIcap,wIprocure:r.wIprocure,wIstore:r.wIstore,wIneed:r.wIneed,
   wS:r.wS,wT:r.wT,end:r.end,profit:r.profit-r.cost,b:r.b,
   si:FF.MARKET.value.si,di:FF.MARKET.value.di,
-  capI:FF.plant().cap.intake,capS:FF.plant().cap.sales,
+  capI:FF.plant().cap.intake,capS:FF.plant().cap.sales,capP:FF.plant().cap.procure,
   toCh:r.toCh.slice(),revCh:r.revCh.slice(),rel:FF.relOf().slice(),
   stance:(FF.stanceOf()||FF.C.channels.map(function(){return FF.C.stance.start})).slice()});
  for(var mi=0;mi<FF.logOf().mods.length;mi++){
@@ -2480,12 +2480,16 @@ FF.issueFeasible=function(i){
  if(left<FF.C.rel.up)return "low";
  return FF.estChannelDemand(i)>=FF.C.channels[i].quota-FF.C.ui.zero?"ok":"hard";
 }
-// 오늘 계약으로 기본 입고 한도를 넘겨 추가로 받은 양. 계약이 없거나 안 걸렸으면 0이다.
-// acc/capI가 이제 확정 정수라 소수가 남을 일이 없다.
+// 오늘 계약으로 평상시 조달경로(정상 확보량) 밖에서 추가로 받은 양. 계약이 없거나 안
+// 걸렸으면 0이다. acc/capI가 이제 확정 정수라 소수가 남을 일이 없다.
+// 이슈 #22/#26: capProcure가 생긴 뒤로 "평상시"는 더 이상 capIntake 하나가 아니다 -
+// 그날 실제 정상채널 상한(min(prod,capProcure,capIntake)) 밖에서 계약으로 더 받은
+// 양만 계약의 몫이다. capProcure가 capIntake 이상이면 이 식은 원래 식과 같아진다.
 FF.contractBoostToday=function(){
  var d=FF.today();
  if(!d||d.capI===undefined)return 0;
- return Math.max(0,d.acc-d.capI);
+ var normalReach=Math.min(d.prod,d.capP,d.capI);
+ return Math.max(0,d.acc-normalReach);
 }
 // 초과분 계약 누적 효과. 발동일수와 추가 입고는 기록에서 바로 센다.
 // 순이익 기여는 계약 없이 다시 돌린 결과와의 차이(반사실)를 modRows에서 그대로 가져온다.
@@ -3579,7 +3583,7 @@ FV.FlowSummary=function(props){
    <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>${FV.causeLine(d)}</span><br />
    <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>실제 입고 ${FF.fInt(d.acc)}t · 생산 ${FF.fInt(d.prod)}t</span><br />
    <span style=${{fontSize:"12px",color:"var(--text-secondary)"}}>판매 ${FF.fInt(d.sold)}t / 주문 ${FF.fInt(d.dem)}t · 매출 ${mo(Math.round(revTotal))}원</span>
-   ${boost>=1?FV._html`<br /><span id="kcontractboost" style=${{fontSize:"12px",color:"var(--text-success)"}}>계약 발동 · 기본 ${FF.fInt(d.capI)}t + 계약 ${boost}t</span>`:null}
+   ${boost>=1?FV._html`<br /><span id="kcontractboost" style=${{fontSize:"12px",color:"var(--text-success)"}}>계약 발동 · 초과분 매입계약으로 ${boost}t 추가 입고</span>`:null}
    <div style=${{marginTop:"6px"}}>
     <${FV.Fold} id="dayresult" title="판로별 상세" render=${function(){return FV._html`<${FV.DayResultView} />`}} />
    </div>

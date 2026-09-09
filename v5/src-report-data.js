@@ -544,12 +544,16 @@ FF.issueFeasible=function(i){
  if(left<FF.C.rel.up)return "low";
  return FF.estChannelDemand(i)>=FF.C.channels[i].quota-FF.C.ui.zero?"ok":"hard";
 }
-// 오늘 계약으로 기본 입고 한도를 넘겨 추가로 받은 양. 계약이 없거나 안 걸렸으면 0이다.
-// acc/capI가 이제 확정 정수라 소수가 남을 일이 없다.
+// 오늘 계약으로 평상시 조달경로(정상 확보량) 밖에서 추가로 받은 양. 계약이 없거나 안
+// 걸렸으면 0이다. acc/capI가 이제 확정 정수라 소수가 남을 일이 없다.
+// 이슈 #22/#26: capProcure가 생긴 뒤로 "평상시"는 더 이상 capIntake 하나가 아니다 -
+// 그날 실제 정상채널 상한(min(prod,capProcure,capIntake)) 밖에서 계약으로 더 받은
+// 양만 계약의 몫이다. capProcure가 capIntake 이상이면 이 식은 원래 식과 같아진다.
 FF.contractBoostToday=function(){
  var d=FF.today();
  if(!d||d.capI===undefined)return 0;
- return Math.max(0,d.acc-d.capI);
+ var normalReach=Math.min(d.prod,d.capP,d.capI);
+ return Math.max(0,d.acc-normalReach);
 }
 // 초과분 계약 누적 효과. 발동일수와 추가 입고는 기록에서 바로 센다.
 // 순이익 기여는 계약 없이 다시 돌린 결과와의 차이(반사실)를 modRows에서 그대로 가져온다.

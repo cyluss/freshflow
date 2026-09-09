@@ -37,7 +37,7 @@ FF.recordDay=function(r,ev){
   missed:r.missed,ageMix:r.ageMix,wI:r.wI,wIcap:r.wIcap,wIprocure:r.wIprocure,wIstore:r.wIstore,wIneed:r.wIneed,
   wS:r.wS,wT:r.wT,end:r.end,profit:r.profit-r.cost,b:r.b,
   si:FF.MARKET.value.si,di:FF.MARKET.value.di,
-  capI:FF.plant().cap.intake,capS:FF.plant().cap.sales,
+  capI:FF.plant().cap.intake,capS:FF.plant().cap.sales,capP:FF.plant().cap.procure,
   toCh:r.toCh.slice(),revCh:r.revCh.slice(),rel:FF.relOf().slice(),
   stance:(FF.stanceOf()||FF.C.channels.map(function(){return FF.C.stance.start})).slice()});
  for(var mi=0;mi<FF.logOf().mods.length;mi++){

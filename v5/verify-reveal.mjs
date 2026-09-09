@@ -71,8 +71,10 @@ console.log('\n=== gate 5~6: 오늘 입고/판매 가능 ===');
   const prod = FF.prodOf();
   const caps = FF.capsOf();
   const intake = FF.todayIntake();
-  gate(5, '오늘 입고는 확정 생산 기반이다(국면 평균 아님)', intake === FF.rInt(Math.min(prod, caps.intake)),
-    `production=${prod.toFixed(3)}, intakeCap=${caps.intake}, todayIntake()=${intake}`);
+  // 이슈 #22/#26: capProcure(조달 능력)가 생긴 뒤로 평상시 입고 상한은 capIntake 하나가
+  // 아니라 min(capIntake,capProcure)다.
+  gate(5, '오늘 입고는 확정 생산 기반이다(국면 평균 아님)', intake === FF.rInt(Math.min(prod, caps.intake, caps.procure)),
+    `production=${prod.toFixed(3)}, intakeCap=${caps.intake}, procureCap=${caps.procure}, todayIntake()=${intake}`);
   const inv = FF.inventory();
   const P = FF.stancePlan();
   gate(6, '판매 가능(sellable)은 재고+확정 입고다', P.sellable === FF.rInt(inv) + intake,

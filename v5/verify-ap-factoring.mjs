@@ -125,7 +125,7 @@ console.log('\n=== gate B: factoring 한 건, 커널 vs 손계산(실제 FF.tran
   const R = FF.C;
   const mkState = (day, ar, cash) => ({
     day, si: 1, di: 1, cash, lots: [],
-    cap: { intake: 0, storage: 0, sales: 0 },
+    cap: { intake: 0, storage: 0, sales: 0, procure: 0 },
     pend: null, spent: 0, contract: 0, pendContract: null, todayProd: 0, cover: R.cover,
     ar: ar.map(x => ({ at: x.at, amt: x.amt })), ap: [], apHist: [],
     rel: R.channels.map(() => R.rel.start), alloc: null, stance: null,
@@ -170,7 +170,7 @@ console.log('\n=== gate B2: factoring은 outstanding 이상을 만들어내지 �
 {
   const R = FF.C;
   const s = { day: 5, si: 1, di: 1, cash: 10000, lots: [],
-    cap: { intake: 0, storage: 0, sales: 0 }, pend: null, spent: 0, contract: 0, pendContract: null,
+    cap: { intake: 0, storage: 0, sales: 0, procure: 0 }, pend: null, spent: 0, contract: 0, pendContract: null,
     todayProd: 0, cover: R.cover, ar: [{ at: 8, amt: 3000 }], ap: [], apHist: [],
     rel: R.channels.map(() => R.rel.start), alloc: null, stance: null,
     buys: { sales: 0, contract: 0 }, recent: [] };

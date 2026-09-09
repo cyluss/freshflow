@@ -374,9 +374,9 @@ function open(file, seed) {
       sawBoost = true;
       if (!boostTxtChecked) {
         boostTxtChecked = true;
-        const today = s12.w.FF.today(), boost = s12.w.FF.contractBoostToday();
+        const boost = s12.w.FF.contractBoostToday();
         t('계약 발동 문구 값이 정확히 일치',
-          boostEl.textContent === '계약 발동 · 기본 ' + s12.w.FF.fInt(today.capI) + 't + 계약 ' + boost + 't');
+          boostEl.textContent === '계약 발동 · 초과분 매입계약으로 ' + boost + 't 추가 입고');
       }
     }
   }
