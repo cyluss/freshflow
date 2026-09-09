@@ -1,5 +1,5 @@
 // 어제 병목(b)이 실제로 뭔가 놓친 경우인지. supply/demand/policy는 용량이 남았을 뿐 손실이 아니다.
-FF.isLossCause=function(b){return b==="intake"||b==="store"||b==="ship"||b==="stock"}
+FF.isLossCause=function(b){return b==="intake"||b==="procure"||b==="store"||b==="ship"||b==="stock"}
 
 // 오늘 있을 하루에 실제로 걸릴 계약량. 이미 활성화됐거나(contract), 어제 사서 오늘부터 걸리거나(pendContract) 둘 중 하나다.
 // 미리보기(todayIntake 등)는 이 값을 써야 "계약 다음날부터 적용"이 화면에서도 하루 안 어긋난다.
@@ -29,11 +29,11 @@ FF.recent=function(n){FF.VERSION.value;return FF.RUN.value?FF.histOf().slice(-n)
 FF.status=function(){FF.VERSION.value;
  return FF.RUN.value?{day:Math.min(FF.run().day,FF.C.days),cash:FF.LEDGER.value.cash,seed:FF.run().seed,
   profit:FF.histOf().length?FF.histOf()[FF.histOf().length-1].profit:null}:null}
-FF.capsOf=function(){FF.VERSION.value;return FF.RUN.value?{intake:FF.plant().cap.intake,storage:FF.plant().cap.storage,sales:FF.plant().cap.sales}:null}
+FF.capsOf=function(){FF.VERSION.value;return FF.RUN.value?{intake:FF.plant().cap.intake,storage:FF.plant().cap.storage,sales:FF.plant().cap.sales,procure:FF.plant().cap.procure}:null}
 FF.finDayOf=function(){FF.VERSION.value;return FF.RUN.value?FF.run().finDay:0}
 FF.timelineOf=function(){FF.VERSION.value;return FF.RUN.value?FF.logOf().timeline:[]}
 FF.buylogOf=function(){FF.VERSION.value;return FF.RUN.value?FF.logOf().buylog:[]}
-FF.buysOf=function(){FF.VERSION.value;return FF.RUN.value?{sales:FF.plant().buys.sales,contract:FF.plant().buys.contract||0,spent:FF.LEDGER.value.spent}:null}
+FF.buysOf=function(){FF.VERSION.value;return FF.RUN.value?{sales:FF.plant().buys.sales,contract:FF.plant().buys.contract||0,procure:FF.plant().buys.procure||0,spent:FF.LEDGER.value.spent}:null}
 
 FF.Cmd={
  wait:function(){return {type:"wait"}},
@@ -81,12 +81,12 @@ FF.advanceDay=function(s){
 FF.toKernelState=function(){
  var M=FF.MARKET.value, P=FF.plant(), L=FF.ledger();
  return {day:FF.run().day,si:M.si,di:M.di,cash:L.cash,lots:FF.lotsOf().slice(),
-  cap:{intake:P.cap.intake,storage:P.cap.storage,sales:P.cap.sales},
+  cap:{intake:P.cap.intake,storage:P.cap.storage,sales:P.cap.sales,procure:P.cap.procure},
   pend:FF.PENDING.value,spent:L.spent,contract:FF.CONTRACT.value,pendContract:FF.pendContractOf(),
   todayProd:FF.prodOf(),cover:FF.coverOf(),
   rel:FF.relOf().slice(),alloc:FF.allocOf(),stance:FF.stanceOf(),ar:(FF.arOf()||[]).slice(),
   ap:(FF.apOf()||[]).slice(),apHist:(FF.apHistOf()||[]).slice(),
-  buys:{sales:P.buys.sales,contract:P.buys.contract||0}};
+  buys:{sales:P.buys.sales,contract:P.buys.contract||0,procure:P.buys.procure||0}};
 
 }
 

@@ -268,7 +268,7 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
 {
   // 난수 없이 특정 상황을 직접 만든다
   const s0 = { si: 1, di: 1, cash: 60000, lots: [],
-    cap: { intake: 20, storage: 30, sales: 21 } };
+    cap: { intake: 20, storage: 30, sales: 21, procure: 999 } };
   const r = FF.stepState(s0, 25, 35);
   t('물리는 입력만 받는다', r.prod === 25 && typeof r.dem === 'number' && r.dem > 0);
   t('입고는 한도 이하', r.acc <= 20 + 1e-9);
@@ -296,7 +296,7 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
 // 과업 6: 커널이 규칙의 유일한 구현체다
 {
   const mk = () => ({ day:1, si:1, di:1, cash:60000, lots:[],
-    cap:{intake:20,storage:30,sales:21}, pend:null, spent:0, buys:{intake:0,sales:0} });
+    cap:{intake:20,storage:30,sales:21,procure:999}, pend:null, spent:0, buys:{intake:0,sales:0,procure:0} });
   const w = { production:25, demand:35, supplyPhase:1, demandPhase:1,
               nextSupplyPhase:2, nextDemandPhase:1 };
 
@@ -331,7 +331,7 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
 // 과업 7: 커널은 기록하지 않는다
 {
   const mk = () => ({ day:1, si:1, di:1, cash:60000, lots:[],
-    cap:{intake:20,storage:30,sales:21}, pend:null, spent:0, buys:{intake:0,sales:0} });
+    cap:{intake:20,storage:30,sales:21,procure:999}, pend:null, spent:0, buys:{intake:0,sales:0,procure:0} });
   const w = { production:30, demand:5, supplyPhase:1, demandPhase:1,
               nextSupplyPhase:1, nextDemandPhase:1 };
   const before = JSON.stringify(FF.LOG.value);
@@ -341,10 +341,10 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
   t('사건에 병목 표시', o.events.some(e => e.type === 'capacity-hit') || o.result.b === 'none');
 
   // 병목 판정은 순수 함수다
-  const s2 = { cap:{intake:20,storage:30,sales:21} };
-  const r2 = { sold:21, sellable:40, wIcap:0, wIstore:0, wIneed:0, wS:0, wT:0, prod:20, missed:9 };
+  const s2 = { cap:{intake:20,storage:30,sales:21,procure:999} };
+  const r2 = { sold:21, sellable:40, wIcap:0, wIprocure:0, wIstore:0, wIneed:0, wS:0, wT:0, prod:20, missed:9 };
   t('판매 한도 병목', FF.bottleneck(s2, r2, 30) === 'ship');
-  const r3 = { sold:2, sellable:2, wIcap:0, wIstore:0, wIneed:0, wS:0, wT:0, prod:20, missed:8 };
+  const r3 = { sold:2, sellable:2, wIcap:0, wIprocure:0, wIstore:0, wIneed:0, wS:0, wT:0, prod:20, missed:8 };
   t('재고 소진 병목', FF.bottleneck(s2, r3, 10) === 'stock');
 }
 
@@ -634,7 +634,10 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
 // 데이터 계약: 뷰가 의존하는 필드 이름을 고정한다
 {
   FF.reset(1);
-  for (let d = 1; d <= 10; d++) FF.stepDay(d === 3 ? FF.Cmd.buy('sales') : FF.Cmd.wait());
+  // 이슈 #22/#26: capProcure 기본값(34)이 생기면서 day10에는 이 시드·계획에서 우연히
+  // 손실이 0이 된다(day7까지는 cap/procure가 함께 걸린다) - 표시 계약은 손실이 실제로
+  // 있을 때의 모양을 검증하는 것이라 day7로 맞춘다.
+  for (let d = 1; d <= 7; d++) FF.stepDay(d === 3 ? FF.Cmd.buy('sales') : FF.Cmd.wait());
   const keys = o => o ? Object.keys(o).sort().join(',') : 'null';
   const CONTRACT = {
     lostInflow:   'parts,total',
@@ -657,7 +660,7 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
   const bad = Object.keys(CONTRACT).filter(k => keys(got[k]) !== CONTRACT[k]);
   t('표시 데이터 계약 유지', bad.length === 0, bad.map(k => k + ': ' + keys(got[k])).join(' | '));
   t('손실 원인은 코드값', FF.lostInflow(FF.today()).parts.every(p =>
-    ['cap','store','need'].includes(p.cause) && typeof p.amt === 'number'));
+    ['cap','procure','store','need'].includes(p.cause) && typeof p.amt === 'number'));
   t('행렬 셀 계약', FF.missedMatrix().rows[0].cells.sales &&
     keys(FF.missedMatrix().rows[0].cells.sales) === 'delta,flat,gain');
 }
@@ -684,7 +687,9 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
 // V1 초과분 매입 계약
 {
   const W = FF.World(1);
-  const mk = () => FF.initialState(W);
+  // 이슈 #22/#26: capProcure 기본값(34)은 별개 레버라 여기서는 절연한다 - 이 블록은
+  // Contract 자체의 동작(capIntake 위 초과분)만 격리해서 본다.
+  const mk = () => { const s = FF.initialState(W); s.cap.procure = 999; return s; };
   const w = over => ({ production: 40 + over, demand: 25, supplyPhase: 1, demandPhase: 1,
                        nextSupplyPhase: 1, nextDemandPhase: 1 });
 

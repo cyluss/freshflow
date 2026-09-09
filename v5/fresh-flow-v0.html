@@ -272,13 +272,19 @@ FF._injectedComputed=window.preactSignals.computed;
 // 분포를 나타내는 값도 실 단위 그대로 두고, 확정 수량으로 넘어오는 경계(입고 목표량 계산,
 // 판로별 예상 수요, 생산·수요 난수 확정)에서만 2를 곱해 양자화한다.
 FF.C={days:30,cash:84000,sm:[14,20,27],sd:2.5,dm:[10,20,32],dd:3,stay:0.8,
-cap:{intake:40,storage:80,sales:42},
+// 이슈 #22/#26: capProcure(조달 능력)는 산지 생산량(raw prod)을 그대로 두고 그 아래
+// 회사 소유의 확보 상한을 추가한다. capIntake(40)의 85% 근처(exposure sweep 후보구간
+// 34-36의 중앙)를 기본값으로 둬서 가끔 실제로 묶이게 한다. Contract(초과분 매입계약)는
+// raw prod 기준 예외 채널이라 capProcure와 별개로 그대로 작동한다(입고 물리 계산 참조).
+cap:{intake:40,storage:80,sales:42,procure:34},
 // factorThreshold: factoring 버튼을 "언제 보여줄지"만 정하는 화면 노출 기준이다(경제 규칙이
 // 아니다 - 이슈 #11). #8 조건부 factoring 검증(factoring-conditional.mjs)에서 runway5 문턱값
 // 0~40000 전 구간이 none보다 나았으므로 이 값을 바꿔도 게임의 최적 전략 자체는 안 바뀐다.
 // 그 범위 중간값 근처를 골랐을 뿐이다.
-ui:{nearCap:.8,storeMid:.5,storeFull:.8,dwellFast:1,dwellSlow:2.5,lowDays:2,armMs:6000,newArmMs:4000,recentWin:5,fcDays:3,eps:.05,matrixDays:7,dwellWin:7,logRows:6,nearTop:.9,zero:1e-9,factorThreshold:20000},chart:{w:340,h:96,pad:4,barH:22,gap:6},// 증설은 판매 한도만 산다. 상류는 초과분 매입 계약으로 대체했다.
-step:{sales:2},cost:{sales:618},
+ui:{nearCap:.8,storeMid:.5,storeFull:.8,dwellFast:1,dwellSlow:2.5,lowDays:2,armMs:6000,newArmMs:4000,recentWin:5,fcDays:3,eps:.05,matrixDays:7,dwellWin:7,logRows:6,nearTop:.9,zero:1e-9,factorThreshold:20000},chart:{w:340,h:96,pad:4,barH:22,gap:6},// 증설은 판매 한도와 조달 능력만 산다. 입고 한도(capIntake) 상류는 초과분 매입 계약으로 대체했다.
+// procure의 cost/step은 #22 headless 종단검증(procure-endtoend-sim.mjs)에서 확정한 값
+// 그대로다 - 유지비(maint)는 없다(검증한 경제식에 없었다).
+step:{sales:2,procure:2},cost:{sales:618,procure:490},
 // 초과분 매입 계약. 첫날에 크기를 고른다. 한도를 넘은 물량을 하루 최대 X(내부단위) 더 받는다.
 // 가격은 규모에 따라 완만하게 체감한다. 유지비 없음, 이후 변경 불가.
 contract:{until:1,max:1,options:[
@@ -463,16 +469,16 @@ FF.setLots=function(a){FF.LOTS.value=a}
 FF.ENGINE=FF._signal(null);
 FF.engineState=function(){return FF.ENGINE.value}
 FF.resetEngineState=function(){
- FF.ENGINE.value={prevB:"none",lastBuy:{intake:0,sales:0},
-  phase:{intake:{dir:0,n:0},sales:{dir:0,n:0}}};
+ FF.ENGINE.value={prevB:"none",lastBuy:{intake:0,sales:0,procure:0},
+  phase:{intake:{dir:0,n:0},sales:{dir:0,n:0},procure:{dir:0,n:0}}};
 }
 FF.PLANT=FF._signal(null);
 FF.plant=function(){FF.VERSION.value;return FF.PLANT.value}
-FF.resetPlant=function(){FF.PLANT.value={cap:{intake:FF.C.cap.intake,storage:FF.C.cap.storage,sales:FF.C.cap.sales},buys:{sales:0,contract:0}}}
-FF.expand=function(kind){var P=FF.PLANT.value,c={intake:P.cap.intake,storage:P.cap.storage,sales:P.cap.sales};
+FF.resetPlant=function(){FF.PLANT.value={cap:{intake:FF.C.cap.intake,storage:FF.C.cap.storage,sales:FF.C.cap.sales,procure:FF.C.cap.procure},buys:{sales:0,contract:0,procure:0}}}
+FF.expand=function(kind){var P=FF.PLANT.value,c={intake:P.cap.intake,storage:P.cap.storage,sales:P.cap.sales,procure:P.cap.procure};
  c[kind]+=FF.C.step[kind];
  FF.PLANT.value={cap:c,buys:P.buys};}
-FF.countBuy=function(kind){var P=FF.PLANT.value,b={sales:P.buys.sales,contract:P.buys.contract||0};
+FF.countBuy=function(kind){var P=FF.PLANT.value,b={sales:P.buys.sales,contract:P.buys.contract||0,procure:P.buys.procure||0};
  b[kind]++;
  FF.PLANT.value={cap:P.cap,buys:b};}
 FF.RUN=FF._signal(null);
@@ -551,7 +557,7 @@ FF.inventory=function(){
 <script id="src-access">
 (function(FF,FV){
 // 어제 병목(b)이 실제로 뭔가 놓친 경우인지. supply/demand/policy는 용량이 남았을 뿐 손실이 아니다.
-FF.isLossCause=function(b){return b==="intake"||b==="store"||b==="ship"||b==="stock"}
+FF.isLossCause=function(b){return b==="intake"||b==="procure"||b==="store"||b==="ship"||b==="stock"}
 
 // 오늘 있을 하루에 실제로 걸릴 계약량. 이미 활성화됐거나(contract), 어제 사서 오늘부터 걸리거나(pendContract) 둘 중 하나다.
 // 미리보기(todayIntake 등)는 이 값을 써야 "계약 다음날부터 적용"이 화면에서도 하루 안 어긋난다.
@@ -581,11 +587,11 @@ FF.recent=function(n){FF.VERSION.value;return FF.RUN.value?FF.histOf().slice(-n)
 FF.status=function(){FF.VERSION.value;
  return FF.RUN.value?{day:Math.min(FF.run().day,FF.C.days),cash:FF.LEDGER.value.cash,seed:FF.run().seed,
   profit:FF.histOf().length?FF.histOf()[FF.histOf().length-1].profit:null}:null}
-FF.capsOf=function(){FF.VERSION.value;return FF.RUN.value?{intake:FF.plant().cap.intake,storage:FF.plant().cap.storage,sales:FF.plant().cap.sales}:null}
+FF.capsOf=function(){FF.VERSION.value;return FF.RUN.value?{intake:FF.plant().cap.intake,storage:FF.plant().cap.storage,sales:FF.plant().cap.sales,procure:FF.plant().cap.procure}:null}
 FF.finDayOf=function(){FF.VERSION.value;return FF.RUN.value?FF.run().finDay:0}
 FF.timelineOf=function(){FF.VERSION.value;return FF.RUN.value?FF.logOf().timeline:[]}
 FF.buylogOf=function(){FF.VERSION.value;return FF.RUN.value?FF.logOf().buylog:[]}
-FF.buysOf=function(){FF.VERSION.value;return FF.RUN.value?{sales:FF.plant().buys.sales,contract:FF.plant().buys.contract||0,spent:FF.LEDGER.value.spent}:null}
+FF.buysOf=function(){FF.VERSION.value;return FF.RUN.value?{sales:FF.plant().buys.sales,contract:FF.plant().buys.contract||0,procure:FF.plant().buys.procure||0,spent:FF.LEDGER.value.spent}:null}
 
 FF.Cmd={
  wait:function(){return {type:"wait"}},
@@ -633,12 +639,12 @@ FF.advanceDay=function(s){
 FF.toKernelState=function(){
  var M=FF.MARKET.value, P=FF.plant(), L=FF.ledger();
  return {day:FF.run().day,si:M.si,di:M.di,cash:L.cash,lots:FF.lotsOf().slice(),
-  cap:{intake:P.cap.intake,storage:P.cap.storage,sales:P.cap.sales},
+  cap:{intake:P.cap.intake,storage:P.cap.storage,sales:P.cap.sales,procure:P.cap.procure},
   pend:FF.PENDING.value,spent:L.spent,contract:FF.CONTRACT.value,pendContract:FF.pendContractOf(),
   todayProd:FF.prodOf(),cover:FF.coverOf(),
   rel:FF.relOf().slice(),alloc:FF.allocOf(),stance:FF.stanceOf(),ar:(FF.arOf()||[]).slice(),
   ap:(FF.apOf()||[]).slice(),apHist:(FF.apHistOf()||[]).slice(),
-  buys:{sales:P.buys.sales,contract:P.buys.contract||0}};
+  buys:{sales:P.buys.sales,contract:P.buys.contract||0,procure:P.buys.procure||0}};
 
 }
 
@@ -830,22 +836,33 @@ FF.intakeNeed=function(di,capSales,cover,totalInv,rules){
 // 오늘 입고 가능량의 물리적 상한. 목표재고(need)·창고 여유·초과분 계약까지 보되 현금은 아직
 // 안 본다(현금 제약은 stepState가 이 함수 결과 위에 한 번 더 건다). 커널의 실제 입고 판정과
 // 미리보기(오늘 입고량 예상, factoring의 runway5가 쓰는 want)가 이 함수 하나를 같이 쓴다.
-// reach/refused/wI/byCap/byStore/byNeed는 병목 판정에만 쓰는 진단값이라 stepState만 읽는다.
-FF.intakePhysical=function(prod,capIntake,capStorage,contract,need,totalInv){
- var baseAcc=Math.min(prod,capIntake,need);
+// reach/refused/wI/byCap/byProcure/byStore/byNeed는 병목 판정에만 쓰는 진단값이라 stepState만 읽는다.
+//
+// 이슈 #22/#26: capProcure(조달 능력)는 평상시 공급망으로 확보할 수 있는 물량의 상한이고,
+// Contract(초과분 매입계약)는 그 바깥에서 초과생산분을 추가로 확보하는 예외적 권리다. 두
+// 채널은 병렬이다 - over/extra는 원래대로 raw prod와 capIntake만으로 정해진다(Contract는
+// capProcure 값과 무관하게 항상 그대로 작동한다). capProcure는 "평상시 채널"의 물리적 상한
+// (capIntake와 나란히)에만 적용된다. byCap 공식은 원래 그대로이고, byProcure는 새 항이다 -
+// 대수적으로 byCap+byProcure가 항상 prod-reach(= 평상시+예외 채널을 합친 뒤의 손실)와
+// 같다(양쪽 다 capIntake·capProcure 대소관계 전 구간에서 검증됨).
+FF.intakePhysical=function(prod,capIntake,capProcure,capStorage,contract,need,totalInv){
+ var normalCap=Math.min(capIntake,capProcure);
+ var physCap=Math.min(prod,normalCap);
  var over=Math.max(0,prod-capIntake);
+ var baseAcc=Math.min(physCap,need);
  var extra=contract>0?Math.min(over,contract,Math.max(0,need-baseAcc)):0;
  var acc=baseAcc+extra;
- var reach=Math.min(prod,capIntake)+extra;
+ var reach=physCap+extra;
  var refused=reach-acc, wI=prod-acc;
  var freeNow=Math.max(0,capStorage-totalInv);
  var byCap=Math.max(0,over-extra);
- var rest=wI-byCap;
+ var byProcure=Math.max(0,Math.min(prod,capIntake)-capProcure);
+ var rest=wI-byCap-byProcure;
  var byStore=Math.min(rest,Math.max(0,reach-freeNow));
  var byNeed=Math.max(0,rest-byStore);
  var stored=Math.min(acc,freeNow), wS=acc-stored;
- return {acc:acc,reach:reach,refused:refused,wI:wI,byCap:byCap,byStore:byStore,byNeed:byNeed,
-  stored:stored,wS:wS};
+ return {acc:acc,reach:reach,refused:refused,wI:wI,byCap:byCap,byProcure:byProcure,
+  byStore:byStore,byNeed:byNeed,stored:stored,wS:wS};
 }
 
 // AR/AP 잔액 합. ar/ap 모두 {at,amt} 모양이라 하나로 쓴다.
@@ -884,8 +901,8 @@ FF.stepState=function(s,prod,dem,rules){
  var need=FF.intakeNeed(s.di,s.cap.sales,s.cover,tot(),R);
  // 초과분 매입 계약: 한도를 넘은 물량 중 최대 X t 를 더 받는다. 창고 여유까지 본
  // "현금 제약 전" 상한은 FF.intakePhysical 하나로 커널과 미리보기가 같이 낸다.
- var IP=FF.intakePhysical(prod,s.cap.intake,s.cap.storage,s.contract,need,tot());
- var refused=IP.refused, wI=IP.wI, byCap=IP.byCap, byStore=IP.byStore, byNeed=IP.byNeed;
+ var IP=FF.intakePhysical(prod,s.cap.intake,s.cap.procure,s.cap.storage,s.contract,need,tot());
+ var refused=IP.refused, wI=IP.wI, byCap=IP.byCap, byProcure=IP.byProcure, byStore=IP.byStore, byNeed=IP.byNeed;
  var stored=IP.stored, wS=IP.wS;
  // 매입은 지금 손에 있는 현금으로만 한다. 모자라면 그만큼 덜 받는다.
  // budget/farm을 그대로 쓰면 소수가 나온다. 현금으로 못 사는 몫이라 올림이 아니라 내림이어야
@@ -1012,7 +1029,7 @@ FF.stepState=function(s,prod,dem,rules){
  // (apPortion)만큼 덜 나간다 - AR이 매출을 인식 시점과 현금화 시점으로 나누는 것과 대칭이다.
  s.cash-=(cost-apPortion);
  return {prod:prod,dem:demTotal,acc:stored,refused:refused,sold:sold,missed:Math.max(0,demTotal-sold),
-  ageMix:ageMix,wI:wI,wIcap:byCap,wIstore:byStore,wIneed:byNeed,wS:wS,wT:wT,
+  ageMix:ageMix,wI:wI,wIcap:byCap,wIprocure:byProcure,wIstore:byStore,wIneed:byNeed,wS:wS,wT:wT,
   end:end,profit:profit,sellable:sellable,toCh:toCh,revCh:revCh,apUsed:apPortion};
 }
 
@@ -1028,8 +1045,9 @@ FF.bottleneck=function(s,r,dem,rules){
   ["stock", (r.sold<dem-eps&&r.sellable<=r.sold+eps)?lossOut:0],
   ["demand",(r.sold<s.cap.sales-eps&&r.sellable>r.sold+eps)?Math.max(0,s.cap.sales-dem):0],
   ["intake",r.wIcap],
+  ["procure",r.wIprocure],
   ["store", r.wIstore+r.wS+r.wT],
-  ["supply",(r.wIneed<=eps&&r.wIcap<=eps&&r.wIstore<=eps&&r.prod<s.cap.intake-eps)?(s.cap.intake-r.prod):0],
+  ["supply",(r.wIneed<=eps&&r.wIcap<=eps&&r.wIprocure<=eps&&r.wIstore<=eps&&r.prod<s.cap.intake-eps)?(s.cap.intake-r.prod):0],
   ["policy",r.wIneed]
  ];
  var b="none",bv=eps;
@@ -1041,7 +1059,7 @@ FF.bottleneck=function(s,r,dem,rules){
 
 // 하루 상태 전이. 게임 규칙은 이 함수에만 있다.
 // 신호도 로그도 화면도 모른다. 상태와 사실만 다룬다.
-//   state   {day,si,di,cash,lots,cap:{intake,storage,sales},pend,spent,buys}
+//   state   {day,si,di,cash,lots,cap:{intake,storage,sales,procure},pend,spent,buys}
 //   command FF.Cmd 의 결과
 //   world   FF.World 의 next() 출력
 // 반환 {state, result, events}. state 는 제자리에서 전진한다.
@@ -1141,6 +1159,7 @@ FF.transition=function(state,command,world,rules){
  r.bought=bought; r.cost=cost;
  r.b=FF.bottleneck(s,r,world.demand,R);
  if(r.wIcap>R.ui.eps)ev.push({type:"capacity-hit",capacity:"intake",amount:r.wIcap});
+ if(r.wIprocure>R.ui.eps)ev.push({type:"capacity-hit",capacity:"procure",amount:r.wIprocure});
  if(r.wIstore+r.wS>R.ui.eps)ev.push({type:"capacity-hit",capacity:"storage",amount:r.wIstore+r.wS});
  if(r.missed>R.ui.eps)ev.push({type:"demand-missed",amount:r.missed});
  ev.push({type:"day-ended",day:s.day,profit:r.profit-cost});
@@ -1161,10 +1180,10 @@ FF.initialState=function(world,rules){
  var R=rules||FF.C;
  return {day:1,si:world.phase().supply,di:world.phase().demand,
   cash:R.cash,lots:[],
-  cap:{intake:R.cap.intake,storage:R.cap.storage,sales:R.cap.sales},
+  cap:{intake:R.cap.intake,storage:R.cap.storage,sales:R.cap.sales,procure:R.cap.procure},
   pend:null,spent:0,contract:0,pendContract:null,todayProd:null,cover:R.cover,ar:[],ap:[],apHist:[],
   rel:R.channels.map(function(){return R.rel.start}),alloc:null,stance:null,
-  buys:{sales:0,contract:0},
+  buys:{sales:0,contract:0,procure:0},
   recent:[]};
 }
 
@@ -1179,7 +1198,7 @@ FF.step=function(state,command,world,rules){
 FF.forkState=function(s){
  return {day:s.day,si:s.si,di:s.di,cash:s.cash,
   lots:s.lots.map(function(l){return {q:l.q,a:l.a}}),
-  cap:{intake:s.cap.intake,storage:s.cap.storage,sales:s.cap.sales},
+  cap:{intake:s.cap.intake,storage:s.cap.storage,sales:s.cap.sales,procure:s.cap.procure},
   pend:s.pend,spent:s.spent,contract:s.contract||0,pendContract:s.pendContract||null,
   todayProd:(s.todayProd===undefined)?null:s.todayProd,cover:s.cover,
   ar:(s.ar||[]).map(function(x){return {at:x.at,amt:x.amt}}),
@@ -1188,7 +1207,7 @@ FF.forkState=function(s){
   rel:(s.rel||[]).slice(),alloc:s.alloc?s.alloc.slice():null,
   stance:s.stance?s.stance.slice():null,dead:false,
   recent:s.recent?s.recent.slice():[],
-  buys:s.buys?{sales:s.buys.sales,contract:s.buys.contract||0}:undefined};
+  buys:s.buys?{sales:s.buys.sales,contract:s.buys.contract||0,procure:s.buys.procure||0}:undefined};
 }
 
 // 최종 가치. 살아남았고 끝까지 갔으면 처분가치를 더한다.
@@ -1349,6 +1368,8 @@ FF.runScenario=function(seed,strategy,untilDay,rules){
 </script>
 <script id="src-record">
 (function(FF,FV){
+// procure는 판매/입고와 달리 "한도 대비 사용률"이 아니라 그날 조달 능력 때문에 실제로
+// 놓친 양(wIprocure)이 있었는지로 판정한다 - 회사가 산 capProcure 자체가 그 판정의 분모다.
 FF.capHits=function(kind,win){
  var lastBlocked=false;
  var since=FF.engineState().lastBuy[kind];
@@ -1359,25 +1380,31 @@ FF.capHits=function(kind,win){
  for(var j=0;j<h.length;j++){
   if(kind==="intake"&&h[j].acc>=h[j].capI-0.05)n++;
   if(kind==="sales"&&h[j].sold>=h[j].capS-0.05&&h[j].dem>h[j].sold+0.05)n++;
+  if(kind==="procure"&&h[j].wIprocure>0.05)n++;
  }
  if(h.length){
   var z=h[h.length-1];
-  lastBlocked=kind==="intake"?(z.acc>=z.capI-0.05):(z.sold>=z.capS-0.05&&z.dem>z.sold+0.05);
+  lastBlocked=kind==="intake"?(z.acc>=z.capI-0.05)
+   :kind==="procure"?(z.wIprocure>0.05)
+   :(z.sold>=z.capS-0.05&&z.dem>z.sold+0.05);
  }
  return{n:n,len:h.length,last:lastBlocked};
 }
 
 FF.useRate=function(n){
  var h=FF.histOf().slice(-n);
- if(!h.length)return{intake:0,sales:0};
- var a=0,b=0;
- for(var i=0;i<h.length;i++){a+=h[i].acc/FF.plant().cap.intake;b+=h[i].sold/FF.plant().cap.sales}
- return{intake:a/h.length*100,sales:b/h.length*100};
+ if(!h.length)return{intake:0,sales:0,procure:0};
+ var a=0,b=0,c=0,capP=FF.plant().cap.procure;
+ for(var i=0;i<h.length;i++){
+  a+=h[i].acc/FF.plant().cap.intake;b+=h[i].sold/FF.plant().cap.sales;
+  c+=capP>0?Math.min(h[i].prod,capP)/capP:0;
+ }
+ return{intake:a/h.length*100,sales:b/h.length*100,procure:c/h.length*100};
 }
 
 FF.recordDay=function(r,ev){
  FF.pushHist({day:FF.run().day,prod:r.prod,dem:r.dem,acc:r.acc,refused:r.refused,sold:r.sold,
-  missed:r.missed,ageMix:r.ageMix,wI:r.wI,wIcap:r.wIcap,wIstore:r.wIstore,wIneed:r.wIneed,
+  missed:r.missed,ageMix:r.ageMix,wI:r.wI,wIcap:r.wIcap,wIprocure:r.wIprocure,wIstore:r.wIstore,wIneed:r.wIneed,
   wS:r.wS,wT:r.wT,end:r.end,profit:r.profit-r.cost,b:r.b,
   si:FF.MARKET.value.si,di:FF.MARKET.value.di,
   capI:FF.plant().cap.intake,capS:FF.plant().cap.sales,
@@ -1386,14 +1413,20 @@ FF.recordDay=function(r,ev){
  for(var mi=0;mi<FF.logOf().mods.length;mi++){
   var md=FF.logOf().mods[mi];
   if(FF.run().day<=md.day)continue;
-  md.use.push(md.kind==="contract"?(r.acc/FF.plant().cap.intake):(r.sold/FF.plant().cap.sales));
-  md.extra=(md.extra||0)+(md.kind==="contract"?Math.max(0,r.acc-FF.plant().cap.intake):Math.max(0,r.sold-md.from));
+  var procured=Math.min(r.prod,FF.plant().cap.procure);
+  md.use.push(md.kind==="contract"?(r.acc/FF.plant().cap.intake)
+    :md.kind==="procure"?(FF.plant().cap.procure>0?procured/FF.plant().cap.procure:0)
+    :(r.sold/FF.plant().cap.sales));
+  md.extra=(md.extra||0)+(md.kind==="contract"?Math.max(0,r.acc-FF.plant().cap.intake)
+    :md.kind==="procure"?Math.max(0,procured-md.from)
+    :Math.max(0,r.sold-md.from));
   if(FF.run().day<=md.day+3){
    if(md.kind==="contract"&&r.acc>FF.plant().cap.intake+0.05)md.hit++;
    if(md.kind==="sales"&&r.sold>=FF.plant().cap.sales-0.05)md.hit++;
+   if(md.kind==="procure"&&r.wIprocure>0.05)md.hit++;
   }
  }
- var actionable=(r.b==="intake"||r.b==="ship"||r.b==="store"||r.b==="stock");
+ var actionable=(r.b==="intake"||r.b==="procure"||r.b==="ship"||r.b==="store"||r.b==="stock");
  var changed=(r.b!==FF.engineState().prevB);
  FF.engineState().prevB=r.b;
  FF.setEvent((actionable&&changed)?{b:r.b}:null);
@@ -1429,7 +1462,7 @@ FF.recordPurchase=function(act,path,size){
   return;
  }
  FF.append("mods",{kind:act,day:day,idx:FF.plant().buys[act]+1,
-   from:FF.plant().cap.sales,use:[],hit:0});
+   from:FF.plant().cap[act],use:[],hit:0});
  var hB=FF.capHits(act,5),uB=FF.useRate(3);
  var gB=dvB[2]-dvB[0];
  var ES=FF.engineState();
@@ -1438,8 +1471,8 @@ FF.recordPurchase=function(act,path,size){
  ES.lastBuy[act]=day;
  FF.append("buylog",{day:day,kind:act,gap:gB,
   hitN:hB.n, hitLen:hB.len, left:FF.C.days-day, path:path||"manual",
-  util:Math.round(uB.sales),
-  nth:FF.plant().buys[act]+1,cap:FF.plant().cap.sales});
+  util:Math.round(uB[act]),
+  nth:FF.plant().buys[act]+1,cap:FF.plant().cap[act]});
 }
 
 // 하루 시작 시점의 한도 도달 여부를 남긴다.
@@ -1724,7 +1757,7 @@ FF._recoverPct=function(kind){
  var days=upto-last.day;
  var opt=(kind==="contract")?FF.contractOption(last.size||0):null;
  var cost=(kind==="contract")?(opt?opt.price:0)
-  :(FF.C.cost[kind]+days*FF.C.step[kind]*FF.C.maint.sales);
+  :(FF.C.cost[kind]+days*FF.C.step[kind]*(FF.C.maint[kind]||0));
  var val=Math.round(gain);
  var key=kind+":"+last.day, prev=FF.recoverPrev(key);
  FF.noteRecover(key,val);
@@ -1742,7 +1775,7 @@ FF._breakEven=function(k){
  var days=Math.max(0,FF.C.days-FF.run().day-off);
  if(days<=0)return null;
  var step=FF.C.step[k];
- var maint=FF.C.maint.sales*step*days;
+ var maint=(FF.C.maint[k]||0)*step*days;
  var net=FF.C.cost[k]*(1-FF.C.salvage)+maint;
  var margin=FF.C.price;
  return{t:net/margin,cost:Math.round(net)};
@@ -1933,7 +1966,7 @@ FF.invPerf=function(win){
 
 FF.causeFacts=function(d){
  if(!d)return null;
- return {b:d.b,capI:d.capI,capS:d.capS,wIcap:d.wIcap,wIstore:d.wIstore,wS:d.wS,
+ return {b:d.b,capI:d.capI,capS:d.capS,wIcap:d.wIcap,wIprocure:d.wIprocure,wIstore:d.wIstore,wS:d.wS,
    prod:d.prod,dem:d.dem,missed:d.missed,wIneed:d.wIneed};
 }
 
@@ -1951,6 +1984,7 @@ FF.lostInflow=function(d){
  if(tot<FF.C.ui.eps)return null;
  var byStore=d.wIstore+d.wS, parts=[];
  if(d.wIcap>FF.C.ui.eps)parts.push({cause:"cap",amt:d.wIcap});
+ if(d.wIprocure>FF.C.ui.eps)parts.push({cause:"procure",amt:d.wIprocure});
  if(byStore>FF.C.ui.eps)parts.push({cause:"store",amt:byStore});
  if(d.wIneed>FF.C.ui.eps)parts.push({cause:"need",amt:d.wIneed});
  return {total:tot,parts:parts};
@@ -2082,7 +2116,7 @@ FF.modRows=function(){
   var step=isC?(m.size||FF.contractOf()):FF.C.step[m.kind];
   var opt=isC?FF.contractOption(step):null;
   var cost=isC?(opt?opt.price:0)
-    :(FF.C.cost[m.kind]+days*step*FF.C.maint.sales);
+    :(FF.C.cost[m.kind]+days*step*(FF.C.maint[m.kind]||0));
   return {day:m.day,kind:m.kind,size:m.size,days:days,extra:ex,
    fill:days?ex/(days*step):0,
    cost:cost,
@@ -2260,7 +2294,7 @@ FF.todayIntake=function(){
  var prod=FF.prodOf()||0;
  var need=FF.intakeNeed(M.di,caps.sales,FF.coverOf(),FF.inventory());
  var contract=FF.effectiveContract();
- var IP=FF.intakePhysical(prod,caps.intake,caps.storage,contract,need,FF.inventory());
+ var IP=FF.intakePhysical(prod,caps.intake,caps.procure,caps.storage,contract,need,FF.inventory());
  var stored=IP.stored;
  var day=FF.dayOf();
  var arDueToday=(FF.arOf()||[]).filter(function(x){return x.at<=day})
@@ -2292,7 +2326,7 @@ FF.factorPlan=function(){
  if(outstanding<=FF.C.ui.zero)return {eligible:false,outstanding:0};
  var day=FF.dayOf(), M=FF.marketOf(), caps=FF.capsOf();
  var need=FF.intakeNeed(M.di,caps.sales,FF.coverOf(),FF.inventory());
- var IP=FF.intakePhysical(FF.prodOf()||0,caps.intake,caps.storage,FF.effectiveContract(),need,FF.inventory());
+ var IP=FF.intakePhysical(FF.prodOf()||0,caps.intake,caps.procure,caps.storage,FF.effectiveContract(),need,FF.inventory());
  var runway=FF.factorRunway(FF.ledger().cash,ar,day,IP.stored);
  var needed=Math.max(0,-runway);
  var suggested=Math.min(needed,outstanding);
@@ -2655,7 +2689,7 @@ FV._F=window.preact.Fragment;
 <script id="src-text">
 (function(FF,FV){
 // 오늘 새로 나타난 문제. 짧게 한 줄로 알린다.
-FV.EVENT_TEXT={intake:"입고 한도 부족",store:"창고 공간 부족",
+FV.EVENT_TEXT={intake:"입고 한도 부족",procure:"조달 능력 부족",store:"창고 공간 부족",
  ship:"판매 한도 부족",stock:"팔 재고 부족"};
 FV.WORD={
  channel:{online:"온라인",fran:"프랜차이즈",whole:"도매"},
@@ -2676,8 +2710,8 @@ FV.WORD={
  supply:{low:"부족",mid:"평년",high:"풍작"},
  demand:{weak:"침체",mid:"정상",strong:"호황"},
  row:{supply:"생산",intake:"입고",storage:"창고",sales:"판매",demand:"수요",event:"사건",mod:"투자"},
- event:{intake:"입고",store:"창고",ship:"판매",stock:"재고"},
- cause:{cap:"한도",store:"창고 부족",need:"필요 없음"},
+ event:{intake:"입고",procure:"조달",store:"창고",ship:"판매",stock:"재고"},
+ cause:{cap:"한도",procure:"조달 능력",store:"창고 부족",need:"필요 없음"},
  dir:{up:"증가",down:"하락",flat:"보합"}
 };
 FV.say=function(group,code){
@@ -2686,10 +2720,10 @@ FV.say=function(group,code){
  return (t&&t[code])||code;
 };
 // 설비 이름. 화면 어디서나 같은 말을 쓴다.
-FV.capName=function(k){return k==="contract"?"초과분 매입 계약":"판매 한도"}
+FV.capName=function(k){return k==="contract"?"초과분 매입 계약":k==="procure"?"조달 능력":"판매 한도"}
 // 지금 한도에서 사고 난 뒤 한도로.
 FV.capShift=function(k){
- var c=FF.capsOf(), from=(k==="intake")?c.intake:c.sales;
+ var c=FF.capsOf(), from=c[k];
  return from+" \u2192 "+(from+FF.C.step[k])+"t/일";
 }
 // 기록과 표에서 쓰는 짧은 이름.
@@ -2719,6 +2753,7 @@ FV.causeLine=function(d){
  var f=function(n){return String(Math.round(n))};
  switch(c.b){
   case "intake": return "하루 입고 한도 "+c.capI+"t을 다 써 "+f(c.wIcap)+"t을 못 받았다";
+  case "procure": return "조달 능력이 모자라 "+f(c.wIprocure)+"t을 못 받았다";
   case "store":  return "창고가 차서 "+f(c.wIstore+c.wS)+"t을 못 받았다";
   case "supply": return "농가 물량이 "+f(c.prod)+"t뿐이라 입고 한도가 남았다";
   case "ship":   return "하루 판매 한도 "+c.capS+"t을 다 써 "+f(c.missed)+"t을 못 팔았다";
@@ -2733,6 +2768,7 @@ FV.causeLine=function(d){
 // 어제 무엇이 막았는가. 모델 용어가 아니라 관찰한 사실로 쓴다.
 FV.BL={none:"막힌 곳이 없었다",
  intake:"입고 한도 부족",
+ procure:"조달 능력 부족",
  store:"창고 공간 부족",
  supply:"농가 물량 부족",
  ship:"판매 한도 부족",
@@ -2830,8 +2866,8 @@ FV.FlowDiagram=function(props){
 
  return FV._html`
   <div style=${{border:"1px solid var(--border)",borderRadius:"var(--radius)",overflow:"hidden"}}>
-   <${FV.FlowStage} hot=${!!(d&&d.b==="supply")} loss=${lossText}>
-    <${FV.FlowMetric} name="농가" value=${d?FF.fInt(prod)+"t":"—"} hot=${!!(d&&d.b==="supply")} sub=${"매입 "+mo(FF.C.farm)+"원/t"} />
+   <${FV.FlowStage} hot=${!!(d&&(d.b==="supply"||d.b==="procure"))} loss=${lossText}>
+    <${FV.FlowMetric} name="농가" value=${d?FF.fInt(prod)+"t":"—"} hot=${!!(d&&(d.b==="supply"||d.b==="procure"))} sub=${"매입 "+mo(FF.C.farm)+"원/t · 조달 능력 "+caps.procure+"t"} />
     ${d?FV._html`<${FV.SplitBar} a=${acc} b=${d.wI} labelA=${"입고 "+FF.fInt(acc)} labelB=${"미입고 "+FF.fInt(d.wI)} />`:null}
    <//>
    <${FV.FlowConnector} visible=${!!d} value=${acc} max=${flowMax} />
@@ -3707,6 +3743,26 @@ FV.CapacityButton=function(){
  ]);
 }
 
+// 이슈 #22/#26: 조달 능력 증설. CapacityButton과 같은 "평소엔 숨김" 패턴이다 - 최근 5일 중
+// 조달 능력 때문에 실제로 놓친 날이 있을 때만 보인다(#9: 트리거는 관측된 사실, 처방이 아니다).
+FV.ProcureButton=function(){
+ FF.observe();
+ if(FF.isOver()||!FF.started())return null;
+ var on=FF.queued("procure");
+ if(!on){
+  var hit=FF.capHits("procure",5);
+  if(!hit.n&&!hit.last)return null;
+ }
+ var opt=FF.optionOf("procure");
+ return FV._h("button",{id:"kbp",class:"btn-cell"+(on?" opt-on":""),
+   style:{borderColor:on?"var(--border-accent)":"var(--border-strong)",
+     background:"transparent",opacity:(opt.affordable||on)?"1":"0.4"},
+   onClick:function(){if(!FF.isOver())FF.toggleBuy("procure")}},[
+  FV._h("div",{},"조달 능력 늘리기"),
+  FV._h("div",{class:"opt-price"},FV.capShift("procure")+" · "+mo(opt.cost)+"원")
+ ]);
+}
+
 
 // 이슈 #11: AP(매입채무) 상태. 자동 완충장치라 결정할 게 없지만, 잔액이 있을 때만 짧게
 // 보여준다 - 현금이 "왜" 실제 매입비보다 여유 있어 보이는지 설명하기 위해서다.
@@ -4009,6 +4065,7 @@ FV.App=function(){
    <${FV.ChannelBar} />
    <${FV.ApNote} />
    <${FV.CapacityButton} />
+   <${FV.ProcureButton} />
    <${FV.FactorButton} />
    <${FV.TrendStrip} />
 

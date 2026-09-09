@@ -15,13 +15,19 @@
 // 분포를 나타내는 값도 실 단위 그대로 두고, 확정 수량으로 넘어오는 경계(입고 목표량 계산,
 // 판로별 예상 수요, 생산·수요 난수 확정)에서만 2를 곱해 양자화한다.
 FF.C={days:30,cash:84000,sm:[14,20,27],sd:2.5,dm:[10,20,32],dd:3,stay:0.8,
-cap:{intake:40,storage:80,sales:42},
+// 이슈 #22/#26: capProcure(조달 능력)는 산지 생산량(raw prod)을 그대로 두고 그 아래
+// 회사 소유의 확보 상한을 추가한다. capIntake(40)의 85% 근처(exposure sweep 후보구간
+// 34-36의 중앙)를 기본값으로 둬서 가끔 실제로 묶이게 한다. Contract(초과분 매입계약)는
+// raw prod 기준 예외 채널이라 capProcure와 별개로 그대로 작동한다(입고 물리 계산 참조).
+cap:{intake:40,storage:80,sales:42,procure:34},
 // factorThreshold: factoring 버튼을 "언제 보여줄지"만 정하는 화면 노출 기준이다(경제 규칙이
 // 아니다 - 이슈 #11). #8 조건부 factoring 검증(factoring-conditional.mjs)에서 runway5 문턱값
 // 0~40000 전 구간이 none보다 나았으므로 이 값을 바꿔도 게임의 최적 전략 자체는 안 바뀐다.
 // 그 범위 중간값 근처를 골랐을 뿐이다.
-ui:{nearCap:.8,storeMid:.5,storeFull:.8,dwellFast:1,dwellSlow:2.5,lowDays:2,armMs:6000,newArmMs:4000,recentWin:5,fcDays:3,eps:.05,matrixDays:7,dwellWin:7,logRows:6,nearTop:.9,zero:1e-9,factorThreshold:20000},chart:{w:340,h:96,pad:4,barH:22,gap:6},// 증설은 판매 한도만 산다. 상류는 초과분 매입 계약으로 대체했다.
-step:{sales:2},cost:{sales:618},
+ui:{nearCap:.8,storeMid:.5,storeFull:.8,dwellFast:1,dwellSlow:2.5,lowDays:2,armMs:6000,newArmMs:4000,recentWin:5,fcDays:3,eps:.05,matrixDays:7,dwellWin:7,logRows:6,nearTop:.9,zero:1e-9,factorThreshold:20000},chart:{w:340,h:96,pad:4,barH:22,gap:6},// 증설은 판매 한도와 조달 능력만 산다. 입고 한도(capIntake) 상류는 초과분 매입 계약으로 대체했다.
+// procure의 cost/step은 #22 headless 종단검증(procure-endtoend-sim.mjs)에서 확정한 값
+// 그대로다 - 유지비(maint)는 없다(검증한 경제식에 없었다).
+step:{sales:2,procure:2},cost:{sales:618,procure:490},
 // 초과분 매입 계약. 첫날에 크기를 고른다. 한도를 넘은 물량을 하루 최대 X(내부단위) 더 받는다.
 // 가격은 규모에 따라 완만하게 체감한다. 유지비 없음, 이후 변경 불가.
 contract:{until:1,max:1,options:[

@@ -30,7 +30,7 @@ FF.invPerf=function(win){
 
 FF.causeFacts=function(d){
  if(!d)return null;
- return {b:d.b,capI:d.capI,capS:d.capS,wIcap:d.wIcap,wIstore:d.wIstore,wS:d.wS,
+ return {b:d.b,capI:d.capI,capS:d.capS,wIcap:d.wIcap,wIprocure:d.wIprocure,wIstore:d.wIstore,wS:d.wS,
    prod:d.prod,dem:d.dem,missed:d.missed,wIneed:d.wIneed};
 }
 
@@ -48,6 +48,7 @@ FF.lostInflow=function(d){
  if(tot<FF.C.ui.eps)return null;
  var byStore=d.wIstore+d.wS, parts=[];
  if(d.wIcap>FF.C.ui.eps)parts.push({cause:"cap",amt:d.wIcap});
+ if(d.wIprocure>FF.C.ui.eps)parts.push({cause:"procure",amt:d.wIprocure});
  if(byStore>FF.C.ui.eps)parts.push({cause:"store",amt:byStore});
  if(d.wIneed>FF.C.ui.eps)parts.push({cause:"need",amt:d.wIneed});
  return {total:tot,parts:parts};
@@ -179,7 +180,7 @@ FF.modRows=function(){
   var step=isC?(m.size||FF.contractOf()):FF.C.step[m.kind];
   var opt=isC?FF.contractOption(step):null;
   var cost=isC?(opt?opt.price:0)
-    :(FF.C.cost[m.kind]+days*step*FF.C.maint.sales);
+    :(FF.C.cost[m.kind]+days*step*(FF.C.maint[m.kind]||0));
   return {day:m.day,kind:m.kind,size:m.size,days:days,extra:ex,
    fill:days?ex/(days*step):0,
    cost:cost,
@@ -357,7 +358,7 @@ FF.todayIntake=function(){
  var prod=FF.prodOf()||0;
  var need=FF.intakeNeed(M.di,caps.sales,FF.coverOf(),FF.inventory());
  var contract=FF.effectiveContract();
- var IP=FF.intakePhysical(prod,caps.intake,caps.storage,contract,need,FF.inventory());
+ var IP=FF.intakePhysical(prod,caps.intake,caps.procure,caps.storage,contract,need,FF.inventory());
  var stored=IP.stored;
  var day=FF.dayOf();
  var arDueToday=(FF.arOf()||[]).filter(function(x){return x.at<=day})
@@ -389,7 +390,7 @@ FF.factorPlan=function(){
  if(outstanding<=FF.C.ui.zero)return {eligible:false,outstanding:0};
  var day=FF.dayOf(), M=FF.marketOf(), caps=FF.capsOf();
  var need=FF.intakeNeed(M.di,caps.sales,FF.coverOf(),FF.inventory());
- var IP=FF.intakePhysical(FF.prodOf()||0,caps.intake,caps.storage,FF.effectiveContract(),need,FF.inventory());
+ var IP=FF.intakePhysical(FF.prodOf()||0,caps.intake,caps.procure,caps.storage,FF.effectiveContract(),need,FF.inventory());
  var runway=FF.factorRunway(FF.ledger().cash,ar,day,IP.stored);
  var needed=Math.max(0,-runway);
  var suggested=Math.min(needed,outstanding);

@@ -56,16 +56,16 @@ FF.setLots=function(a){FF.LOTS.value=a}
 FF.ENGINE=FF._signal(null);
 FF.engineState=function(){return FF.ENGINE.value}
 FF.resetEngineState=function(){
- FF.ENGINE.value={prevB:"none",lastBuy:{intake:0,sales:0},
-  phase:{intake:{dir:0,n:0},sales:{dir:0,n:0}}};
+ FF.ENGINE.value={prevB:"none",lastBuy:{intake:0,sales:0,procure:0},
+  phase:{intake:{dir:0,n:0},sales:{dir:0,n:0},procure:{dir:0,n:0}}};
 }
 FF.PLANT=FF._signal(null);
 FF.plant=function(){FF.VERSION.value;return FF.PLANT.value}
-FF.resetPlant=function(){FF.PLANT.value={cap:{intake:FF.C.cap.intake,storage:FF.C.cap.storage,sales:FF.C.cap.sales},buys:{sales:0,contract:0}}}
-FF.expand=function(kind){var P=FF.PLANT.value,c={intake:P.cap.intake,storage:P.cap.storage,sales:P.cap.sales};
+FF.resetPlant=function(){FF.PLANT.value={cap:{intake:FF.C.cap.intake,storage:FF.C.cap.storage,sales:FF.C.cap.sales,procure:FF.C.cap.procure},buys:{sales:0,contract:0,procure:0}}}
+FF.expand=function(kind){var P=FF.PLANT.value,c={intake:P.cap.intake,storage:P.cap.storage,sales:P.cap.sales,procure:P.cap.procure};
  c[kind]+=FF.C.step[kind];
  FF.PLANT.value={cap:c,buys:P.buys};}
-FF.countBuy=function(kind){var P=FF.PLANT.value,b={sales:P.buys.sales,contract:P.buys.contract||0};
+FF.countBuy=function(kind){var P=FF.PLANT.value,b={sales:P.buys.sales,contract:P.buys.contract||0,procure:P.buys.procure||0};
  b[kind]++;
  FF.PLANT.value={cap:P.cap,buys:b};}
 FF.RUN=FF._signal(null);

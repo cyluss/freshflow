@@ -1,5 +1,5 @@
 // 오늘 새로 나타난 문제. 짧게 한 줄로 알린다.
-FV.EVENT_TEXT={intake:"입고 한도 부족",store:"창고 공간 부족",
+FV.EVENT_TEXT={intake:"입고 한도 부족",procure:"조달 능력 부족",store:"창고 공간 부족",
  ship:"판매 한도 부족",stock:"팔 재고 부족"};
 FV.WORD={
  channel:{online:"온라인",fran:"프랜차이즈",whole:"도매"},
@@ -20,8 +20,8 @@ FV.WORD={
  supply:{low:"부족",mid:"평년",high:"풍작"},
  demand:{weak:"침체",mid:"정상",strong:"호황"},
  row:{supply:"생산",intake:"입고",storage:"창고",sales:"판매",demand:"수요",event:"사건",mod:"투자"},
- event:{intake:"입고",store:"창고",ship:"판매",stock:"재고"},
- cause:{cap:"한도",store:"창고 부족",need:"필요 없음"},
+ event:{intake:"입고",procure:"조달",store:"창고",ship:"판매",stock:"재고"},
+ cause:{cap:"한도",procure:"조달 능력",store:"창고 부족",need:"필요 없음"},
  dir:{up:"증가",down:"하락",flat:"보합"}
 };
 FV.say=function(group,code){
@@ -30,10 +30,10 @@ FV.say=function(group,code){
  return (t&&t[code])||code;
 };
 // 설비 이름. 화면 어디서나 같은 말을 쓴다.
-FV.capName=function(k){return k==="contract"?"초과분 매입 계약":"판매 한도"}
+FV.capName=function(k){return k==="contract"?"초과분 매입 계약":k==="procure"?"조달 능력":"판매 한도"}
 // 지금 한도에서 사고 난 뒤 한도로.
 FV.capShift=function(k){
- var c=FF.capsOf(), from=(k==="intake")?c.intake:c.sales;
+ var c=FF.capsOf(), from=c[k];
  return from+" \u2192 "+(from+FF.C.step[k])+"t/일";
 }
 // 기록과 표에서 쓰는 짧은 이름.
@@ -63,6 +63,7 @@ FV.causeLine=function(d){
  var f=function(n){return String(Math.round(n))};
  switch(c.b){
   case "intake": return "하루 입고 한도 "+c.capI+"t을 다 써 "+f(c.wIcap)+"t을 못 받았다";
+  case "procure": return "조달 능력이 모자라 "+f(c.wIprocure)+"t을 못 받았다";
   case "store":  return "창고가 차서 "+f(c.wIstore+c.wS)+"t을 못 받았다";
   case "supply": return "농가 물량이 "+f(c.prod)+"t뿐이라 입고 한도가 남았다";
   case "ship":   return "하루 판매 한도 "+c.capS+"t을 다 써 "+f(c.missed)+"t을 못 팔았다";
@@ -77,6 +78,7 @@ FV.causeLine=function(d){
 // 어제 무엇이 막았는가. 모델 용어가 아니라 관찰한 사실로 쓴다.
 FV.BL={none:"막힌 곳이 없었다",
  intake:"입고 한도 부족",
+ procure:"조달 능력 부족",
  store:"창고 공간 부족",
  supply:"농가 물량 부족",
  ship:"판매 한도 부족",

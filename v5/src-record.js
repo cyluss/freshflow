@@ -1,3 +1,5 @@
+// procure는 판매/입고와 달리 "한도 대비 사용률"이 아니라 그날 조달 능력 때문에 실제로
+// 놓친 양(wIprocure)이 있었는지로 판정한다 - 회사가 산 capProcure 자체가 그 판정의 분모다.
 FF.capHits=function(kind,win){
  var lastBlocked=false;
  var since=FF.engineState().lastBuy[kind];
@@ -8,25 +10,31 @@ FF.capHits=function(kind,win){
  for(var j=0;j<h.length;j++){
   if(kind==="intake"&&h[j].acc>=h[j].capI-0.05)n++;
   if(kind==="sales"&&h[j].sold>=h[j].capS-0.05&&h[j].dem>h[j].sold+0.05)n++;
+  if(kind==="procure"&&h[j].wIprocure>0.05)n++;
  }
  if(h.length){
   var z=h[h.length-1];
-  lastBlocked=kind==="intake"?(z.acc>=z.capI-0.05):(z.sold>=z.capS-0.05&&z.dem>z.sold+0.05);
+  lastBlocked=kind==="intake"?(z.acc>=z.capI-0.05)
+   :kind==="procure"?(z.wIprocure>0.05)
+   :(z.sold>=z.capS-0.05&&z.dem>z.sold+0.05);
  }
  return{n:n,len:h.length,last:lastBlocked};
 }
 
 FF.useRate=function(n){
  var h=FF.histOf().slice(-n);
- if(!h.length)return{intake:0,sales:0};
- var a=0,b=0;
- for(var i=0;i<h.length;i++){a+=h[i].acc/FF.plant().cap.intake;b+=h[i].sold/FF.plant().cap.sales}
- return{intake:a/h.length*100,sales:b/h.length*100};
+ if(!h.length)return{intake:0,sales:0,procure:0};
+ var a=0,b=0,c=0,capP=FF.plant().cap.procure;
+ for(var i=0;i<h.length;i++){
+  a+=h[i].acc/FF.plant().cap.intake;b+=h[i].sold/FF.plant().cap.sales;
+  c+=capP>0?Math.min(h[i].prod,capP)/capP:0;
+ }
+ return{intake:a/h.length*100,sales:b/h.length*100,procure:c/h.length*100};
 }
 
 FF.recordDay=function(r,ev){
  FF.pushHist({day:FF.run().day,prod:r.prod,dem:r.dem,acc:r.acc,refused:r.refused,sold:r.sold,
-  missed:r.missed,ageMix:r.ageMix,wI:r.wI,wIcap:r.wIcap,wIstore:r.wIstore,wIneed:r.wIneed,
+  missed:r.missed,ageMix:r.ageMix,wI:r.wI,wIcap:r.wIcap,wIprocure:r.wIprocure,wIstore:r.wIstore,wIneed:r.wIneed,
   wS:r.wS,wT:r.wT,end:r.end,profit:r.profit-r.cost,b:r.b,
   si:FF.MARKET.value.si,di:FF.MARKET.value.di,
   capI:FF.plant().cap.intake,capS:FF.plant().cap.sales,
@@ -35,14 +43,20 @@ FF.recordDay=function(r,ev){
  for(var mi=0;mi<FF.logOf().mods.length;mi++){
   var md=FF.logOf().mods[mi];
   if(FF.run().day<=md.day)continue;
-  md.use.push(md.kind==="contract"?(r.acc/FF.plant().cap.intake):(r.sold/FF.plant().cap.sales));
-  md.extra=(md.extra||0)+(md.kind==="contract"?Math.max(0,r.acc-FF.plant().cap.intake):Math.max(0,r.sold-md.from));
+  var procured=Math.min(r.prod,FF.plant().cap.procure);
+  md.use.push(md.kind==="contract"?(r.acc/FF.plant().cap.intake)
+    :md.kind==="procure"?(FF.plant().cap.procure>0?procured/FF.plant().cap.procure:0)
+    :(r.sold/FF.plant().cap.sales));
+  md.extra=(md.extra||0)+(md.kind==="contract"?Math.max(0,r.acc-FF.plant().cap.intake)
+    :md.kind==="procure"?Math.max(0,procured-md.from)
+    :Math.max(0,r.sold-md.from));
   if(FF.run().day<=md.day+3){
    if(md.kind==="contract"&&r.acc>FF.plant().cap.intake+0.05)md.hit++;
    if(md.kind==="sales"&&r.sold>=FF.plant().cap.sales-0.05)md.hit++;
+   if(md.kind==="procure"&&r.wIprocure>0.05)md.hit++;
   }
  }
- var actionable=(r.b==="intake"||r.b==="ship"||r.b==="store"||r.b==="stock");
+ var actionable=(r.b==="intake"||r.b==="procure"||r.b==="ship"||r.b==="store"||r.b==="stock");
  var changed=(r.b!==FF.engineState().prevB);
  FF.engineState().prevB=r.b;
  FF.setEvent((actionable&&changed)?{b:r.b}:null);
@@ -78,7 +92,7 @@ FF.recordPurchase=function(act,path,size){
   return;
  }
  FF.append("mods",{kind:act,day:day,idx:FF.plant().buys[act]+1,
-   from:FF.plant().cap.sales,use:[],hit:0});
+   from:FF.plant().cap[act],use:[],hit:0});
  var hB=FF.capHits(act,5),uB=FF.useRate(3);
  var gB=dvB[2]-dvB[0];
  var ES=FF.engineState();
@@ -87,8 +101,8 @@ FF.recordPurchase=function(act,path,size){
  ES.lastBuy[act]=day;
  FF.append("buylog",{day:day,kind:act,gap:gB,
   hitN:hB.n, hitLen:hB.len, left:FF.C.days-day, path:path||"manual",
-  util:Math.round(uB.sales),
-  nth:FF.plant().buys[act]+1,cap:FF.plant().cap.sales});
+  util:Math.round(uB[act]),
+  nth:FF.plant().buys[act]+1,cap:FF.plant().cap[act]});
 }
 
 // 하루 시작 시점의 한도 도달 여부를 남긴다.

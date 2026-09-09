@@ -125,22 +125,33 @@ FF.intakeNeed=function(di,capSales,cover,totalInv,rules){
 // 오늘 입고 가능량의 물리적 상한. 목표재고(need)·창고 여유·초과분 계약까지 보되 현금은 아직
 // 안 본다(현금 제약은 stepState가 이 함수 결과 위에 한 번 더 건다). 커널의 실제 입고 판정과
 // 미리보기(오늘 입고량 예상, factoring의 runway5가 쓰는 want)가 이 함수 하나를 같이 쓴다.
-// reach/refused/wI/byCap/byStore/byNeed는 병목 판정에만 쓰는 진단값이라 stepState만 읽는다.
-FF.intakePhysical=function(prod,capIntake,capStorage,contract,need,totalInv){
- var baseAcc=Math.min(prod,capIntake,need);
+// reach/refused/wI/byCap/byProcure/byStore/byNeed는 병목 판정에만 쓰는 진단값이라 stepState만 읽는다.
+//
+// 이슈 #22/#26: capProcure(조달 능력)는 평상시 공급망으로 확보할 수 있는 물량의 상한이고,
+// Contract(초과분 매입계약)는 그 바깥에서 초과생산분을 추가로 확보하는 예외적 권리다. 두
+// 채널은 병렬이다 - over/extra는 원래대로 raw prod와 capIntake만으로 정해진다(Contract는
+// capProcure 값과 무관하게 항상 그대로 작동한다). capProcure는 "평상시 채널"의 물리적 상한
+// (capIntake와 나란히)에만 적용된다. byCap 공식은 원래 그대로이고, byProcure는 새 항이다 -
+// 대수적으로 byCap+byProcure가 항상 prod-reach(= 평상시+예외 채널을 합친 뒤의 손실)와
+// 같다(양쪽 다 capIntake·capProcure 대소관계 전 구간에서 검증됨).
+FF.intakePhysical=function(prod,capIntake,capProcure,capStorage,contract,need,totalInv){
+ var normalCap=Math.min(capIntake,capProcure);
+ var physCap=Math.min(prod,normalCap);
  var over=Math.max(0,prod-capIntake);
+ var baseAcc=Math.min(physCap,need);
  var extra=contract>0?Math.min(over,contract,Math.max(0,need-baseAcc)):0;
  var acc=baseAcc+extra;
- var reach=Math.min(prod,capIntake)+extra;
+ var reach=physCap+extra;
  var refused=reach-acc, wI=prod-acc;
  var freeNow=Math.max(0,capStorage-totalInv);
  var byCap=Math.max(0,over-extra);
- var rest=wI-byCap;
+ var byProcure=Math.max(0,Math.min(prod,capIntake)-capProcure);
+ var rest=wI-byCap-byProcure;
  var byStore=Math.min(rest,Math.max(0,reach-freeNow));
  var byNeed=Math.max(0,rest-byStore);
  var stored=Math.min(acc,freeNow), wS=acc-stored;
- return {acc:acc,reach:reach,refused:refused,wI:wI,byCap:byCap,byStore:byStore,byNeed:byNeed,
-  stored:stored,wS:wS};
+ return {acc:acc,reach:reach,refused:refused,wI:wI,byCap:byCap,byProcure:byProcure,
+  byStore:byStore,byNeed:byNeed,stored:stored,wS:wS};
 }
 
 // AR/AP 잔액 합. ar/ap 모두 {at,amt} 모양이라 하나로 쓴다.
@@ -179,8 +190,8 @@ FF.stepState=function(s,prod,dem,rules){
  var need=FF.intakeNeed(s.di,s.cap.sales,s.cover,tot(),R);
  // 초과분 매입 계약: 한도를 넘은 물량 중 최대 X t 를 더 받는다. 창고 여유까지 본
  // "현금 제약 전" 상한은 FF.intakePhysical 하나로 커널과 미리보기가 같이 낸다.
- var IP=FF.intakePhysical(prod,s.cap.intake,s.cap.storage,s.contract,need,tot());
- var refused=IP.refused, wI=IP.wI, byCap=IP.byCap, byStore=IP.byStore, byNeed=IP.byNeed;
+ var IP=FF.intakePhysical(prod,s.cap.intake,s.cap.procure,s.cap.storage,s.contract,need,tot());
+ var refused=IP.refused, wI=IP.wI, byCap=IP.byCap, byProcure=IP.byProcure, byStore=IP.byStore, byNeed=IP.byNeed;
  var stored=IP.stored, wS=IP.wS;
  // 매입은 지금 손에 있는 현금으로만 한다. 모자라면 그만큼 덜 받는다.
  // budget/farm을 그대로 쓰면 소수가 나온다. 현금으로 못 사는 몫이라 올림이 아니라 내림이어야
@@ -307,7 +318,7 @@ FF.stepState=function(s,prod,dem,rules){
  // (apPortion)만큼 덜 나간다 - AR이 매출을 인식 시점과 현금화 시점으로 나누는 것과 대칭이다.
  s.cash-=(cost-apPortion);
  return {prod:prod,dem:demTotal,acc:stored,refused:refused,sold:sold,missed:Math.max(0,demTotal-sold),
-  ageMix:ageMix,wI:wI,wIcap:byCap,wIstore:byStore,wIneed:byNeed,wS:wS,wT:wT,
+  ageMix:ageMix,wI:wI,wIcap:byCap,wIprocure:byProcure,wIstore:byStore,wIneed:byNeed,wS:wS,wT:wT,
   end:end,profit:profit,sellable:sellable,toCh:toCh,revCh:revCh,apUsed:apPortion};
 }
 
@@ -323,8 +334,9 @@ FF.bottleneck=function(s,r,dem,rules){
   ["stock", (r.sold<dem-eps&&r.sellable<=r.sold+eps)?lossOut:0],
   ["demand",(r.sold<s.cap.sales-eps&&r.sellable>r.sold+eps)?Math.max(0,s.cap.sales-dem):0],
   ["intake",r.wIcap],
+  ["procure",r.wIprocure],
   ["store", r.wIstore+r.wS+r.wT],
-  ["supply",(r.wIneed<=eps&&r.wIcap<=eps&&r.wIstore<=eps&&r.prod<s.cap.intake-eps)?(s.cap.intake-r.prod):0],
+  ["supply",(r.wIneed<=eps&&r.wIcap<=eps&&r.wIprocure<=eps&&r.wIstore<=eps&&r.prod<s.cap.intake-eps)?(s.cap.intake-r.prod):0],
   ["policy",r.wIneed]
  ];
  var b="none",bv=eps;
@@ -336,7 +348,7 @@ FF.bottleneck=function(s,r,dem,rules){
 
 // 하루 상태 전이. 게임 규칙은 이 함수에만 있다.
 // 신호도 로그도 화면도 모른다. 상태와 사실만 다룬다.
-//   state   {day,si,di,cash,lots,cap:{intake,storage,sales},pend,spent,buys}
+//   state   {day,si,di,cash,lots,cap:{intake,storage,sales,procure},pend,spent,buys}
 //   command FF.Cmd 의 결과
 //   world   FF.World 의 next() 출력
 // 반환 {state, result, events}. state 는 제자리에서 전진한다.
@@ -436,6 +448,7 @@ FF.transition=function(state,command,world,rules){
  r.bought=bought; r.cost=cost;
  r.b=FF.bottleneck(s,r,world.demand,R);
  if(r.wIcap>R.ui.eps)ev.push({type:"capacity-hit",capacity:"intake",amount:r.wIcap});
+ if(r.wIprocure>R.ui.eps)ev.push({type:"capacity-hit",capacity:"procure",amount:r.wIprocure});
  if(r.wIstore+r.wS>R.ui.eps)ev.push({type:"capacity-hit",capacity:"storage",amount:r.wIstore+r.wS});
  if(r.missed>R.ui.eps)ev.push({type:"demand-missed",amount:r.missed});
  ev.push({type:"day-ended",day:s.day,profit:r.profit-cost});
@@ -456,10 +469,10 @@ FF.initialState=function(world,rules){
  var R=rules||FF.C;
  return {day:1,si:world.phase().supply,di:world.phase().demand,
   cash:R.cash,lots:[],
-  cap:{intake:R.cap.intake,storage:R.cap.storage,sales:R.cap.sales},
+  cap:{intake:R.cap.intake,storage:R.cap.storage,sales:R.cap.sales,procure:R.cap.procure},
   pend:null,spent:0,contract:0,pendContract:null,todayProd:null,cover:R.cover,ar:[],ap:[],apHist:[],
   rel:R.channels.map(function(){return R.rel.start}),alloc:null,stance:null,
-  buys:{sales:0,contract:0},
+  buys:{sales:0,contract:0,procure:0},
   recent:[]};
 }
 
@@ -474,7 +487,7 @@ FF.step=function(state,command,world,rules){
 FF.forkState=function(s){
  return {day:s.day,si:s.si,di:s.di,cash:s.cash,
   lots:s.lots.map(function(l){return {q:l.q,a:l.a}}),
-  cap:{intake:s.cap.intake,storage:s.cap.storage,sales:s.cap.sales},
+  cap:{intake:s.cap.intake,storage:s.cap.storage,sales:s.cap.sales,procure:s.cap.procure},
   pend:s.pend,spent:s.spent,contract:s.contract||0,pendContract:s.pendContract||null,
   todayProd:(s.todayProd===undefined)?null:s.todayProd,cover:s.cover,
   ar:(s.ar||[]).map(function(x){return {at:x.at,amt:x.amt}}),
@@ -483,7 +496,7 @@ FF.forkState=function(s){
   rel:(s.rel||[]).slice(),alloc:s.alloc?s.alloc.slice():null,
   stance:s.stance?s.stance.slice():null,dead:false,
   recent:s.recent?s.recent.slice():[],
-  buys:s.buys?{sales:s.buys.sales,contract:s.buys.contract||0}:undefined};
+  buys:s.buys?{sales:s.buys.sales,contract:s.buys.contract||0,procure:s.buys.procure||0}:undefined};
 }
 
 // 최종 가치. 살아남았고 끝까지 갔으면 처분가치를 더한다.

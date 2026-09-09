@@ -190,6 +190,26 @@ FV.CapacityButton=function(){
  ]);
 }
 
+// 이슈 #22/#26: 조달 능력 증설. CapacityButton과 같은 "평소엔 숨김" 패턴이다 - 최근 5일 중
+// 조달 능력 때문에 실제로 놓친 날이 있을 때만 보인다(#9: 트리거는 관측된 사실, 처방이 아니다).
+FV.ProcureButton=function(){
+ FF.observe();
+ if(FF.isOver()||!FF.started())return null;
+ var on=FF.queued("procure");
+ if(!on){
+  var hit=FF.capHits("procure",5);
+  if(!hit.n&&!hit.last)return null;
+ }
+ var opt=FF.optionOf("procure");
+ return FV._h("button",{id:"kbp",class:"btn-cell"+(on?" opt-on":""),
+   style:{borderColor:on?"var(--border-accent)":"var(--border-strong)",
+     background:"transparent",opacity:(opt.affordable||on)?"1":"0.4"},
+   onClick:function(){if(!FF.isOver())FF.toggleBuy("procure")}},[
+  FV._h("div",{},"조달 능력 늘리기"),
+  FV._h("div",{class:"opt-price"},FV.capShift("procure")+" · "+mo(opt.cost)+"원")
+ ]);
+}
+
 
 // 이슈 #11: AP(매입채무) 상태. 자동 완충장치라 결정할 게 없지만, 잔액이 있을 때만 짧게
 // 보여준다 - 현금이 "왜" 실제 매입비보다 여유 있어 보이는지 설명하기 위해서다.
@@ -492,6 +512,7 @@ FV.App=function(){
    <${FV.ChannelBar} />
    <${FV.ApNote} />
    <${FV.CapacityButton} />
+   <${FV.ProcureButton} />
    <${FV.FactorButton} />
    <${FV.TrendStrip} />
 

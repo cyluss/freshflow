@@ -131,7 +131,7 @@ FF._recoverPct=function(kind){
  var days=upto-last.day;
  var opt=(kind==="contract")?FF.contractOption(last.size||0):null;
  var cost=(kind==="contract")?(opt?opt.price:0)
-  :(FF.C.cost[kind]+days*FF.C.step[kind]*FF.C.maint.sales);
+  :(FF.C.cost[kind]+days*FF.C.step[kind]*(FF.C.maint[kind]||0));
  var val=Math.round(gain);
  var key=kind+":"+last.day, prev=FF.recoverPrev(key);
  FF.noteRecover(key,val);
@@ -149,7 +149,7 @@ FF._breakEven=function(k){
  var days=Math.max(0,FF.C.days-FF.run().day-off);
  if(days<=0)return null;
  var step=FF.C.step[k];
- var maint=FF.C.maint.sales*step*days;
+ var maint=(FF.C.maint[k]||0)*step*days;
  var net=FF.C.cost[k]*(1-FF.C.salvage)+maint;
  var margin=FF.C.price;
  return{t:net/margin,cost:Math.round(net)};
