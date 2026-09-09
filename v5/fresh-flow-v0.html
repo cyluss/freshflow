@@ -1398,10 +1398,17 @@ FF.recordDay=function(r,ev){
  FF.engineState().prevB=r.b;
  FF.setEvent((actionable&&changed)?{b:r.b}:null);
  if(FF.evt())FF.append("evlog",{day:FF.run().day,b:r.b});
- if(ev)for(var q=0;q<ev.length;q++)if(ev[q].type==="purchase")
-  FF.append("timeline",{day:ev[q].day,type:"buy",kind:ev[q].capacity,
-   newCap:(ev[q].capacity==="contract")?FF.contractOf()
-     :(FF.plant().cap[ev[q].capacity]+FF.C.step[ev[q].capacity])});
+ if(ev)for(var q=0;q<ev.length;q++){
+  if(ev[q].type==="purchase")
+   FF.append("timeline",{day:ev[q].day,type:"buy",kind:ev[q].capacity,
+    newCap:(ev[q].capacity==="contract")?FF.contractOf()
+      :(FF.plant().cap[ev[q].capacity]+FF.C.step[ev[q].capacity])});
+  // 이슈 #9: factor 이벤트가 지금까지 timeline에 안 남아서 실행 후 아무 흔적이 없었다(폐루프
+  // 단절). 사실만 남긴다 - 요청액/입금액/비용. "이 덕에 파산을 피했다" 같은 인과 주장은
+  // 반사실 없이는 할 수 없으므로 넣지 않는다(#20의 귀속 문제와 같은 함정).
+  if(ev[q].type==="factor")
+   FF.append("timeline",{day:ev[q].day,type:"factor",amount:ev[q].amount,cashIn:ev[q].cashIn,cost:ev[q].cost});
+ }
 }
 
 // 구매 순간의 관측치를 남긴다. 게임 규칙이 아니라 기록이다.
@@ -3429,12 +3436,18 @@ FV.TimelineLog=function(props){
    ? ("초과분 매입 계약 · 한도 넘는 날 "+t.newCap+"t 더 받는다")
    : ("판매 한도 늘리기 · 다음날 "+t.newCap+"t/일 적용");
  };
+ // 사실만 적는다 - 요청액/입금액/비용. 이 조기현금화 덕에 무엇을 피했다는 식의 인과
+ // 주장은 반사실 비교 없이는 할 수 없어 넣지 않는다.
+ var sayFactor=function(t){
+  return "매출채권 조기현금화 · "+mo(t.amount)+"원 요청 → 현금 "+mo(t.cashIn)+"원 입금(비용 "+mo(t.cost)+"원)";
+ };
  var byDay={};
  TL.forEach(function(t){
   var k2="d"+t.day;
   if(!byDay[k2])byDay[k2]={sort:t.day+0.5,kind:"day",day:t.day,ev:[],act:[]};
   if(t.type==="event")byDay[k2].ev.push(FV.EVENT_TEXT[t.b]||"");
   else if(t.type==="buy")byDay[k2].act.push(sayBuy(t));
+  else if(t.type==="factor")byDay[k2].act.push(sayFactor(t));
   else if(t.type==="finish")byDay[k2].act.push("운영 종료 선택, 남은 기간 자동 운영");
  });
  var arr=Object.keys(byDay).map(function(k){return byDay[k]}).sort(function(a,b){return a.sort-b.sort});

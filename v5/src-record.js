@@ -47,10 +47,17 @@ FF.recordDay=function(r,ev){
  FF.engineState().prevB=r.b;
  FF.setEvent((actionable&&changed)?{b:r.b}:null);
  if(FF.evt())FF.append("evlog",{day:FF.run().day,b:r.b});
- if(ev)for(var q=0;q<ev.length;q++)if(ev[q].type==="purchase")
-  FF.append("timeline",{day:ev[q].day,type:"buy",kind:ev[q].capacity,
-   newCap:(ev[q].capacity==="contract")?FF.contractOf()
-     :(FF.plant().cap[ev[q].capacity]+FF.C.step[ev[q].capacity])});
+ if(ev)for(var q=0;q<ev.length;q++){
+  if(ev[q].type==="purchase")
+   FF.append("timeline",{day:ev[q].day,type:"buy",kind:ev[q].capacity,
+    newCap:(ev[q].capacity==="contract")?FF.contractOf()
+      :(FF.plant().cap[ev[q].capacity]+FF.C.step[ev[q].capacity])});
+  // 이슈 #9: factor 이벤트가 지금까지 timeline에 안 남아서 실행 후 아무 흔적이 없었다(폐루프
+  // 단절). 사실만 남긴다 - 요청액/입금액/비용. "이 덕에 파산을 피했다" 같은 인과 주장은
+  // 반사실 없이는 할 수 없으므로 넣지 않는다(#20의 귀속 문제와 같은 함정).
+  if(ev[q].type==="factor")
+   FF.append("timeline",{day:ev[q].day,type:"factor",amount:ev[q].amount,cashIn:ev[q].cashIn,cost:ev[q].cost});
+ }
 }
 
 // 구매 순간의 관측치를 남긴다. 게임 규칙이 아니라 기록이다.
