@@ -480,6 +480,27 @@ function open(file, seed) {
   t('전망 제목', s14.q('koutlook').textContent.includes('생산 전망'));
 }
 
+// 이슈 #34: 사건 이력은 최근 것만 기본으로 보이고, 나머지는 눌러야 나온다
+{
+  const s15 = open(FILE, 76562);
+  s15.q('kbc0').click(); await tick();
+  s15.q('kgo').click(); await tick();
+  // 채널 정책을 자주 뒤집어 관계 신호를 많이 만든다(더 보기가 실제로 필요한 상태를 만든다)
+  for (let d = 0; d < 200 && !s15.w.FF.isOver(); d++) {
+    s15.w.FF.setChannelStance(d % 3, (d % 2) * 3);
+    s15.q('kgo').click(); await tick();
+  }
+  const total = s15.w.FF.relLogOf().length;
+  t('충분한 사건이 쌓임(전제 조건)', total > s15.w.FV.EVENT_LOG_PAGE, total);
+  const rows1 = () => [...s15.d.querySelectorAll('.rl-row')];
+  t('기본은 최근 것만', rows1().length === s15.w.FV.EVENT_LOG_PAGE);
+  const more = s15.d.querySelector('#kevmore');
+  t('더 보기 버튼 존재', !!more && more.textContent === '이전 사건 ' + (total - s15.w.FV.EVENT_LOG_PAGE) + '개 더 보기');
+  more.click(); await tick();
+  t('누르면 전체가 보인다', [...s15.d.querySelectorAll('.rl-row')].length === total);
+  t('전체를 보이면 더 보기가 사라진다', !s15.d.querySelector('#kevmore'));
+}
+
 // 실시간 진행
 {
   const rt = open(FILE, 30699);

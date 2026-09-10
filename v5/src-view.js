@@ -492,13 +492,22 @@ FV.OutlookView=function(){
  return FV._html`<${FV.Outlook} data=${FF.outlook()} />`;
 }
 
+// 이슈 #34: 사건 이력은 게임 길이만큼 쌓인다. 30일 게임에서는 눈에 띄지 않았지만
+// 365일 게임에서는 페이지 높이가 계속 늘어난다(#29 실측: day1 1378px → day365
+// 4977px). 기본은 최근 것만 보여주고, 전체는 눌러야 나오게 한다 - 삭제가 아니라
+// 접기다.
+FV.EVENT_LOG_PAGE=20;
 // 사건 이력. 지금까지의 관계 신호를 최신순으로 나열한다. 없으면 안내 한 줄만 보인다.
 FV.EventLogView=function(){
  FF.observe();
  if(!FF.started()||FF.isOver())return null;
  var log=FF.relLogOf();
  if(!log.length)return FV._h("div",{class:"sub"},"아직 발생한 사건이 없다");
- var rows=log.slice().reverse().map(function(s){
+ var reversed=log.slice().reverse();
+ var showAll=!!FV._eventLogAll;
+ var hidden=reversed.length-FV.EVENT_LOG_PAGE;
+ var visible=(showAll||hidden<=0)?reversed:reversed.slice(0,FV.EVENT_LOG_PAGE);
+ var rows=visible.map(function(s){
   var name=FV.say("channel",FF.C.channels[s.i].key);
   var verb=FV.say("signal",s.type);
   return FV._h("div",{class:"rl-row"},[
@@ -506,7 +515,10 @@ FV.EventLogView=function(){
    name+" "+verb+" · "+FV.say("relword",String(s.from))+" → "+FV.say("relword",String(s.to))
   ]);
  });
- return FV._h("div",{class:"rellog"},rows);
+ var more=(!showAll&&hidden>0)?FV._h("button",{class:"btn-plain",id:"kevmore",
+   onClick:function(){FV._eventLogAll=true;FF.repaint()}},
+   "이전 사건 "+hidden+"개 더 보기"):null;
+ return FV._h("div",{class:"rellog"},rows.concat([more]));
 }
 
 // 어제 흐름은 이제 FlowSummary가 상단에서 직접 보여준다. 탭을 셋으로 줄인다.
