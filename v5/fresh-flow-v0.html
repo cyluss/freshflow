@@ -3805,7 +3805,9 @@ FV.ChannelBar=function(){
   var order=r['curr.forecast.demand.order'], level=r['curr.plan.allocation.stance'];
   var floor=r['curr.state.allocation.floor'];
   // 임계값은 실제 1t(내부 2단위)를 기준으로 한다. 이 자료형은 1 unit = 0.5t다.
-  var missTxt=missed>=2?(FF.fInt(missed)+"t을 다른 판로에 양보"):"";
+  // 이슈 #35: "양보"는 정책 4단계 중 하나의 이름이다(양보/기본/우선/보장). 배정에서
+  // 밀린 결과를 같은 단어로 적으면 정책을 낮춘 것과 헷갈린다 - 다른 말을 쓴다.
+  var missTxt=missed>=2?(FF.fInt(missed)+"t을 다른 판로에 내줬다"):"";
   return FV._h("div",{class:"chan-card"},[
    FV._h("div",{class:"chan-id"},[
     FV._h("span",{class:"chan-name"},FV.say("channel",r.key))
