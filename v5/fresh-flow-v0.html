@@ -1033,11 +1033,18 @@ FF.stepState=function(s,prod,dem,rules){
   }
  }
  // 관계 갱신. 쿼터를 채우면 오르고 절반도 못 넣으면 내린다.
+ // 이슈 #39: 하락 조건에만 유효 기준(min(quota, 그날 주문))을 쓴다 - 안 그러면 주문
+ // 자체가 quota 절반에도 못 미치는 날, 100% 배정해도(플레이어 책임이 아닌데도) 관계가
+ // 실제로 내려간다(#37 헤드리스 검증: 200시드 관측 중 1.06%가 이 경우였다). 승급 조건은
+ // raw quota를 그대로 둔다 - "불가능한 약속을 못 지켰다고 벌주지 않는다"와 "작은 주문을
+ // 전부 처리했다고 승급시킨다"는 같은 명제가 아니다(헤드리스로 확인: 승급 기준까지
+ // 낮추면 평균 현금 +16%·전 채널 최상 비율이 108배로 뛰어 별도의 밸런스 변경이 된다 -
+ // 이번 수정 범위가 아니다).
  s.rel=s.rel||[];
  for(ci=0;ci<nch;ci++){
   var cur=s.rel[ci]===undefined?R.rel.start:s.rel[ci];
   if(toCh[ci]>=CHS[ci].quota-R.ui.zero){ if(s.day%R.rel.up===0)cur=Math.min(3,cur+1) }
-  else if(toCh[ci]<CHS[ci].quota*0.5)cur=Math.max(0,cur-1);
+  else if(toCh[ci]<Math.min(CHS[ci].quota,chDemToday[ci])*0.5-R.ui.zero)cur=Math.max(0,cur-1);
   s.rel[ci]=cur;
  }
  var demTotal=0;

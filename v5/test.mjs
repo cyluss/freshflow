@@ -1033,11 +1033,50 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
   t('보장은 quota를 먼저 확보한다', withGuarantee[2] >= 6 - 1e-6);
 }
 
+// 이슈 #39: 관계 하락 조건만 유효 기준(min(quota,그날 주문))을 쓴다. 승급 조건은
+// raw quota 그대로다 - "불가능한 약속을 못 지켰다고 벌주지 않는다"와 "작은 주문을
+// 전부 처리했다고 승급시킨다"는 같은 명제가 아니다.
+{
+  FF.reset(1);
+  const mk = (chDem, day) => {
+    const s = FF.toKernelState();
+    s.day = day; s.rel = [1, 1, 1]; s.lots = [{ q: 25, a: 0 }]; s.cap.sales = 21;
+    s._chDemand = [chDem, 4, 4];
+    return s;
+  };
+  const world = { production: 0, demand: 30, supplyPhase: 1, demandPhase: 1 };
+
+  // 온라인 quota=8, 절반=4. 주문 자체가 3(절반 미만)이어도 100% 배정하면 하락하지 않는다.
+  const s1 = mk(3, 1);
+  FF.transition(s1, FF.Cmd.stance([3, 1, 1]), world); // 보장으로 전량 확보
+  t('#39: 주문<quota 절반이어도 100% 배정이면 하락 없음', s1.rel[0] === 1, s1.rel);
+
+  // 같은 주문(3)인데도 경쟁 때문에 절반(1.5)도 못 받으면 여전히 하락한다(#39가 면제해주는
+  // 건 "채울 기회 자체가 없던 것"이지 "덜 채운 것"이 아니다) - 물량 자체를 5로 조여서
+  // 온라인을 양보로 두면 우선/보장인 다른 판로가 먼저 다 가져가게 만든다.
+  const s2 = mk(3, 1);
+  s2.lots = [{ q: 5, a: 0 }]; s2.cap.sales = 5;
+  s2._chDemand = [3, 10, 10];
+  s2.stance = [0, 3, 3]; // 온라인 양보, 나머지 보장
+  FF.transition(s2, FF.Cmd.wait(), world);
+  t('#39: 같은 주문이어도 실제로 못 채우면 여전히 하락', s2.rel[0] === 0, s2.rel);
+
+  // 승급 조건은 그대로다: 주문이 quota보다 적으면 100% 배정해도(=유효 기준은 채웠어도)
+  // 승급하지 않는다.
+  const s3 = mk(3, FF.C.rel.up); // 승급 판정일(day % up === 0)
+  FF.transition(s3, FF.Cmd.stance([3, 1, 1]), world);
+  t('#39: 승급은 raw quota 기준 그대로(주문<quota면 승급 안 함)', s3.rel[0] === 1, s3.rel);
+}
+
 // 커널도 같은 allocatePool을 쓴다: 재고가 충분하면 총주문을 그대로 채운다
 {
   FF.reset(30699);
   for (let i = 0; i < 5; i++) FF.stepDay(FF.Cmd.wait());
   const s1 = FF.toKernelState();
+  // 이 테스트는 배분(allocatePool) 산수만 본다 - 관계 등급이 며칠 사이 어떻게 흘렀는지와는
+  // 무관해야 하므로 기본 단계로 고정한다(이슈 #39: 관계 갱신 기준이 바뀌면서 이 시드의
+  // day5 관계가 실제로 달라져 이 값을 안 고정하면 배분 결과도 따라 바뀐다).
+  s1.rel = [1, 1, 1];
   s1.lots = [{ q: 25, a: 0 }];
   s1.cap.sales = 21;
   s1._chDemand = [5, 5, 11];
