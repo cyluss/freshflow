@@ -44,9 +44,12 @@ FF.queued=function(k,size){
 FF.repaint=function(){FF.GAME.value=FF.GAME.value+1}
 
 
-// 시계. 진행 여부만 담는다. 게임 규칙과 무관하다.
-FF.CLOCK=FF._signal({running:false});
+// 시계. 진행 여부와 배속만 담는다. 게임 규칙과 무관하다.
+// 이슈 #33: 배속은 하루가 실제로 몇 ms인지만 바꾸는 표시 설정이라 새 게임에도
+// 그대로 이어간다(진행 여부만 reset 때 꺼진다) - 사운드/테마 설정과 같은 성격이다.
+FF.CLOCK=FF._signal({running:false,speed:1});
 FF.clockOf=function(){return FF.CLOCK.value}
-FF.setClock=function(running){FF.CLOCK.value={running:!!running}}
+FF.setClock=function(running){FF.CLOCK.value=Object.assign({},FF.CLOCK.value,{running:!!running})}
+FF.setClockSpeed=function(speed){FF.CLOCK.value=Object.assign({},FF.CLOCK.value,{speed:speed})}
 
 

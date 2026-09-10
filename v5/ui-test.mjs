@@ -498,10 +498,25 @@ function open(file, seed) {
   play.click(); await tick();
   t('재생 상태', rt.w.FF.clockOf().running === true);
 
-  // 버튼은 재생과 정지 하나뿐이다
+  // 버튼은 재생과 정지 하나뿐이다(배속 버튼은 다른 클래스라 별도로 존재한다)
   t('시계 버튼 하나', rt.d.querySelectorAll('#kclock .clk').length === 1);
   t('하루는 5초', rt.w.FV.CLOCK_MS === 5000);
-  t('시계는 1초 간격', rt.w.FV.TICK_MS === 1000);
+  // 이슈 #33: heartbeat이 250ms인 이유는 5000/2500/1250(1/2/4배속 하루 길이)이
+  // 전부 나누어떨어져야 실제 속도가 라벨과 어긋나지 않기 때문이다(1000ms였을 때는
+  // 1250ms가 나누어떨어지지 않아 4배속이 실제로 2.5배로만 나왔다).
+  t('시계는 250ms 간격', rt.w.FV.TICK_MS === 250);
+
+  // 이슈 #33: 배속 선택. 기본은 1배, 고르면 그 배만큼 하루가 짧아진다.
+  {
+    const speedBtn = i => rt.d.querySelectorAll('.clk-speed')[i];
+    t('배속 버튼 셋', [...rt.d.querySelectorAll('.clk-speed')].map(b => b.textContent).join(',') === '1×,2×,4×');
+    t('기본 배속 1', rt.w.FF.clockOf().speed === 1 && rt.w.FV.dayMs() === 5000);
+    speedBtn(2).click(); await tick();
+    t('4배속 선택', rt.w.FF.clockOf().speed === 4 && rt.w.FV.dayMs() === 1250);
+    t('선택 표시', rt.d.querySelector('.clk-speed-on').textContent === '4×');
+    speedBtn(0).click(); await tick();
+    t('1배속으로 되돌림', rt.w.FF.clockOf().speed === 1 && rt.w.FV.dayMs() === 5000);
+  }
 
   // 정지하면 타이머가 스스로 걷힌다
   rt.w.FF.setClock(false);
@@ -521,18 +536,21 @@ function open(file, seed) {
   t('종료에서 정지', rt.w.FF.clockOf().running === false && rt.w.FF.isOver());
   t('병목 변화로는 멈추지 않음', guard >= 20);
   // 이슈 #30: guard 루프가 게임 일수만큼 늘어나 실제 경과 시간(setTimeout 0의 누적)이
-  // TICK_MS(1000ms)를 넘을 수 있다 - 남아 있는 배경 타이머를 확실히 걷어낸 뒤, 새로
+  // heartbeat 간격을 넘을 수 있다 - 남아 있는 배경 타이머를 확실히 걷어낸 뒤, 새로
   // 시작한 타이머가 (게임이 이미 끝난 상태라) 스스로 멈출 기회를 얻기 전에(await 없이)
   // 바로 확인해야 경쟁 상태 없이 "시작 직후 상태"를 본다.
   rt.w.FV.stopClock();
 
-  // 새 게임을 시작하면 시계와 타이머가 함께 꺼진다
+  // 새 게임을 시작하면 시계는 꺼지지만(진행 여부는 게임 상태다), 배속은 화면 설정이라
+  // 이어간다(이슈 #33) - 사운드나 테마 설정이 새 판마다 초기화되지 않는 것과 같다.
+  rt.w.FF.setClockSpeed(2);
   rt.w.FV.startClock(); rt.w.FF.setClock(true);
   const wasRunning = rt.w.FF.clockOf().running && !!rt.w.FV._timer;
   rt.w.FV.newGame(777); await tick();
   t('새 게임 전에 돌고 있었음', wasRunning);
   t('새 게임은 시계 정지', rt.w.FF.clockOf().running === false);
   t('새 게임은 타이머 없음', !rt.w.FV._timer);
+  t('새 게임도 배속은 유지', rt.w.FF.clockOf().speed === 2);
   t('새 판 첫날', rt.w.FF.dayOf() === 1 && !!rt.q('kopening'));
   rt.w.FV.stopClock();
 }

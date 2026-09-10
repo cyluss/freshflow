@@ -425,6 +425,11 @@ FV.TrendStrip=function(){
   </div>`;
 }
 
+// 이슈 #33: 자동진행 배속. 365일 완주에 필요한 실제 대기시간을 줄이는 유일한
+// 손잡이다. TICK_MS(1000ms)보다 하루가 짧아지면 그 하루 안에서는 heartbeat가
+// 한 번뿐이라 tickDay가 heartbeat당 하나로 묶여버리므로, 배속표는 그 상한(5배)
+// 아래로만 둔다 - 그래야 매일이 빠짐없이 한 번씩 화면에 그려져 WARNING을 놓치지 않는다.
+FV.SPEEDS=[1,2,4];
 FV.ClockBar=function(){
  FF.observe(); FF.GAME.value;
  var c=FF.clockOf();
@@ -438,6 +443,12 @@ FV.ClockBar=function(){
      if(c.running)FV.stopClock(); else FV.startClock();
      FF.setClock(!c.running);
    })}
+   <span class="clk-speeds">
+    ${FV.SPEEDS.map(function(sp){
+      return FV._h("button",{class:"clk-speed"+(c.speed===sp?" clk-speed-on":""),
+        onClick:function(){FF.setClockSpeed(sp)}},sp+"×");
+    })}
+   </span>
    <span class="clk-day">
     ${c.running?(FV.clockLeft()+"초"):"정지"} · ${FF.dayOf()} / ${FF.C.days}일</span>
   </div>`;
@@ -547,9 +558,11 @@ FV.App=function(){
 // 재생을 누를 때만 타이머가 생긴다. 누르지 않으면 타이머가 없다.
 FV.CLOCK_MS=5000;
 // 시계 수명. 시작과 정지를 명시적으로 관리한다.
+// 이슈 #33: 하루가 실제로 몇 ms인지는 CLOCK_MS를 배속으로 나눈 값이다.
+FV.dayMs=function(){return FV.CLOCK_MS/(FF.clockOf().speed||1)}
 // 다음 하루까지 남은 초.
 FV.clockLeft=function(){
- return Math.max(0,Math.round((FV.CLOCK_MS-(FV._acc||0))/1000));
+ return Math.max(0,Math.round((FV.dayMs()-(FV._acc||0))/1000));
 }
 
 FV.newGame=function(seed){
@@ -557,13 +570,17 @@ FV.newGame=function(seed){
  FF.startNew(seed);
 }
 
-FV.TICK_MS=1000;
+// 이슈 #33: heartbeat 간격이다. _acc는 이 값의 배수로만 늘어나므로, 배속별 하루
+// 길이(5000/2500/1250ms)를 전부 나누어떨어지게 해야 실제 속도가 라벨과 어긋나지
+// 않는다(1000ms였을 때는 1250ms가 나누어떨어지지 않아 그 하루가 2000ms로 반올림돼
+// 4배속이 실제로는 2.5배로만 나오는 문제가 있었다).
+FV.TICK_MS=250;
 FV.startClock=function(){
  if(FV._timer)return;
  FV._timer=setInterval(function(){
   if(!FF.clockOf().running||FF.isOver()){FV.stopClock();return}
   FV._acc=(FV._acc||0)+FV.TICK_MS;
-  if(FV._acc>=FV.CLOCK_MS){FV._acc=0;FF.tickDay()}
+  if(FV._acc>=FV.dayMs()){FV._acc=0;FF.tickDay()}
   else FF.repaint();
  },FV.TICK_MS);
 }

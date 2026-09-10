@@ -105,11 +105,16 @@ body{font-variant-numeric:tabular-nums}
  border:1px solid var(--border-strong);border-radius:var(--radius);
  color:var(--text-secondary);cursor:pointer}
 .pol-on{border-color:var(--border-accent);color:var(--text-primary);background:var(--surface-1)}
-.clockbar{display:flex;align-items:center;gap:6px;margin:10px 0 4px}
+.clockbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:10px 0 4px}
 .clk{padding:4px 10px;font-size:12px;font-family:inherit;background:none;
  border:0.5px solid var(--border-strong);border-radius:var(--radius);
  color:var(--text-secondary);cursor:pointer}
 .clk-on{border-color:var(--border-accent);color:var(--text-primary)}
+.clk-speeds{display:flex;gap:4px}
+.clk-speed{padding:3px 7px;font-size:11px;font-family:inherit;background:none;
+ border:0.5px solid var(--border-strong);border-radius:var(--radius);
+ color:var(--text-secondary);cursor:pointer}
+.clk-speed-on{border-color:var(--border-accent);color:var(--text-primary)}
 .clk-day{margin-left:auto;font-size:12px;color:var(--text-muted)}
 .outlook-head{font-size:12px;color:var(--text-secondary);margin:8px 0 4px}
 .ospans{display:flex;gap:6px}
@@ -174,11 +179,16 @@ body{font-variant-numeric:tabular-nums}
  border:1px solid var(--border-strong);border-radius:var(--radius);
  color:var(--text-secondary);cursor:pointer}
 .pol-on{border-color:var(--border-accent);color:var(--text-primary);background:var(--surface-1)}
-.clockbar{display:flex;align-items:center;gap:6px;margin:10px 0 4px}
+.clockbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:10px 0 4px}
 .clk{padding:4px 10px;font-size:12px;font-family:inherit;background:none;
  border:0.5px solid var(--border-strong);border-radius:var(--radius);
  color:var(--text-secondary);cursor:pointer}
 .clk-on{border-color:var(--border-accent);color:var(--text-primary)}
+.clk-speeds{display:flex;gap:4px}
+.clk-speed{padding:3px 7px;font-size:11px;font-family:inherit;background:none;
+ border:0.5px solid var(--border-strong);border-radius:var(--radius);
+ color:var(--text-secondary);cursor:pointer}
+.clk-speed-on{border-color:var(--border-accent);color:var(--text-primary)}
 .clk-day{margin-left:auto;font-size:12px;color:var(--text-muted)}
 .outlook-head{font-size:12px;color:var(--text-secondary);margin:6px 0 2px}
 .outlook-row{display:grid;grid-template-columns:56px repeat(3,1fr);gap:4px;padding:3px 0}
