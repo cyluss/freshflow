@@ -186,7 +186,8 @@ FV.CapacityButton=function(){
      background:"transparent",opacity:(opt.affordable||on)?"1":"0.4"},
    onClick:function(){if(!FF.isOver())FF.toggleBuy("sales")}},[
   FV._h("div",{},"판매 한도 늘리기"),
-  FV._h("div",{class:"opt-price"},FV.capShift("sales")+" · "+mo(opt.cost)+"원")
+  FV._h("div",{class:"opt-price"},FV.capShift("sales")+" · "+mo(opt.cost)+"원"),
+  FV._h("div",{class:"opt-note",style:{color:opt.overRun?"var(--text-warning)":undefined}},FV.paybackNote(opt))
  ]);
 }
 
@@ -206,7 +207,8 @@ FV.ProcureButton=function(){
      background:"transparent",opacity:(opt.affordable||on)?"1":"0.4"},
    onClick:function(){if(!FF.isOver())FF.toggleBuy("procure")}},[
   FV._h("div",{},"조달 능력 늘리기"),
-  FV._h("div",{class:"opt-price"},FV.capShift("procure")+" · "+mo(opt.cost)+"원")
+  FV._h("div",{class:"opt-price"},FV.capShift("procure")+" · "+mo(opt.cost)+"원"),
+  FV._h("div",{class:"opt-note",style:{color:opt.overRun?"var(--text-warning)":undefined}},FV.paybackNote(opt))
  ]);
 }
 

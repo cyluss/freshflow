@@ -98,4 +98,13 @@ FV.optionText=function(o){
  };
 }
 
+// 이슈 #32: 증설 버튼에 회수 판단 근거를 노출한다. 도메인 계층이 이미 계산해 두는
+// payback(투자를 회수하는 데 걸리는 날)/usable(남은 기간)을 그대로 문구로 옮긴다 -
+// #29 실측: 이 버튼이 게임의 74%에 등장하는데 판단 근거가 화면에 없었다.
+FV.paybackNote=function(o){
+ var T=FV.optionText(o);
+ if(o.payback===null)return "회수 계산 불가 · 남은 "+T.usable;
+ return "회수 "+T.payback+" · 남은 "+T.usable+(o.overRun?" · 남은 기간 내 회수 어려움":"");
+}
+
 

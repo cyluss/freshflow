@@ -40,6 +40,17 @@ const o=FF.optionOf('sales');
 t('optionOf 수치형', typeof o.payback==='number' && typeof o.usable==='number');
 t('optionOf 가격', o.cost===FF.C.cost.sales);
 
+// 이슈 #32: 쓸 수 있는 날이 없으면(usable<=0) payback을 계산할 수 없어 payback이
+// null이 된다 - 이때 overRun이 "회수 문제 없음"으로 잘못 나오면 안 된다("회수할
+// 날이 없다"가 곧 "회수 못 한다"다). 게임 마지막 날(usable=0)에서 확인한다.
+{
+  FF.reset(76562);
+  for(let d=1;d<FF.C.days;d++) FF.stepDay(FF.Cmd.wait());
+  t('마지막 날 usable=0', FF.optionOf('sales').usable===0);
+  t('usable=0이면 payback도 계산 불가', FF.optionOf('sales').payback===null);
+  t('usable=0이면 overRun', FF.optionOf('sales').overRun===true && FF.optionOf('procure').overRun===true);
+}
+
 FF.reset(22209);
 for(let i=0;i<30;i++) FF.stepDay(FF.Cmd.wait());
 const m=FF.missedOps();

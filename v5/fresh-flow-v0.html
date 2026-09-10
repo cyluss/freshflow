@@ -1887,10 +1887,16 @@ FF._optionOf=function(k){
  var usable=Math.max(0,FF.C.days-FF.run().day-off);
  var be=FF.breakEven(k);
  var payback=be?(be.t/FF.C.step[k]):null;
+ // 이슈 #32: 쓸 수 있는 날이 아예 없으면(usable<=0) payback을 계산할 근거 자체가
+ // 없어 be가 null이 되고, payback도 null이 된다 - 그런데 원래 식(payback!==null&&
+ // payback>usable)은 payback이 null이면 무조건 overRun을 false로 냈다. "회수할
+ // 날이 없다"가 "회수 문제 없다"로 표시되는 셈이라, 화면에 payback/overRun을
+ // 노출하기 전에 이 경계부터 바로잡는다.
+ var overRun=(usable<=0)||(payback!==null&&payback>usable);
  return{kind:k,cost:FF.C.cost[k],hits:h.n,window:h.len,lastHit:!!h.last,
   usable:usable,payback:payback,
   affordable:FF.ledger().cash>=FF.C.cost[k],
-  overRun:(payback!==null&&payback>usable)};
+  overRun:overRun};
 }
 
 
@@ -2886,6 +2892,15 @@ FV.optionText=function(o){
  };
 }
 
+// 이슈 #32: 증설 버튼에 회수 판단 근거를 노출한다. 도메인 계층이 이미 계산해 두는
+// payback(투자를 회수하는 데 걸리는 날)/usable(남은 기간)을 그대로 문구로 옮긴다 -
+// #29 실측: 이 버튼이 게임의 74%에 등장하는데 판단 근거가 화면에 없었다.
+FV.paybackNote=function(o){
+ var T=FV.optionText(o);
+ if(o.payback===null)return "회수 계산 불가 · 남은 "+T.usable;
+ return "회수 "+T.payback+" · 남은 "+T.usable+(o.overRun?" · 남은 기간 내 회수 어려움":"");
+}
+
 
 })(window.FF,window.FV);
 </script>
@@ -3851,7 +3866,8 @@ FV.CapacityButton=function(){
      background:"transparent",opacity:(opt.affordable||on)?"1":"0.4"},
    onClick:function(){if(!FF.isOver())FF.toggleBuy("sales")}},[
   FV._h("div",{},"판매 한도 늘리기"),
-  FV._h("div",{class:"opt-price"},FV.capShift("sales")+" · "+mo(opt.cost)+"원")
+  FV._h("div",{class:"opt-price"},FV.capShift("sales")+" · "+mo(opt.cost)+"원"),
+  FV._h("div",{class:"opt-note",style:{color:opt.overRun?"var(--text-warning)":undefined}},FV.paybackNote(opt))
  ]);
 }
 
@@ -3871,7 +3887,8 @@ FV.ProcureButton=function(){
      background:"transparent",opacity:(opt.affordable||on)?"1":"0.4"},
    onClick:function(){if(!FF.isOver())FF.toggleBuy("procure")}},[
   FV._h("div",{},"조달 능력 늘리기"),
-  FV._h("div",{class:"opt-price"},FV.capShift("procure")+" · "+mo(opt.cost)+"원")
+  FV._h("div",{class:"opt-price"},FV.capShift("procure")+" · "+mo(opt.cost)+"원"),
+  FV._h("div",{class:"opt-note",style:{color:opt.overRun?"var(--text-warning)":undefined}},FV.paybackNote(opt))
  ]);
 }
 

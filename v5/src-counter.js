@@ -175,10 +175,16 @@ FF._optionOf=function(k){
  var usable=Math.max(0,FF.C.days-FF.run().day-off);
  var be=FF.breakEven(k);
  var payback=be?(be.t/FF.C.step[k]):null;
+ // 이슈 #32: 쓸 수 있는 날이 아예 없으면(usable<=0) payback을 계산할 근거 자체가
+ // 없어 be가 null이 되고, payback도 null이 된다 - 그런데 원래 식(payback!==null&&
+ // payback>usable)은 payback이 null이면 무조건 overRun을 false로 냈다. "회수할
+ // 날이 없다"가 "회수 문제 없다"로 표시되는 셈이라, 화면에 payback/overRun을
+ // 노출하기 전에 이 경계부터 바로잡는다.
+ var overRun=(usable<=0)||(payback!==null&&payback>usable);
  return{kind:k,cost:FF.C.cost[k],hits:h.n,window:h.len,lastHit:!!h.last,
   usable:usable,payback:payback,
   affordable:FF.ledger().cash>=FF.C.cost[k],
-  overRun:(payback!==null&&payback>usable)};
+  overRun:overRun};
 }
 
 

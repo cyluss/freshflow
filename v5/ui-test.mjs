@@ -110,6 +110,23 @@ function open(file, seed) {
   t('진행 버튼은 하루', s1b.q('kgo').textContent === '하루 넘기기');
 }
 
+// 2b. 이슈 #32: 증설 버튼에 회수 판단 근거(payback/overRun)가 보인다
+{
+  const s = open(FILE, 76562);
+  s.q('kbc0').click(); await tick();
+  let n = 0;
+  while (s.q('kgo') && !s.w.FF.isOver() && s.w.FF.run().day < s.w.FF.C.days && n < s.w.FF.C.days + 10) {
+    s.q('kgo').click(); await tick(); n++;
+  }
+  t('게임 마지막 날 도달', s.w.FF.run().day === s.w.FF.C.days && !s.w.FF.isOver());
+  const bp = s.q('kbp');
+  t('마지막 날 조달 능력 버튼 존재', !!bp);
+  const note = bp.querySelector('.opt-note');
+  const opt = s.w.FF.optionOf('procure');
+  t('회수 근거 노출', !!note && note.textContent === s.w.FV.paybackNote(opt));
+  t('overRun이면 경고색', opt.overRun === true && note.style.color === 'var(--text-warning)');
+}
+
 // 3. 선택과 해제가 대기열에 반영된다
 {
   const s = open(FILE, 31236);
