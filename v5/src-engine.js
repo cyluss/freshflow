@@ -46,6 +46,8 @@ FF.stepDay=function(cmd,path){
   if(!FF.isOver())FF.setSalvage(Math.round(FF.ledger().spent*FF.C.salvage));
   FF.setPhase("done");
  }
+ // 이슈 #28: 다음 날 화면을 보여주기 전에 자동진행 WARNING도 그날 기준으로 갱신한다.
+ FF.updateWarnings();
  // 다음 날의 정책 화면을 보여주기 전에 그날의 생산부터 미리 확정해 둔다.
  FF.revealToday();
  FF.commit();

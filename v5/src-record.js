@@ -119,6 +119,80 @@ FF.recordEvent=function(){
  FF.append("timeline",{day:FF.run().day-1,type:"event",b:ev.b});
 }
 
+// 이슈 #25/#27/#28: 자동진행 WARNING. #25가 검증한 4개 트리거 정의(롤링 9일창 진단·
+// 14일창 shortfallRatio·관계 하락)를 headless 검증 스크립트와 같은 상수로 그대로 옮긴다.
+// 새 hidden fact를 안 쓴다 - FF.histOf()에 이미 기록된 값만 읽는다.
+FF.TRIGGER_DIAG_WINDOW=9; FF.TRIGGER_SIG_WINDOW=14; FF.TRIGGER_SHORTFALL_TH=0.10;
+// 이 1은 부동소수 오차 여유(FF.C.ui.eps=0.05)가 아니라 #25/#27 전체가 쓴 중요도
+// 문턱이다 - 롤링창 합이 그보다 작으면 신호로 보지 않는다. 서로 다른 목적이라 섞지 않는다.
+FF.TRIGGER_EPS=1;
+// #27이 검증한 재알림 주기. 관계/Intake/Sales는 episode당 1회(재알림 없음)로 확정됐으므로
+// 이 표에 없다 - Procurement만 유의미한 경제적 근거(21일도 edgeOnly 대비 개선 유지)가 있었다.
+FF.RENOTIFY_DAYS={procure:21};
+
+FF.shipShortfallAmt=function(d){
+ var eps=FF.C.ui.eps;
+ return (d.sold>=d.capS-eps&&d.dem>d.sold+eps)?(d.dem-d.sold):0;
+}
+// 롤링 9일창 최댓값 진단. procure-endtoend-sim.mjs/trigger-capacity-delay-sim.mjs와 같은
+// 방식이다 - day 당일은 포함하지 않는다(그날 아직 안 지났다).
+FF.triggerDiagAt=function(day){
+ var hist=FF.histOf(), from=Math.max(1,day-FF.TRIGGER_DIAG_WINDOW);
+ var sumCap=0,sumProcure=0,sumStore=0,sumCash=0,sumShip=0;
+ for(var i=0;i<hist.length;i++){
+  var d=hist[i]; if(d.day<from||d.day>=day)continue;
+  sumCap+=d.wIcap; sumProcure+=d.wIprocure; sumStore+=d.wIstore; sumCash+=d.wS; sumShip+=FF.shipShortfallAmt(d);
+ }
+ var maxV=Math.max(sumCap,sumProcure,sumStore,sumCash,sumShip);
+ if(maxV<=FF.TRIGGER_EPS)return "none";
+ if(sumCap===maxV)return "intake_cap";
+ if(sumProcure===maxV)return "procure_cap";
+ return "other";
+}
+FF.triggerShortfallRatioAt=function(day){
+ var hist=FF.histOf(), from=Math.max(1,day-FF.TRIGGER_SIG_WINDOW), s=0,c=0;
+ for(var i=0;i<hist.length;i++){
+  var d=hist[i]; if(d.day<from||d.day>=day)continue;
+  s+=FF.shipShortfallAmt(d); c+=d.capS;
+ }
+ return c>0?s/c:0;
+}
+// day(이미 기록된 과거 날짜)에 어느 채널이든 전날보다 관계가 내려갔는지.
+FF.stanceDeclinedOn=function(day){
+ var hist=FF.histOf(), idx=-1;
+ for(var i=0;i<hist.length;i++)if(hist[i].day===day){idx=i;break}
+ if(idx<=0)return false;
+ var cur=hist[idx].rel, prev=hist[idx-1].rel;
+ for(var c=0;c<cur.length;c++)if(cur[c]<prev[c])return true;
+ return false;
+}
+// 이슈 #28: episode(false→true=시작, true 지속=같은 episode, true→false=종료) 정의를
+// #27과 그대로 맞춘다. 새 episode는 cooldown과 무관하게 항상 알린다 - cooldown은 같은
+// episode가 RENOTIFY_DAYS보다 길게 이어질 때만 재알림에 적용한다(#27 검증 그대로).
+// ENGINE.warn은 이 함수의 유일한 쓰기 지점이다 - 경제 판정(sig)은 여기서 만들지 않고
+// triggerDiagAt/triggerShortfallRatioAt/stanceDeclinedOn이 이미 낸 값만 읽는다.
+FF.updateWarnings=function(){
+ if(FF.isOver())return [];
+ var day=FF.dayOf();
+ var diag=FF.triggerDiagAt(day);
+ var sig={
+  stance: FF.stanceDeclinedOn(day-1),
+  intake: diag==="intake_cap",
+  sales: FF.triggerShortfallRatioAt(day)>FF.TRIGGER_SHORTFALL_TH,
+  procure: diag==="procure_cap"
+ };
+ var W=FF.ENGINE.value.warn, fired=[];
+ for(var k in sig){
+  var w=W[k], on=sig[k];
+  if(on&&!w.active){ w.active=true; w.lastNotifyDay=day; fired.push(k); }
+  else if(on&&w.active){
+   var rn=FF.RENOTIFY_DAYS[k];
+   if(rn&&day-w.lastNotifyDay>=rn){ w.lastNotifyDay=day; fired.push(k); }
+  } else if(!on){ w.active=false; }
+ }
+ return fired;
+}
+
 // 관계 신호와 이슈. 신호는 방금 무엇이 바뀌었는지, 이슈는 지금 무엇이 열려 있는지다.
 // 이슈는 의도(우선/보장)와 실제(오늘 쿼터 미달)가 어긋날 때만 연다.
 // 양보나 보통에서 쿼터를 못 채우는 것은 의도와 어긋나지 않으므로 이슈가 아니다.

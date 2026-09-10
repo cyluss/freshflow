@@ -692,5 +692,27 @@ function open(file, seed) {
   t('factoring은 커널 command 집합 안에 있다(FF.Cmd.factor)', typeof s.w.FF.Cmd.factor === 'function');
 }
 
+// O. 이슈 #28: 자동진행 WARNING 배너
+{
+  const s = open(FILE, 7);
+  for (let i = 0; i < 3; i++) { s.q('kgo').click(); await tick() }
+  t('평소엔 WARNING 배너 없음', s.w.FF.warnOf() && Object.values(s.w.FF.warnOf()).every(w => !w.active) ? !s.q('kwarnbar') : true);
+
+  // 오늘 막 알림이 나간 상태를 강제로 만든다(팩토링 테스트의 강제-상황 패턴과 같다).
+  const day = s.w.FF.dayOf();
+  s.w.FF.engineState().warn.procure = { active: true, lastNotifyDay: day };
+  s.w.FF.commit(); s.w.FF.repaint(); await tick();
+  t('오늘 알림이 뜬 트리거는 배너에 보인다', !!s.q('kwarnbar') && s.q('kwarnbar').textContent.includes('조달 능력 부족 지속'));
+
+  // 같은 episode가 계속돼도(active 그대로) 어제 이미 알렸으면 오늘은 다시 안 뜬다.
+  s.w.FF.engineState().warn.procure = { active: true, lastNotifyDay: day - 1 };
+  s.w.FF.commit(); s.w.FF.repaint(); await tick();
+  t('어제 이미 알린 episode는 오늘 다시 안 뜬다', !s.q('kwarnbar'));
+
+  t('자동진행 중에도 시간은 계속 흐른다(WARNING이 진행을 막지 않음)', !s.w.FF.isOver());
+  s.q('kgo').click(); await tick();
+  t('WARNING 상태에서도 하루 넘기기가 정상 동작', s.w.FF.dayOf() === day + 1);
+}
+
 console.log(pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

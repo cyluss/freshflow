@@ -6,6 +6,8 @@ FV.WORD={
  relword:{0:"끊김",1:"보통",2:"좋음",3:"최상"},
  stance:{0:"양보",1:"기본",2:"우선",3:"보장"},
  signal:{decline:"관계 하락",stuck:"관계 정체",recover:"관계 회복"},
+ // 이슈 #28: 자동진행 WARNING 이름. #25가 확정한 4개 트리거 그대로다.
+ warn:{stance:"관계 하락",intake:"Intake 부족 지속",sales:"판매 한도 부족 지속",procure:"조달 능력 부족 지속"},
  feasible:{ok:"회복 가능",hard:"현재 회복 곤란",low:"남은 기간상 실익 낮음"},
  policy:{lean:"적게",mid:"보통",full:"넉넉히"},
  verdictSupply:{high:"평년보다 많겠음",mostlyHigh:"평년보다 대체로 많겠음",

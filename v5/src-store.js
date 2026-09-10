@@ -57,7 +57,11 @@ FF.ENGINE=FF._signal(null);
 FF.engineState=function(){return FF.ENGINE.value}
 FF.resetEngineState=function(){
  FF.ENGINE.value={prevB:"none",lastBuy:{intake:0,sales:0,procure:0},
-  phase:{intake:{dir:0,n:0},sales:{dir:0,n:0},procure:{dir:0,n:0}}};
+  phase:{intake:{dir:0,n:0},sales:{dir:0,n:0},procure:{dir:0,n:0}},
+  // 이슈 #28: 자동진행 WARNING 이력. 경제 판정(#25/#27이 검증한 트리거)은 만들지 않고
+  // "이미 언제 알렸는가"만 기억한다 - lastBuy/phase와 같은 층위의 진행 보조 상태다.
+  warn:{stance:{active:false,lastNotifyDay:null},intake:{active:false,lastNotifyDay:null},
+   sales:{active:false,lastNotifyDay:null},procure:{active:false,lastNotifyDay:null}}};
 }
 FF.PLANT=FF._signal(null);
 FF.plant=function(){FF.VERSION.value;return FF.PLANT.value}

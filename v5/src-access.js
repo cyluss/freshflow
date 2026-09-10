@@ -34,6 +34,9 @@ FF.finDayOf=function(){FF.VERSION.value;return FF.RUN.value?FF.run().finDay:0}
 FF.timelineOf=function(){FF.VERSION.value;return FF.RUN.value?FF.logOf().timeline:[]}
 FF.buylogOf=function(){FF.VERSION.value;return FF.RUN.value?FF.logOf().buylog:[]}
 FF.buysOf=function(){FF.VERSION.value;return FF.RUN.value?{sales:FF.plant().buys.sales,contract:FF.plant().buys.contract||0,procure:FF.plant().buys.procure||0,spent:FF.LEDGER.value.spent}:null}
+// 이슈 #28: 자동진행 WARNING 이력(episode 활성 여부·마지막 알림일). 경제 상태가 아니라
+// engineState의 진행 보조 상태를 화면이 읽는 유일한 통로다.
+FF.warnOf=function(){FF.VERSION.value;return FF.RUN.value?FF.engineState().warn:null}
 
 FF.Cmd={
  wait:function(){return {type:"wait"}},

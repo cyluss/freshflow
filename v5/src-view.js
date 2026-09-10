@@ -211,6 +211,22 @@ FV.ProcureButton=function(){
 }
 
 
+// 이슈 #25/#27/#28: 자동진행 WARNING. episode 시작(또는 Procurement 21일 재알림)이
+// "오늘" 발생했을 때만 보인다 - 문제가 계속돼도 매일 다시 뜨지 않는다(#25가 확인한 알림
+// 폭주를 피하려고 #27이 검증한 최소 알림 정책 그대로다). 자동 PAUSE는 없다 - 시간은
+// 계속 흐르고 플레이어가 필요하면 직접 멈춘다.
+FV.WarningBar=function(){
+ FF.observe();
+ if(FF.isOver()||!FF.started())return null;
+ var day=FF.dayOf(), W=FF.warnOf();
+ var fired=Object.keys(W).filter(function(k){return W[k].active&&W[k].lastNotifyDay===day});
+ if(!fired.length)return null;
+ return FV._h("div",{id:"kwarnbar",class:"card-note"},
+  fired.map(function(k){
+   return FV._h("div",{style:{color:"var(--text-warning)"}},FV.say("warn",k));
+  }));
+}
+
 // 이슈 #11: AP(매입채무) 상태. 자동 완충장치라 결정할 게 없지만, 잔액이 있을 때만 짧게
 // 보여준다 - 현금이 "왜" 실제 매입비보다 여유 있어 보이는지 설명하기 위해서다.
 FV.ApNote=function(){
@@ -508,6 +524,7 @@ FV.App=function(){
    <${FV.OpeningView} />
 
    ${(!fresh&&!over)?FV._html`<${FV.FlowSummary} day=${FF.today()} />`:null}
+   <${FV.WarningBar} />
    <${FV.IssueBar} />
    <${FV.ChannelBar} />
    <${FV.ApNote} />
