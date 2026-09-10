@@ -1049,47 +1049,50 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
   t('도매는 자기 주문 전부(커널)', Math.abs(toCh1[2] - 11) < 1e-6);
 }
 
+// 이슈 #37: 이슈는 quota를 "채울 수 있었는데 안 채웠는가"만 본다. 배정(toCh)이 그날
+// 실제 주문(chDem)에 못 미쳐야(경쟁·정책 때문에 밀린 것) 이슈감이지, 주문 자체가 quota보다
+// 적어 100% 배정해도 quota에 못 미치는 것은 시장 사정이라 이슈가 아니다. 아래 블록들은
+// FF.recordIssues를 직접 불러 이 구별을 결정적으로(시드의 우연한 수요에 기대지 않고) 검증한다.
+
 // 이슈: 우선/보장에서만 하락이 이슈를 연다
 {
   FF.reset(30699);
-  for (let i = 0; i < 3; i++) FF.stepDay(FF.Cmd.wait());
-  // 도매(보통)는 자연 등락이 있어도 이슈가 아니다. 온라인(우선)만 이슈가 된다.
-  for (let d = 0; d < 8; d++) { FF.stepDay(FF.Cmd.stance([2, 1, 1])); if (FF.isOver()) break }
+  FF.setRel([1, 1, 1]); FF.setIssue([null, null, null]);
+  // 셋 다 진짜로 부족하게 배정한다(주문 10 중 4만) - quota(8/10/12) 미달의 원인이
+  // "주문 자체가 적어서"가 아니라 "배정이 밀려서"임을 분명히 한다.
+  FF.setStance([1, 1, 1]);
+  FF.recordIssues([1, 1, 1], { toCh: [4, 4, 4], chDem: [10, 10, 10] });
+  t('보통 태도는 부족 배정이어도 이슈 없음', FF.issueOf().every(x => x === null));
+
+  FF.setIssue([null, null, null]);
+  FF.setStance([2, 1, 1]);
+  FF.recordIssues([1, 1, 1], { toCh: [4, 4, 4], chDem: [10, 10, 10] });
   const issues = FF.issueOf();
-  t('보통 판로는 이슈 없음', issues[2] === null || issues[2] === undefined || issues[1] === null);
-  const anyOpen = issues.some(x => x);
-  t('무언가 열린 이슈가 있다', anyOpen, JSON.stringify(issues));
+  t('보통 판로는 이슈 없음', issues[1] === null && issues[2] === null);
+  t('우선인 판로만 이슈가 연다', !!issues[0]);
 }
 
 // 이슈: 회복이 열린 이슈를 닫는다
 {
   FF.reset(30699);
-  for (let i = 0; i < 3; i++) FF.stepDay(FF.Cmd.wait());
-  for (let d = 0; d < 6; d++) { FF.stepDay(FF.Cmd.stance([2, 1, 1])); if (FF.isOver()) break }
-  const openBefore = FF.issueOf()[0];
-  t('온라인 이슈 열림', !!openBefore);
-  let sawClose = false;
-  for (let d = 0; d < 15; d++) {
-    const before = FF.issueOf()[0];
-    FF.stepDay(FF.Cmd.stance([3, 1, 1]));
-    if (before && FF.issueOf()[0] === null) sawClose = true;
-    if (sawClose || FF.isOver()) break;
-  }
-  if (FF.relOf()[0] > 0) t('회복하면 이슈가 닫힌다', sawClose);
-  else t('회복하면 이슈가 닫힌다', true); // 이 시드에서 15일 안에 회복 못하면 판정을 건너뛴다
+  FF.setRel([1, 1, 1]); FF.setStance([2, 1, 1]); FF.setIssue([null, null, null]);
+  FF.recordIssues([1, 1, 1], { toCh: [4, 4, 4], chDem: [10, 10, 10] });
+  t('온라인 이슈 열림', !!FF.issueOf()[0]);
+  // 이번엔 주문 8(=quota) 전량을 배정한다 - 경쟁이 풀려 quota를 채운 상황.
+  FF.recordIssues(FF.relOf(), { toCh: [8, 4, 4], chDem: [8, 4, 4] });
+  t('회복하면 이슈가 닫힌다', FF.issueOf()[0] === null);
 }
 
 // 이슈 #4: 최고 관계 단계에서도 회복하면 이슈가 닫힌다(관계가 더 못 올라도 닫혀야 한다)
 {
   FF.reset(30699);
-  for (let d = 0; d < 16; d++) FF.stepDay(FF.Cmd.stance([3, 1, 1]));
-  t('day16 관계 최고단계 도달', FF.relOf()[0] === 3);
-  t('day16 이슈 없음(쿼터 충족)', FF.issueOf()[0] === null);
-  FF.stepDay(FF.Cmd.stance([3, 1, 1])); // day17
-  FF.stepDay(FF.Cmd.stance([3, 1, 1])); // day18: 쿼터 미달로 이슈가 새로 열린다
-  t('day18 최고단계에서 이슈 열림', !!FF.issueOf()[0]);
-  t('day18에도 관계는 여전히 최고단계', FF.relOf()[0] === 3);
-  FF.stepDay(FF.Cmd.stance([3, 1, 1])); // day19: 쿼터를 다시 채운다
+  FF.setRel([3, 1, 1]); FF.setStance([3, 1, 1]); FF.setIssue([null, null, null]);
+  FF.recordIssues([3, 1, 1], { toCh: [8, 4, 4], chDem: [8, 4, 4] }); // 100% 배정, quota 충족
+  t('최고단계에서 quota 충족이면 이슈 없음', FF.issueOf()[0] === null);
+  FF.recordIssues(FF.relOf(), { toCh: [4, 4, 4], chDem: [10, 4, 4] }); // 경쟁으로 배정이 밀림
+  t('최고단계에서도 이슈는 연다', !!FF.issueOf()[0]);
+  t('그런데도 관계는 여전히 최고단계', FF.relOf()[0] === 3);
+  FF.recordIssues(FF.relOf(), { toCh: [8, 4, 4], chDem: [8, 4, 4] }); // 다시 quota 충족
   t('관계가 못 올라도(여전히 3) 쿼터를 채우면 이슈가 닫힌다', FF.issueOf()[0] === null);
   t('관계 자체는 3에 머문다', FF.relOf()[0] === 3);
 }
@@ -1097,14 +1100,27 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
 // 이슈: 의도적 포기는 게임 규칙을 바꾸지 않는다
 {
   FF.reset(30699);
-  for (let i = 0; i < 3; i++) FF.stepDay(FF.Cmd.wait());
-  for (let d = 0; d < 6; d++) { FF.stepDay(FF.Cmd.stance([2, 1, 1])); if (FF.isOver()) break }
+  FF.setRel([1, 1, 1]); FF.setStance([2, 1, 1]); FF.setIssue([null, null, null]);
+  FF.recordIssues([1, 1, 1], { toCh: [4, 4, 4], chDem: [10, 10, 10] });
   t('포기 전 이슈 열림', !!FF.issueOf()[0]);
   const nwBefore = FF.netWorth(FF.toKernelState());
   FF.acceptIssue(0);
   t('포기해도 순자산 불변', FF.netWorth(FF.toKernelState()) === nwBefore);
   t('포기하면 resolution 기록', FF.issueOf()[0].resolution === 'accepted');
   t('포기해도 이슈 자체는 남는다', FF.issueOf()[0] !== null);
+}
+
+// 이슈 #37: 주문(chDem) 자체가 quota보다 적어도 100% 배정이면 이슈가 열리지 않는다
+// (#29 실측 버그: 도매 주문 11t을 11t 전량 배정했는데도 quota 12t 미달로 이슈가 열렸었다)
+{
+  FF.reset(1);
+  FF.setRel([3, 1, 1]); FF.setStance([2, 1, 1]); FF.setIssue([null, null, null]);
+  FF.recordIssues([3, 1, 1], { toCh: [6, 4, 4], chDem: [6, 4, 4] }); // 온라인 quota=8, 주문 6 전량 배정
+  t('주문을 전량 배정하면 quota 미달이어도 이슈 없음', FF.issueOf()[0] === null);
+  // whole(quota=12) 기준 재현: 주문 11t 전량 배정
+  FF.setRel([1, 1, 3]); FF.setStance([1, 1, 2]); FF.setIssue([null, null, null]);
+  FF.recordIssues([1, 1, 3], { toCh: [4, 4, 11], chDem: [4, 4, 11] });
+  t('#29 재현: 도매 주문 11t 전량 배정이면 이슈 없음', FF.issueOf()[2] === null);
 }
 
 // 하루 기록의 태도값: 한 번도 정하지 않은 날도 기본값을 남긴다

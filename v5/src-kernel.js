@@ -235,6 +235,10 @@ FF.stepState=function(s,prod,dem,rules){
   var fl=CHS[ci].quota*R.rel.floor[rl2];
   chDem[ci]=Math.round(Math.min(cap2,Math.max(d0,(CHS[ci].key==="fran")?fl:0)));
  }
+ // 이슈 #37: chDem은 이 아래 배정 루프에서 판로별로 팔린 만큼 그 자리에서 줄어든다
+ // (판로별 "남은" 주문으로 재사용된다) - 이슈 판정에는 오늘 실제로 있었던 주문량
+ // 원본이 필요해서 배정 전 값을 따로 남겨 둔다.
+ var chDemToday=chDem.slice();
  // 나이가 오래된 lot 부터 본다. 한 판로에 팔고 대금을 잡는 공통 처리다.
  s.lots.sort(function(a,b){return b.a-a.a});
  var sellUnit=function(c2,age){
@@ -322,7 +326,7 @@ FF.stepState=function(s,prod,dem,rules){
  s.cash-=(cost-apPortion);
  return {prod:prod,dem:demTotal,acc:stored,refused:refused,sold:sold,missed:Math.max(0,demTotal-sold),
   ageMix:ageMix,wI:wI,wIcap:byCap,wIprocure:byProcure,wIstore:byStore,wIneed:byNeed,wS:wS,wT:wT,
-  end:end,profit:profit,sellable:sellable,toCh:toCh,revCh:revCh,apUsed:apPortion};
+  end:end,profit:profit,sellable:sellable,toCh:toCh,revCh:revCh,apUsed:apPortion,chDem:chDemToday};
 }
 
 

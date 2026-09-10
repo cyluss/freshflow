@@ -204,7 +204,12 @@ FF.recordIssues=function(prevRel,r){
  var issues=FF.issueOf().slice(), signals=[];
  for(var i=0;i<nch;i++){
   var lvl=(stance&&stance.length===nch)?stance[i]:FF.C.stance.start;
-  var quotaFail=r.toCh[i]<CH[i].quota-FF.C.ui.zero;
+  // 이슈 #37: 그날 주문(chDem) 자체가 quota에 못 미치면 아무리 다 배정해도 quota를
+  // 채울 수 없다 - 그건 정책 실패가 아니라 그날 시장 수요가 원래 적었던 것이다.
+  // 이슈는 "채울 수 있었는데 안 채웠는가"만 봐야 하므로 그날 실제로 있었던 주문량
+  // 안에서만 quota를 요구한다(주문을 100% 배정했으면 절대 이슈가 열리지 않는다).
+  var effQuota=Math.min(CH[i].quota,r.chDem[i]);
+  var quotaFail=r.toCh[i]<effQuota-FF.C.ui.zero;
   if(lvl>=2&&quotaFail){
    if(!issues[i]){
     issues[i]={since:day,resolution:null};

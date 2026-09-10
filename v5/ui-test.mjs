@@ -485,9 +485,14 @@ function open(file, seed) {
   const s15 = open(FILE, 76562);
   s15.q('kbc0').click(); await tick();
   s15.q('kgo').click(); await tick();
-  // 채널 정책을 자주 뒤집어 관계 신호를 많이 만든다(더 보기가 실제로 필요한 상태를 만든다)
+  // 판로마다 돌아가며 "우선"을 주고 나머지 둘을 "보장"으로 걸어 매일 실제 경쟁(배정이
+  // 밀리는 판로가 생기는 상황)을 만든다 - 더 보기가 실제로 필요한 상태를 만든다.
+  // 이슈 #37 이후로는 주문 자체가 적어서 quota에 못 미치는 것만으로는 이슈/신호가 나지
+  // 않으므로, 진짜로 배정이 밀리는 경쟁 상황이 있어야 사건이 쌓인다.
   for (let d = 0; d < 200 && !s15.w.FF.isOver(); d++) {
-    s15.w.FF.setChannelStance(d % 3, (d % 2) * 3);
+    const stance = [1, 1, 1];
+    stance[d % 3] = 2; stance[(d + 1) % 3] = 3; stance[(d + 2) % 3] = 3;
+    s15.w.FF.setStance(stance);
     s15.q('kgo').click(); await tick();
   }
   const total = s15.w.FF.relLogOf().length;
@@ -703,10 +708,12 @@ function open(file, seed) {
   for (let i = 0; i < 3; i++) { s.q('kgo').click(); await tick() }
   t('기본 단계 방치는 조용하다', !s.q('kissue'));
 
-  // 온라인을 우선으로 지키다가 쿼터를 못 채우면 이슈가 뜬다
+  // 온라인을 우선으로 지키는데 나머지 둘을 보장으로 걸어 실제로 배정이 밀리게 한다
+  // (이슈 #37: 주문 자체가 적어 quota 미달인 것만으로는 더 이상 이슈가 뜨지 않는다 -
+  // 진짜로 밀려야 뜬다)
   let opened = false;
   for (let i = 0; i < 10 && !opened; i++) {
-    s.w.FF.setStance([2, 1, 1]);
+    s.w.FF.setStance([2, 3, 3]);
     s.q('kgo').click(); await tick();
     if (s.q('kissue')) opened = true;
   }
@@ -729,9 +736,15 @@ function open(file, seed) {
     else t('정체는 악화가 아니라 약속 미이행', bannerTxt.includes('약속을 못 채우고 있습니다'));
     t('recover 어휘에 회복 없음', !s.w.FV.say('signal', 'recover').includes('회복'));
 
-    // 다음 날, 같은 상태가 이어지면 신호는 다시 뜨지 않는다(이슈만 남는다)
-    s.w.FF.setStance([2, 1, 1]);
-    s.q('kgo').click(); await tick();
+    // 같은 상태(배정이 밀림)가 이어지면 신호는 다시 뜨지 않는다(이슈만 남는다).
+    // [2,3,3]으로 실제 게임을 한 번 더 돌리면 그날 무작위 수요에 따라 우연히 안 밀릴
+    // 수도 있으므로(#37 이후로는 그 경우 이슈가 정상적으로 닫힌다), "밀리는 하루"
+    // 자체는 recordIssues를 직접 불러 결정적으로 재현한다 - 이 테스트가 보려는 것은
+    // "지속되는 상황에서 신호가 안 뜨는가"이지 그날의 실제 무작위 수요가 아니다.
+    // 온라인(0)만 밀리게 하고 나머지 둘은 quota를 넉넉히 채워서(그 판로들이 새로
+    // 이슈를 열어 "포기" 버튼이 여러 개 생기는 부작용을 피한다) 온라인 하나만 본다.
+    s.w.FF.recordIssues(s.w.FF.relOf(), { toCh: [4, 100, 100], chDem: [10, 100, 100] });
+    s.w.FF.repaint(); await tick();
     t('다음날 신호 재발행 없음', s.w.FF.signalOf().length === 0 || !s.w.FF.signalOf().some(x => x.i === 0));
     t('이슈는 계속 열려 있다', !!s.w.FF.issueOf()[0]);
 
