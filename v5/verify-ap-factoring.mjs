@@ -96,13 +96,14 @@ console.log('\n=== gate A2: creditLimit/availableCredit 불변식(200시드 x 30
 
 console.log('\n=== gate A3: 게임 종료 시 미상환 AP가 있어도 netWorth가 정확히 부채로 잡힌다 ===');
 {
-  // 24~30일차에 매입이 있으면(만기가 30일을 넘는다) 게임이 끝나도 s.ap가 안 빈다.
+  // 게임 종료 직전 며칠(만기 term=7일 이내)에 매입이 있으면 게임이 끝나도 s.ap가 안 빈다.
   // 그 경우 netWorth = cash+AR-AP가 성립해야 한다(#12 범위인 "연체"는 다루지 않는다 -
-  // 그냥 상환 안 된 부채가 순자산에서 정확히 빠지는지만 본다).
+  // 그냥 상환 안 된 부채가 순자산에서 정확히 빠지는지만 본다). 이슈 #30: 게임 길이가
+  // FF.C.days이므로 그 실제 끝까지 재생해야 "게임 종료 시"를 검증하는 것이다.
   let found = false, allOk = true, evidence = '';
   for (let seed = 1; seed <= 60 && !(found && seed > 5); seed++) {
     FF.reset(seed);
-    for (let day = 1; day <= 30 && !FF.isOver(); day++) FF.stepDay(FF.Cmd.wait());
+    for (let day = 1; day <= FF.C.days && !FF.isOver(); day++) FF.stepDay(FF.Cmd.wait());
     const s = FF.toKernelState();
     const outstandingAP = FF.sumAmt(s.ap);
     if (outstandingAP > 0) {
@@ -113,7 +114,7 @@ console.log('\n=== gate A3: 게임 종료 시 미상환 AP가 있어도 netWorth
       else evidence = `seed=${seed} 미상환AP=${outstandingAP} netWorth=${nw} (cash+AR-AP 직접합=${handNw})`;
     }
   }
-  gate('A3', '30일 종료 시 미상환 AP가 남아도 netWorth=cash+AR-AP가 정확히 성립한다',
+  gate('A3', '게임 종료 시 미상환 AP가 남아도 netWorth=cash+AR-AP가 정확히 성립한다',
     found && allOk, found ? evidence : '60개 시드 중 미상환 AP가 남는 시드를 찾지 못했다(조건 자체가 검증되지 않음)');
 }
 

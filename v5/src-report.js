@@ -139,7 +139,7 @@ FV.missedBriefNode=function(){
   <//>`;
 }
 
-// 초과분 계약 누적 효과. 첫날 선택과 30일 뒤 결과를 잇는 긴 피드백 고리라서 따로 보여준다.
+// 초과분 계약 누적 효과. 첫날 선택과 게임 종료 시점 결과를 잇는 긴 피드백 고리라서 따로 보여준다.
 FV.ContractStatsView=function(){
  var c=FF.contractStats();
  if(!c||c.size<=0)return null;
@@ -189,7 +189,7 @@ FV.RelTimelineView=function(){
  <//>`;
 }
 
-// 관계 형성. 최종 관계와 30일 경로, 그리고 무엇이 언제 바뀌었는지를 함께 보여준다.
+// 관계 형성. 최종 관계와 게임 전체 경로, 그리고 무엇이 언제 바뀌었는지를 함께 보여준다.
 FV.RelFormationView=function(){
  return FV._html`<${FV._F}>
   <${FV.RelPortfolioView} />
@@ -251,7 +251,7 @@ FV.endCardNode=function(){
         ${FV.missedBriefNode()}
         ${FV.finAfterNode()}
         <div style=${{marginTop:"8px",fontSize:"11px",color:"var(--text-muted)"}}>
-         사후 기준은 30일을 미리 알 때 같은 횟수로 얻는 최선이다. 사는 날은 이틀 간격으로 고정했다.
+         사후 기준은 ${FF.C.days}일을 미리 알 때 같은 횟수로 얻는 최선이다. 사는 날은 이틀 간격으로 고정했다.
         </div>
        <//>`}} />
    <${FV.Fold} id="ops" title="운영 결과"
@@ -319,7 +319,7 @@ FV.InvestmentAnalysis=function(props){
  return FV._html`
   <${FV._F}>
    <div style=${{fontSize:"12px",color:"var(--text-muted)",margin:"0 0 6px"}}>
-    기여는 그 설비 하나만 빼고 30일을 다시 돌린 결과와의 차이다. 설비끼리 영향을 주므로 합계는 전체 차이와 다르다.
+    기여는 그 설비 하나만 빼고 ${FF.C.days}일을 다시 돌린 결과와의 차이다. 설비끼리 영향을 주므로 합계는 전체 차이와 다르다.
    </div>
    ${rows.map(function(r){return FV._html`<${FV.InvestmentRow} row=${r} />`;})}
   <//>`;

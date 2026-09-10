@@ -137,16 +137,16 @@ function open(file, seed) {
   const day = s.q('kd').textContent;
   s.q('kfin').click(); await tick();
   t('1클릭은 무장만', s.q('kd').textContent === day);
-  t('무장 문구', s.q('kfin').textContent.includes('30일까지 운영'));
+  t('무장 문구', s.q('kfin').textContent.includes(s.w.FF.C.days + '일까지 운영'));
   s.q('kfin').click(); await tick();
-  t('2클릭에 종료', s.q('kd').textContent === '30');
+  t('2클릭에 종료', s.q('kd').textContent === String(s.w.FF.C.days));
 }
 
 // 5. 종료 화면의 접이식은 여섯 개이고 실제로 펼쳐진다
 {
   const s = open(FILE, 30699);
   let n = 0;
-  while (s.q('kgo') && !(s.q('klabel') && s.q('klabel').textContent.includes('운영 종료')) && n < 60) {
+  while (s.q('kgo') && !(s.q('klabel') && s.q('klabel').textContent.includes('운영 종료')) && n < s.w.FF.C.days + 10) {
     if (+s.q('kd').textContent === 5) { s.w.FF.toggleBuy('sales'); await tick() }
     s.q('kgo').click(); await tick(); n++;
   }
@@ -192,7 +192,7 @@ function open(file, seed) {
 {
   const s3 = open(FILE, 30699);
   let n = 0;
-  while (s3.q('kgo') && !(s3.q('klabel') && s3.q('klabel').textContent.includes('운영 종료')) && n < 60) {
+  while (s3.q('kgo') && !(s3.q('klabel') && s3.q('klabel').textContent.includes('운영 종료')) && n < s3.w.FF.C.days + 10) {
     if (+s3.q('kd').textContent === 5) { s3.w.FF.toggleBuy('sales'); await tick() }
     s3.q('kgo').click(); await tick(); n++;
   }
@@ -217,14 +217,14 @@ function open(file, seed) {
 {
   const s5 = open(FILE, 30699);
   let n = 0;
-  while (s5.q('kgo') && !(s5.q('klabel') && s5.q('klabel').textContent.includes('운영 종료')) && n < 60) {
+  while (s5.q('kgo') && !(s5.q('klabel') && s5.q('klabel').textContent.includes('운영 종료')) && n < s5.w.FF.C.days + 10) {
     if (+s5.q('kd').textContent === 5) { s5.w.FF.toggleBuy('sales'); await tick() }
     s5.q('kgo').click(); await tick(); n++;
   }
   const svg = s5.q('kchart').querySelector('svg');
   t('그래프 svg 존재', !!svg);
   t('생산/판매 선 둘', svg.querySelectorAll('polyline').length === 2);
-  t('재고 막대 30개', svg.querySelectorAll('rect[opacity="0.5"]').length === 30);
+  t('재고 막대는 게임 일수만큼', svg.querySelectorAll('rect[opacity="0.5"]').length === s5.w.FF.C.days);
   t('사건 원 존재', svg.querySelectorAll('circle').length > 0);
   t('증설 마름모', svg.querySelectorAll('rect[transform]').length === 1);
   t('기여 라벨', svg.querySelectorAll('text').length === 1);
@@ -289,7 +289,7 @@ function open(file, seed) {
   const txt = s8.q('kbrief').textContent;
   t('유효 구간 또는 없음', txt.includes('유효 구간') || txt.includes('놓친 최대 기회'));
   t('설명 문장 없음', !txt.includes('아무 날에 하나를 더 샀어도'));
-  t('보고서 제목', txt.includes('30일 운영 결과'));
+  t('보고서 제목', txt.includes(s8.w.FF.C.days + '일 운영 결과'));
 }
 
 
@@ -297,7 +297,7 @@ function open(file, seed) {
 {
   const s10 = open(FILE, 30699);
   let m = 0;
-  while (s10.q('kgo') && !(s10.q('klabel') && s10.q('klabel').textContent.includes('운영 종료')) && m < 60) {
+  while (s10.q('kgo') && !(s10.q('klabel') && s10.q('klabel').textContent.includes('운영 종료')) && m < s10.w.FF.C.days + 10) {
     s10.q('kgo').click(); await tick(); m++;
   }
   const css = [...s10.d.querySelectorAll('style')].map(x => x.textContent).join('\n');
@@ -313,7 +313,7 @@ function open(file, seed) {
 {
   const s10 = open(FILE, 30699);
   let n = 0;
-  while (s10.q('kgo') && !(s10.q('klabel') && s10.q('klabel').textContent.includes('운영 종료')) && n < 60) {
+  while (s10.q('kgo') && !(s10.q('klabel') && s10.q('klabel').textContent.includes('운영 종료')) && n < s10.w.FF.C.days + 10) {
     if (n === 4) { s10.w.FF.toggleBuy('sales'); await tick() }
     s10.q('kgo').click(); await tick(); n++;
   }
@@ -367,7 +367,7 @@ function open(file, seed) {
   const s12 = open(FILE, 7);
   s12.q('kbc3').click(); await tick(); // +3(내부단위) 계약
   let n = 0, sawBoost = false, boostTxtChecked = false;
-  while (!s12.w.FF.isOver() && n < 60) {
+  while (!s12.w.FF.isOver() && n < s12.w.FF.C.days + 10) {
     s12.q('kgo').click(); await tick(); n++;
     const boostEl = s12.q('kcontractboost');
     if (boostEl) {
@@ -398,7 +398,7 @@ function open(file, seed) {
                  'high','low','weak','strong','free','near','full','ship','stock','contract'];
   const s12 = open(FILE, 30699);
   let n = 0;
-  while (s12.q('kgo') && !(s12.q('klabel') && s12.q('klabel').textContent.includes('운영 종료')) && n < 60) {
+  while (s12.q('kgo') && !(s12.q('klabel') && s12.q('klabel').textContent.includes('운영 종료')) && n < s12.w.FF.C.days + 10) {
     if (s12.q('kbc2')) { s12.q('kbc2').click(); await tick() }
     s12.q('kgo').click(); await tick(); n++;
   }
@@ -425,7 +425,7 @@ function open(file, seed) {
   const s13 = open(FILE, 30699);
   let seen = [];
   let n = 0;
-  while (s13.q('kgo') && !(s13.q('klabel') && s13.q('klabel').textContent.includes('운영 종료')) && n < 60) {
+  while (s13.q('kgo') && !(s13.q('klabel') && s13.q('klabel').textContent.includes('운영 종료')) && n < s13.w.FF.C.days + 10) {
     if (s13.q('kbc2')) { s13.q('kbc2').click(); await tick() }
     
     s13.q('kgo').click(); await tick(); n++;
@@ -492,12 +492,17 @@ function open(file, seed) {
 
   // 병목이 바뀌어도 멈추지 않는다. 종료에서만 멈춘다.
   let guard = 0;
-  while (rt.w.FF.clockOf().running && guard < 40) { rt.w.FF.tickDay(); await tick(); guard++ }
+  while (rt.w.FF.clockOf().running && guard < rt.w.FF.C.days + 10) { rt.w.FF.tickDay(); await tick(); guard++ }
   t('종료에서 정지', rt.w.FF.clockOf().running === false && rt.w.FF.isOver());
   t('병목 변화로는 멈추지 않음', guard >= 20);
+  // 이슈 #30: guard 루프가 게임 일수만큼 늘어나 실제 경과 시간(setTimeout 0의 누적)이
+  // TICK_MS(1000ms)를 넘을 수 있다 - 남아 있는 배경 타이머를 확실히 걷어낸 뒤, 새로
+  // 시작한 타이머가 (게임이 이미 끝난 상태라) 스스로 멈출 기회를 얻기 전에(await 없이)
+  // 바로 확인해야 경쟁 상태 없이 "시작 직후 상태"를 본다.
+  rt.w.FV.stopClock();
 
   // 새 게임을 시작하면 시계와 타이머가 함께 꺼진다
-  rt.w.FV.startClock(); rt.w.FF.setClock(true); await tick();
+  rt.w.FV.startClock(); rt.w.FF.setClock(true);
   const wasRunning = rt.w.FF.clockOf().running && !!rt.w.FV._timer;
   rt.w.FV.newGame(777); await tick();
   t('새 게임 전에 돌고 있었음', wasRunning);

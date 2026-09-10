@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>양파 · 30일 운영</title>
+<title>양파 · 365일 운영</title>
 <style>
 :root{
  --surface-0:#f4f1e9;--surface-1:#e9e4d7;--surface-2:#fbf9f4;
@@ -271,7 +271,7 @@ FF._injectedComputed=window.preactSignals.computed;
 // 같은 비율·요율)는 Money와 Quantity가 같은 배수로 커지므로 그대로 둔다. sm/dm/sd/dd처럼 확률
 // 분포를 나타내는 값도 실 단위 그대로 두고, 확정 수량으로 넘어오는 경계(입고 목표량 계산,
 // 판로별 예상 수요, 생산·수요 난수 확정)에서만 2를 곱해 양자화한다.
-FF.C={days:30,cash:84000,sm:[14,20,27],sd:2.5,dm:[10,20,32],dd:3,stay:0.8,
+FF.C={days:365,cash:84000,sm:[14,20,27],sd:2.5,dm:[10,20,32],dd:3,stay:0.8,
 // 이슈 #22/#26: capProcure(조달 능력)는 산지 생산량(raw prod)을 그대로 두고 그 아래
 // 회사 소유의 확보 상한을 추가한다. capIntake(40)의 85% 근처(exposure sweep 후보구간
 // 34-36의 중앙)를 기본값으로 둬서 가끔 실제로 묶이게 한다. Contract(초과분 매입계약)는
@@ -721,7 +721,7 @@ FF.Rng=function(s){this.s=s>>>0||1}
 FF.Rng.prototype.next=function(){this.s=(this.s+0x6d2b79f5)>>>0;var t=this.s;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296};
 FF.Rng.prototype.norm=function(m,sd){var u=Math.max(this.next(),1e-12),v=this.next();return m+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
 
-// 월간 성향별 전이행렬. tilt 는 0 침체, 1 평년, 2 호황이다.
+// 성향별 국면 전이행렬(매일의 si/di 전이에 쓰인다). tilt 는 0 침체, 1 평년, 2 호황이다.
 // 성향 쪽에 더 머물고 평년에서도 그쪽으로 더 자주 간다.
 // 두 성향은 서로 거울상이라 방향에 따른 유불리가 없다.
 FF.M=function(rules,tilt){
@@ -777,7 +777,10 @@ FF.World=function(seed,rules){
  // 두 스트림을 처음부터 물리적으로 분리해 두면 그 위험이 아예 없다.
  var rngS=new FF.Rng(seed);
  var rngD=new FF.Rng(seed^0x9e3779b9);
- // 이번 달 성향. 판마다 다르고 30일 내내 유지된다. 공급 성향은 공급 스트림에서, 수요 성향은 수요 스트림에서 뽑는다.
+ // 이번 판의 성향. 게임 시작 때 한 번만 뽑고 게임이 끝날 때까지 그대로 유지된다(#30: 원래
+ // "한 판=한 달(30일)"이던 시절의 설계라 그때는 구분할 필요가 없었다 - 지금도 이 동작
+ // 자체는 #19 이후 모든 장기 게임 검증이 실제로 전제해 온 것이라 바꾸지 않는다). 공급 성향은
+ // 공급 스트림에서, 수요 성향은 수요 스트림에서 뽑는다.
  var pick=function(rng){var r=rng.next(),p=R.tiltP||[0.25,0.5,0.25];
   return r<p[0]?0:(r<p[0]+p[1]?1:2)};
  var ts=pick(rngS), td=pick(rngD);
@@ -2832,7 +2835,7 @@ FV.worldNote=function(){
  if(boom/n>=0.5)return "수요 호황이 "+boom+"일 이어져 판매 창구가 성과를 갈랐다.";
  if(poor/n>=0.5)return "생산 부족이 "+poor+"일 이어져 공급망에 들어올 물량 자체가 적었다.";
  if(good/n>=0.5)return "풍작이 "+good+"일 이어져 받아들일 물량은 많았다.";
- return "생산과 수요가 30일 동안 뚜렷한 한쪽으로 기울지 않았다.";
+ return "생산과 수요가 "+n+"일 동안 뚜렷한 한쪽으로 기울지 않았다.";
 }
 
 // 얼마나 놓쳤는지 숫자로 말한다. 구매 버튼과 같은 어휘를 쓴다.
@@ -3334,7 +3337,7 @@ FV.missedBriefNode=function(){
   <//>`;
 }
 
-// 초과분 계약 누적 효과. 첫날 선택과 30일 뒤 결과를 잇는 긴 피드백 고리라서 따로 보여준다.
+// 초과분 계약 누적 효과. 첫날 선택과 게임 종료 시점 결과를 잇는 긴 피드백 고리라서 따로 보여준다.
 FV.ContractStatsView=function(){
  var c=FF.contractStats();
  if(!c||c.size<=0)return null;
@@ -3384,7 +3387,7 @@ FV.RelTimelineView=function(){
  <//>`;
 }
 
-// 관계 형성. 최종 관계와 30일 경로, 그리고 무엇이 언제 바뀌었는지를 함께 보여준다.
+// 관계 형성. 최종 관계와 게임 전체 경로, 그리고 무엇이 언제 바뀌었는지를 함께 보여준다.
 FV.RelFormationView=function(){
  return FV._html`<${FV._F}>
   <${FV.RelPortfolioView} />
@@ -3446,7 +3449,7 @@ FV.endCardNode=function(){
         ${FV.missedBriefNode()}
         ${FV.finAfterNode()}
         <div style=${{marginTop:"8px",fontSize:"11px",color:"var(--text-muted)"}}>
-         사후 기준은 30일을 미리 알 때 같은 횟수로 얻는 최선이다. 사는 날은 이틀 간격으로 고정했다.
+         사후 기준은 ${FF.C.days}일을 미리 알 때 같은 횟수로 얻는 최선이다. 사는 날은 이틀 간격으로 고정했다.
         </div>
        <//>`}} />
    <${FV.Fold} id="ops" title="운영 결과"
@@ -3514,7 +3517,7 @@ FV.InvestmentAnalysis=function(props){
  return FV._html`
   <${FV._F}>
    <div style=${{fontSize:"12px",color:"var(--text-muted)",margin:"0 0 6px"}}>
-    기여는 그 설비 하나만 빼고 30일을 다시 돌린 결과와의 차이다. 설비끼리 영향을 주므로 합계는 전체 차이와 다르다.
+    기여는 그 설비 하나만 빼고 ${FF.C.days}일을 다시 돌린 결과와의 차이다. 설비끼리 영향을 주므로 합계는 전체 차이와 다르다.
    </div>
    ${rows.map(function(r){return FV._html`<${FV.InvestmentRow} row=${r} />`;})}
   <//>`;
@@ -4001,7 +4004,7 @@ FV.NavBarView=function(){
  return FV._html`
   <${FV._F}>
    <div style=${{display:"flex",alignItems:"center",gap:"6px",margin:"20px 0 12px"}}>
-    <div style=${{fontSize:"16px",fontWeight:"600",letterSpacing:"-.01em",flex:"1"}}>양파 · 30일 운영</div>
+    <div style=${{fontSize:"16px",fontWeight:"600",letterSpacing:"-.01em",flex:"1"}}>양파 · ${FF.C.days}일 운영</div>
     <input id="kseed" inputmode="numeric" placeholder="시드" class="btn-sm"
      style=${{width:"64px",background:"transparent",color:"var(--text-primary)",border:"1px solid var(--border-strong)",borderRadius:"var(--radius)"}} />
     <button id="knew" class="btn-sm"
@@ -4086,7 +4089,7 @@ FV.ClockBar=function(){
 FV.DockView=function(){
  FF.observe();
  var started=FF.started(), over=FF.isOver();
- var goText=over?"30일 종료 · 결과 확인":(started?"하루 넘기기":"첫날 운영");
+ var goText=over?(FF.C.days+"일 종료 · 결과 확인"):(started?"하루 넘기기":"첫날 운영");
  var arm=FF.SIG.fin.value, leftD=FF.daysLeft();
  var finish=function(){
   if(!FF.SIG.fin.value){
@@ -4107,7 +4110,7 @@ FV.DockView=function(){
      style=${{borderColor:"var(--text-danger)",color:arm?"var(--text-danger)":"var(--text-secondary)",background:arm?"var(--bg-danger)":"transparent"}}
      onClick=${finish}>
      ${arm?FV._html`
-      <b>30일까지 운영</b><br />
+      <b>${FF.C.days}일까지 운영</b><br />
       <span style=${{fontSize:"11px"}}>남은 ${leftD}일을 더 사지 않고 운영한다. 되돌릴 수 없다.</span>`:FV._html`
       운영 종료<br />
       <span style=${{fontSize:"11px",color:"var(--text-danger)"}}>되돌릴 수 없다 · 이후 투자 불가</span>`}

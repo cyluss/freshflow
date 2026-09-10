@@ -3,7 +3,7 @@ FF.Rng=function(s){this.s=s>>>0||1}
 FF.Rng.prototype.next=function(){this.s=(this.s+0x6d2b79f5)>>>0;var t=this.s;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296};
 FF.Rng.prototype.norm=function(m,sd){var u=Math.max(this.next(),1e-12),v=this.next();return m+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
 
-// 월간 성향별 전이행렬. tilt 는 0 침체, 1 평년, 2 호황이다.
+// 성향별 국면 전이행렬(매일의 si/di 전이에 쓰인다). tilt 는 0 침체, 1 평년, 2 호황이다.
 // 성향 쪽에 더 머물고 평년에서도 그쪽으로 더 자주 간다.
 // 두 성향은 서로 거울상이라 방향에 따른 유불리가 없다.
 FF.M=function(rules,tilt){
@@ -59,7 +59,10 @@ FF.World=function(seed,rules){
  // 두 스트림을 처음부터 물리적으로 분리해 두면 그 위험이 아예 없다.
  var rngS=new FF.Rng(seed);
  var rngD=new FF.Rng(seed^0x9e3779b9);
- // 이번 달 성향. 판마다 다르고 30일 내내 유지된다. 공급 성향은 공급 스트림에서, 수요 성향은 수요 스트림에서 뽑는다.
+ // 이번 판의 성향. 게임 시작 때 한 번만 뽑고 게임이 끝날 때까지 그대로 유지된다(#30: 원래
+ // "한 판=한 달(30일)"이던 시절의 설계라 그때는 구분할 필요가 없었다 - 지금도 이 동작
+ // 자체는 #19 이후 모든 장기 게임 검증이 실제로 전제해 온 것이라 바꾸지 않는다). 공급 성향은
+ // 공급 스트림에서, 수요 성향은 수요 스트림에서 뽑는다.
  var pick=function(rng){var r=rng.next(),p=R.tiltP||[0.25,0.5,0.25];
   return r<p[0]?0:(r<p[0]+p[1]?1:2)};
  var ts=pick(rngS), td=pick(rngD);

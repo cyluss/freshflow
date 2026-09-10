@@ -13,9 +13,9 @@ const t=(name,cond,info)=>{ if(cond)pass++; else{fail++;console.log('FAIL',name,
 FF.reset(30699);
 t('초기 현금', FF.C.cash===84000);
 t('초기 일차', FF.run().day===1);
-for(let i=0;i<30;i++) FF.stepDay(FF.Cmd.wait());
-t('30일 종료', FF.isOver()===true);
-t('기록 30일', FF.histOf().length===30);
+for(let i=0;i<FF.C.days;i++) FF.stepDay(FF.Cmd.wait());
+t('게임 종료', FF.isOver()===true);
+t('기록이 게임 일수만큼', FF.histOf().length===FF.C.days);
 
 let bad=0;
 for(const r of FF.histOf()){
@@ -105,7 +105,7 @@ if(gs){
 
 // chartData 계산 분리
 FF.reset(30699);
-for(let i=0;i<30;i++) FF.stepDay(FF.Cmd.wait());
+for(let i=0;i<FF.C.days;i++) FF.stepDay(FF.Cmd.wait());
 const cd=FF.chartData();
 t('chartData 반환', cd!==null);
 t('chartData 수치형', typeof cd.max==='number' && typeof cd.domain==='number');
@@ -134,7 +134,7 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
     const plan = {};
     for (let d = 2; d <= 25; d++) if (R() < 0.12) plan[d] = R() < 0.5 ? 'sales' : 'sales';
     FF.reset(seed);
-    for (let d = 1; d <= 30; d++) { FF.stepDay(plan[d] ? (plan[d]==='contract'?FF.Cmd.contract(1):FF.Cmd.buy(plan[d])) : FF.Cmd.wait()); if (FF.isOver()) break }
+    for (let d = 1; d <= FF.C.days; d++) { FF.stepDay(plan[d] ? (plan[d]==='contract'?FF.Cmd.contract(1):FF.Cmd.buy(plan[d])) : FF.Cmd.wait()); if (FF.isOver()) break }
     const played = FF.netWorth(FF.toKernelState());
     const replayed = FF.replayPlan(seed, plan);
     if (Math.abs(played - replayed) < 1e-6) same++; else { diff++;
@@ -352,7 +352,7 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
 // 과업 9: 러너 하나
 {
   const r = FF.runScenario(30699, { 4:'sales', 11:'sales' });
-  t('러너가 30일', r.days.length === 30);
+  t('러너가 게임 일수만큼', r.days.length === FF.C.days);
   t('러너 결과 형태', r.days[0].result && Array.isArray(r.days[0].events));
   t('러너 최종가치 = replayPlan',
     Math.abs(FF.finalValue(r.state, true) - FF.replayPlan(30699, { 4:'sales', 11:'sales' })) < 1e-9);
@@ -360,7 +360,7 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
   // 실제 플레이와 러너가 같은 세계를 계산한다
   FF.reset(30699);
   const plan = { 4:'sales', 11:'sales' };
-  for (let d = 1; d <= 30; d++) { if (FF.isOver()) break; FF.stepDay(plan[d] ? (plan[d]==='contract'?FF.Cmd.contract(1):FF.Cmd.buy(plan[d])) : FF.Cmd.wait()) }
+  for (let d = 1; d <= FF.C.days; d++) { if (FF.isOver()) break; FF.stepDay(plan[d] ? (plan[d]==='contract'?FF.Cmd.contract(1):FF.Cmd.buy(plan[d])) : FF.Cmd.wait()) }
   const played = FF.histOf().map(h => [h.prod, h.dem, h.acc, h.sold, h.end, h.b]);
   const ran = r.days.map(x => [x.result.prod, x.result.dem, x.result.acc, x.result.sold, x.result.end, x.result.b]);
   t('플레이 = 러너 일별 궤적', JSON.stringify(played) === JSON.stringify(ran));
@@ -378,7 +378,7 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
 // 과업 10: 분석은 시나리오만 정의한다
 {
   FF.reset(30699);
-  for (let d = 1; d <= 30; d++) { if (FF.isOver()) break; FF.stepDay(d === 5 ? FF.Cmd.buy('sales') : FF.Cmd.wait()) }
+  for (let d = 1; d <= FF.C.days; d++) { if (FF.isOver()) break; FF.stepDay(d === 5 ? FF.Cmd.buy('sales') : FF.Cmd.wait()) }
   t('현재 계획', JSON.stringify(FF.currentPlan()) === '{"5":"sales"}');
   t('추가 시나리오', JSON.stringify(FF.Scenario.addOne(7, 'sales')) === '{"at":7,"plan":{"7":"sales"}}');
   t('제거 시나리오', JSON.stringify(FF.Scenario.removeOne(5)) === '{"at":5,"plan":{"5":null}}');
@@ -408,7 +408,7 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
     FF.view.stock(s) > 15 && FF.view.canAfford(s, 'sales') && !FF.view.pending(s)
       ? FF.Cmd.buy('sales') : FF.Cmd.wait();
   const r = FF.runScenario(30699, greedy);
-  t('상태 전략 실행', r.days.length === 30);
+  t('상태 전략 실행', r.days.length === FF.C.days);
   const bought = r.days.flatMap(d => d.events).filter(e => e.type === 'purchase');
   t('상태 전략이 실제로 삼', bought.length > 0, bought.length + '회');
   t('전략도 결정적',
@@ -579,7 +579,7 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
   const short = JSON.parse(JSON.stringify(FF.C));
   short.days = 10;
   t('기간 주입', FF.runScenario(1, {}, null, short).days.length === 10);
-  t('기본 기간 유지', FF.runScenario(1, {}).days.length === 30);
+  t('기본 기간 유지', FF.runScenario(1, {}).days.length === FF.C.days);
 }
 
 
@@ -829,7 +829,7 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
   t('새 판은 시계 정지', FF.clockOf().running === false);
   FF.setClock(true);
   let n = 0;
-  while (FF.clockOf().running && n < 40) { FF.tickDay(); n++ }
+  while (FF.clockOf().running && n < FF.C.days + 5) { FF.tickDay(); n++ }
   t('종료에서만 자동 정지', FF.isOver());
   t('중간에 멈추지 않음', n >= FF.C.days - 1);
 

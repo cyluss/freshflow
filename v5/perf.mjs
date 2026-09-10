@@ -26,9 +26,10 @@ const w = dom.window, d = w.document, q = id => d.getElementById(id);
 const reset = () => { w.__n = {}; w.__c = {} };
 const FFover = () => q('klabel') && q('klabel').textContent.includes('운영 종료');
 
-// 1) 하루 진행: 반사실 재생이 일어나면 안 된다
+// 1) 하루 진행: 반사실 재생이 일어나면 안 된다(게임 종료까지 - 2번 검사가 종료 화면
+// 재생비용을 재려면 실제로 끝까지 가야 한다).
 let worstReplay = 0, clicks = 0;
-while (q('kgo') && clicks < 60) {
+while (q('kgo') && clicks < w.FF.C.days + 10) {
   if (+q('kd').textContent === 5) { w.FF.toggleBuy('sales'); await tick() }
   reset();
   q('kgo').click();
@@ -42,7 +43,9 @@ t('플레이 중 replayPlan 0회', worstReplay === 0, '최대 ' + worstReplay + 
 // 2) 종료 화면 최초: 재생은 한 묶음만
 const firstReplay = w.__n.replayPlan || 0;
 t('종료 최초 replayPlan 5회 이하', firstReplay <= 5, firstReplay + '회');
-t('종료 최초 stepState 4000회 이하', (w.__n.stepState || 0) <= 4000, (w.__n.stepState || 0) + '회');
+// 이슈 #30: 30일 게임 기준 4000이었다. 365일 기본값에서 실측 10941회라 12000으로
+// 다시 잡는다(절대속도가 아니라 회귀 감시가 목적이라 여유를 두고 다시 보정한 값이다).
+t('종료 최초 stepState 12000회 이하', (w.__n.stepState || 0) <= 12000, (w.__n.stepState || 0) + '회');
 
 // 3) 접이식 토글: 캐시가 살아 있으면 재생이 0
 for (const k of ['ops', 'mods', 'miss', 'log']) {
@@ -74,13 +77,13 @@ t('재렌더 1회 20ms 이하', per < 20, per.toFixed(1) + 'ms');
   const dom2 = new JSDOM(html, { runScripts: 'dangerously', url: 'http://x/#seed=1' });
   const w2 = dom2.window, q2 = id => dom2.window.document.getElementById(id);
   let n = 0;
-  while (q2('kgo') && !(q2('klabel') && q2('klabel').textContent.includes('운영 종료')) && n < 60) {
+  while (q2('kgo') && !(q2('klabel') && q2('klabel').textContent.includes('운영 종료')) && n < w2.FF.C.days + 10) {
     q2('kgo').click(); await tick(); n++;
   }
   const a = w2.FF.missedOps().length;
   q2('kseed').value = '30699'; q2('knew').click(); await tick();
   n = 0;
-  while (q2('kgo') && !(q2('klabel') && q2('klabel').textContent.includes('운영 종료')) && n < 60) {
+  while (q2('kgo') && !(q2('klabel') && q2('klabel').textContent.includes('운영 종료')) && n < w2.FF.C.days + 10) {
     q2('kgo').click(); await tick(); n++;
   }
   const b = w2.FF.missedOps();

@@ -359,7 +359,7 @@ FV.NavBarView=function(){
  return FV._html`
   <${FV._F}>
    <div style=${{display:"flex",alignItems:"center",gap:"6px",margin:"20px 0 12px"}}>
-    <div style=${{fontSize:"16px",fontWeight:"600",letterSpacing:"-.01em",flex:"1"}}>양파 · 30일 운영</div>
+    <div style=${{fontSize:"16px",fontWeight:"600",letterSpacing:"-.01em",flex:"1"}}>양파 · ${FF.C.days}일 운영</div>
     <input id="kseed" inputmode="numeric" placeholder="시드" class="btn-sm"
      style=${{width:"64px",background:"transparent",color:"var(--text-primary)",border:"1px solid var(--border-strong)",borderRadius:"var(--radius)"}} />
     <button id="knew" class="btn-sm"
@@ -444,7 +444,7 @@ FV.ClockBar=function(){
 FV.DockView=function(){
  FF.observe();
  var started=FF.started(), over=FF.isOver();
- var goText=over?"30일 종료 · 결과 확인":(started?"하루 넘기기":"첫날 운영");
+ var goText=over?(FF.C.days+"일 종료 · 결과 확인"):(started?"하루 넘기기":"첫날 운영");
  var arm=FF.SIG.fin.value, leftD=FF.daysLeft();
  var finish=function(){
   if(!FF.SIG.fin.value){
@@ -465,7 +465,7 @@ FV.DockView=function(){
      style=${{borderColor:"var(--text-danger)",color:arm?"var(--text-danger)":"var(--text-secondary)",background:arm?"var(--bg-danger)":"transparent"}}
      onClick=${finish}>
      ${arm?FV._html`
-      <b>30일까지 운영</b><br />
+      <b>${FF.C.days}일까지 운영</b><br />
       <span style=${{fontSize:"11px"}}>남은 ${leftD}일을 더 사지 않고 운영한다. 되돌릴 수 없다.</span>`:FV._html`
       운영 종료<br />
       <span style=${{fontSize:"11px",color:"var(--text-danger)"}}>되돌릴 수 없다 · 이후 투자 불가</span>`}

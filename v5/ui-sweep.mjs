@@ -29,7 +29,7 @@ function open(file, seed) {
       const s = open(FILE, seed);
       if (s.q('kbc0')) { s.q('kbc0').click(); await tick() }
       let n = 0;
-      while (s.q('kgo') && !(s.q('klabel') && s.q('klabel').textContent.includes('운영 종료')) && n < 60) {
+      while (s.q('kgo') && !(s.q('klabel') && s.q('klabel').textContent.includes('운영 종료')) && n < s.w.FF.C.days + 10) {
         const day = +s.q('kd').textContent;
         if (acts && acts[day]) { s.w.FF.toggleBuy(acts[day]); await tick() }
         s.q('kgo').click(); await tick(); n++;
@@ -61,7 +61,7 @@ function open(file, seed) {
     const s9 = open(FILE, seed);
     if (s9.q('kbc0')) { s9.q('kbc0').click(); await tick() }
     let m = 0, leak = null;
-    while (s9.q('kgo') && !(s9.q('klabel') && s9.q('klabel').textContent.includes('운영 종료')) && m < 60) {
+    while (s9.q('kgo') && !(s9.q('klabel') && s9.q('klabel').textContent.includes('운영 종료')) && m < s9.w.FF.C.days + 10) {
       s9.q('kgo').click(); await tick(); m++;
       const txt = s9.d.getElementById('app').textContent;
       if (!leak && (txt.includes('undefined') || txt.includes('NaN'))) leak = m;
@@ -90,7 +90,7 @@ function open(file, seed) {
         if (txt.includes(b)) { hits.push(`seed ${seed} ${where}: ${b}`); return true }
       return false;
     };
-    while (s9.q('kgo') && !(s9.q('klabel') && s9.q('klabel').textContent.includes('운영 종료')) && n < 60) {
+    while (s9.q('kgo') && !(s9.q('klabel') && s9.q('klabel').textContent.includes('운영 종료')) && n < s9.w.FF.C.days + 10) {
       if (n === 4) { s9.w.FF.toggleBuy('sales'); await tick() }
       s9.q('kgo').click(); await tick(); n++;
       if (scan('day ' + n)) break;
