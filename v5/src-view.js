@@ -76,8 +76,11 @@ FV.IssueBar=function(){
   return FV._h("div",{class:"issue"+(accepted?" issue-accepted":"")},[
    FV._h("div",{class:"issue-head"},
     chName(is.i)+" 정책: "+FV.say("stance",String(is.level))+" · "+is.days+"일째 · 현재 "+relWord(is.rel)),
+   // 이슈 #36: quota는 관계 등급이 유지되는 하한이 아니라 이 정책(우선/보장)의
+   // 약속 이행 기준이다(등급은 quota의 절반 밑으로 떨어져야 내려간다) - "관계 유지"라고
+   // 쓰면 이 기준을 못 채우는 순간 등급이 위태로운 것처럼 읽혀서 "약속 이행"으로 쓴다.
    FV._h("div",{class:"issue-nums"},
-    "예상 판매 "+FF.fInt(is.preview)+"t · 관계 유지 기준 "+FF.fInt(is.quota)+"t"),
+    "예상 판매 "+FF.fInt(is.preview)+"t · 약속 이행 기준 "+FF.fInt(is.quota)+"t"),
    FV._h("div",{class:"issue-verdict"},FV.say("feasible",is.feasible)),
    accepted
     ?FV._h("span",{class:"issue-ack"},"의도적 포기")
@@ -107,7 +110,9 @@ FV.ChannelBar=function(){
  // 화면은 커널 상태를 직접 읽지 않고 FF.facts()가 낸 판로 중심 투영(byCh)만 읽는다.
  var rows=byCh.map(function(r,i){
   var issue=issueOf(i);
-  var statusTxt=issue?(" · "+(issue.resolution==="accepted"?"포기함":"회복 중")):"";
+  // 이슈 #36: 열린 이슈는 관계 등급이 아니라 정책 약속(quota) 이행 여부를 추적한다 -
+  // "회복 중"은 등급이 오르는 중인 것처럼 읽혀서 "이행 중"으로 쓴다.
+  var statusTxt=issue?(" · "+(issue.resolution==="accepted"?"포기함":"이행 중")):"";
   var missed=r['curr.plan.allocation.missed'], assigned=r['curr.plan.allocation.assigned'];
   var order=r['curr.forecast.demand.order'], level=r['curr.plan.allocation.stance'];
   var floor=r['curr.state.allocation.floor'];
@@ -343,7 +348,13 @@ FV.NavBarView=function(){
   if(sig.length){
    var s0=sig[0];
    var name=FV.say("channel",FF.C.channels[s0.i].key);
-   return "최근 사건: "+name+" 관계가 "+(s0.type==="recover"?"회복되었습니다":"악화되었습니다");
+   // 이슈 #36: decline은 실제 등급 하락, stuck은 등급은 그대로인 채 정책 약속만
+   // 못 채우는 상태, recover는 그 약속을 다시 채우기 시작한 상태다 - 셋을 하나로
+   // 뭉뚱그리면(예전에는 stuck도 "악화되었습니다") 정체 상태를 하락으로 잘못 알린다.
+   var word=s0.type==="decline"?(name+" 관계가 나빠졌습니다")
+    :s0.type==="recover"?(name+" 약속을 다시 채우기 시작했습니다")
+    :(name+" 약속을 못 채우고 있습니다");
+   return "최근 사건: "+word;
   }
   var ev=FF.evt();
   return ev?FV.EVENT_TEXT[ev.b]:"특이사항 없이 운영 중";

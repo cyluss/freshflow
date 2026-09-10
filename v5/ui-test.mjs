@@ -716,6 +716,19 @@ function open(file, seed) {
     t('이슈 문구에 판로 이름', bar.textContent.includes('온라인'));
     t('이슈에 포기 버튼', !!bar.querySelector('.issue-btn'));
 
+    // 이슈 #36: "이슈"는 관계 등급이 아니라 정책 약속(quota) 이행을 추적하므로
+    // "회복"이라는 말을 쓰면 안 된다 - 등급이 이미 최고면 영영 "회복"할 일이 없다.
+    t('이슈 문구에 회복 없음', !bar.textContent.includes('회복'));
+    t('약속 이행 기준 문구', bar.textContent.includes('약속 이행 기준'));
+    t('이행 판정은 이행 계열 어휘', /이행 가능|현재 이행 어려움|이행 실익 낮음/.test(bar.textContent));
+    t('판로 카드에 회복 중 없음', !s.q('kchan').textContent.includes('회복 중'));
+    t('판로 카드는 이행 중', s.q('kchan').textContent.includes('이행 중'));
+    const sigType = s.w.FF.signalOf().find(x => x.i === 0).type;
+    const bannerTxt = s.q('klabel').textContent;
+    if (sigType === 'decline') t('하락은 나빠졌습니다', bannerTxt.includes('나빠졌습니다'));
+    else t('정체는 악화가 아니라 약속 미이행', bannerTxt.includes('약속을 못 채우고 있습니다'));
+    t('recover 어휘에 회복 없음', !s.w.FV.say('signal', 'recover').includes('회복'));
+
     // 다음 날, 같은 상태가 이어지면 신호는 다시 뜨지 않는다(이슈만 남는다)
     s.w.FF.setStance([2, 1, 1]);
     s.q('kgo').click(); await tick();
