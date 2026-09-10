@@ -169,6 +169,15 @@ function open(file, seed) {
   t('기회 분석 내용', after.includes('그날 하나를 더 샀을 때의 현금 차이'));
   t('전체 기록 내용', after.includes('진행 기록'));
   t('관계 포트폴리오 내용', after.includes('온라인') && after.includes('프랜차이즈') && after.includes('도매'));
+  // 이슈 #31: 관계 포트폴리오 스파크라인은 게임 길이(FF.C.days)만큼 입력이 들어와도
+  // 렌더 폭이 SPARK_MAX로 고정돼야 한다 - 안 그러면 이어붙은 문자열이 줄바꿈 없이
+  // 뷰포트 폭을 밀어낸다(365일 종료 화면에서 실측된 레이아웃 붕괴).
+  {
+    const bars = [...s.q('kbrief').querySelectorAll('.spark-bars')];
+    t('스파크라인 존재', bars.length === 3);
+    t('스파크라인 폭이 SPARK_MAX로 고정', bars.every(b => b.textContent.length <= s.w.FV.SPARK_MAX),
+      bars.map(b => b.textContent.length).join(','));
+  }
   // 기회 분석 표가 데이터와 같은 수의 행을 낸다
   {
     const body = s.d.querySelector('[data-fold="miss"]').nextElementSibling;

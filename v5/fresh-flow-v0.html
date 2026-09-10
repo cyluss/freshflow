@@ -3123,9 +3123,23 @@ FV.TimelineChart=function(props){
 // 각 구간은 낮음 / 비슷 / 높음 세 확률과 한 줄 판정을 낸다.
 
 // 막대 여덟 칸으로 최근 추세를 보여준다. 숫자보다 방향이 먼저 읽힌다.
+// 이슈 #31: 막대는 한 글자가 곧 한 칸인 이어붙은 문자열이라 띄어쓰기가 없어 줄바꿈이 안 된다.
+// 입력 길이가 그대로 렌더 폭이 되므로, 게임 전체 이력처럼 게임 길이(FF.C.days)에 비례해
+// 늘어나는 값을 그대로 넣으면 365칸짜리 한 줄이 뷰포트 폭을 밀어낸다(#29가 365일 종료
+// 화면에서 실측). FV.SPARK_MAX로 렌더 폭을 입력 길이와 분리해 고정한다.
+FV.SPARK_MAX=30;
 FV.Spark=function(props){
  var v=props.values||[];
  if(v.length<2)return null;
+ if(v.length>FV.SPARK_MAX){
+  var bucketed=[];
+  for(var bi=0;bi<FV.SPARK_MAX;bi++){
+   var lo=Math.floor(bi*v.length/FV.SPARK_MAX), hi=Math.max(lo+1,Math.floor((bi+1)*v.length/FV.SPARK_MAX));
+   var seg=v.slice(lo,hi);
+   bucketed.push(seg.reduce(function(a,b){return a+b},0)/seg.length);
+  }
+  v=bucketed;
+ }
  var max=Math.max.apply(null,v.concat([props.floor||1]));
  var BLK=["\u2581","\u2582","\u2583","\u2584","\u2585","\u2586","\u2587","\u2588"];
  var chars=v.map(function(x){
