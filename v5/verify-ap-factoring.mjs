@@ -186,11 +186,13 @@ console.log('\n=== gate B2: factoring은 outstanding 이상을 만들어내지 �
 
 console.log('\n=== gate C: 캐시 보존 - AP가 관여한 날도 순자산 흐름이 profit과 정확히 맞는다 ===');
 {
+  // 이슈 #30: FF.C.days까지 돌려야 salvage(게임 종료 시 처분가치) 경로도 실제로 지나간다 -
+  // 30일에서 멈추면 365일 게임에서는 게임이 절대 끝나지 않아 salvage 분기가 검증되지 않는다.
   let bad = 0, checked = 0;
   for (const seed of [1, 30699, 22209, 84206, 5]) {
     FF.reset(seed);
     let prevNw = FF.netWorth(FF.toKernelState());
-    for (let day = 1; day <= 30 && !FF.isOver(); day++) {
+    for (let day = 1; day <= FF.C.days && !FF.isOver(); day++) {
       const spentBefore = FF.ledger().spent;
       FF.stepDay(FF.Cmd.wait());
       const r = FF.today();

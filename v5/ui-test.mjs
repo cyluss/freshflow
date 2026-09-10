@@ -27,7 +27,7 @@ function open(file, seed) {
   t('첫날 예보표 없음', !q('kchart'));
   t('첫날 flow 있음', !!q('kchain'));
   t('첫날 dock 있음', !!d.querySelector('.dock'));
-  t('첫날 월간 전망', !!q('koutlook'));
+  t('첫날 전망', !!q('koutlook'));
   {
     const spans = [...q('koutlook').querySelectorAll('.ospan')];
     t('전망 여섯 구간', spans.length === 6, spans.length + '개');
@@ -37,7 +37,7 @@ function open(file, seed) {
     t('표시는 5% 단위', pcts.every(v => v % 5 === 0), pcts.join('/'));
     t('구간마다 판정 한 줄', spans.every(x => x.querySelector('.ospan-verdict').textContent.length > 3));
     t('생산과 수요 둘', q('koutlook').textContent.includes('생산') && q('koutlook').textContent.includes('수요'));
-    t('초순 중순 하순', ['초순','중순','하순'].every(x => q('koutlook').textContent.includes(x)));
+    t('구간은 실제 day 범위로 표시', spans.every(x => /^\d+~\d+일$/.test(x.querySelector('.ospan-days').textContent)));
   }
   t('로드 오류 없음', errs.length === 0);
 }
@@ -259,10 +259,9 @@ function open(file, seed) {
   const links = [...s7.d.querySelectorAll('.tabs a')];
   t('탭이 앵커 링크', links.length === 3 && links.every((a, i) => a.getAttribute('href') === '#p' + i));
   t('첫 번째 면은 사건 이력', links[0].textContent === '사건 이력');
-  t('두 번째 면은 월간 전망', links[1].textContent === '월간 전망');
+  t('두 번째 면은 전망', links[1].textContent === '전망');
   t('세 번째 면은 상세 운영', links[2].textContent === '상세 운영');
-  t('두 번째 면 내용', s7.d.getElementById('p1').textContent.includes('초순'));
-  t('전망은 남은 기간', s7.d.getElementById('p1').textContent.includes('남은'));
+  t('두 번째 면 내용', /\d+~\d+일 전망/.test(s7.d.getElementById('p1').textContent));
   t('세 번째 면에 흐름도', !!s7.d.getElementById('p2').querySelector('#kchain'));
   t('첫 면에는 흐름도 없음', !s7.d.getElementById('p0').querySelector('#kchain'));
   const pager = s7.d.querySelector('.pager');

@@ -63,7 +63,7 @@ FF.compareStrategies=function(seeds,strategies){
  });
 }
 
-// 월간 전망. 초순 중순 하순 각각의 국면 분포다.
+// 전망. 근일 관측 window를 3등분한 구간별 국면 분포다.
 // 오늘 국면에서 마르코프 전이를 돌려 구간 평균을 낸다.
 
 

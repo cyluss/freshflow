@@ -465,13 +465,13 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
 }
 
 
-// 월간 전망
+// 전망: 이름이 아니라 실행시간의 실제 day 범위로 기간을 표현한다(이슈 #30)
 {
   FF.reset(55555);
-  const O = FF.monthOutlook();
+  const O = FF.outlook();
   t('구간 셋', O.supply.length === 3 && O.demand.length === 3);
-  t('구간 이름', O.supply.map(s => s.key).join() === 'early,mid,late');
-  t('구간이 남은 기간을 덮음', O.supply[0].from === O.today && O.supply[2].to === O.days);
+  t('구간이 근일 window를 덮음', O.supply[0].from === O.horizonStart && O.supply[2].to === O.horizonEnd);
+  t('window는 OUTLOOK_HORIZON 고정(게임 길이와 무관)', O.horizonEnd - O.horizonStart + 1 === FF.OUTLOOK_HORIZON);
   t('구간이 이어짐', O.supply[0].to + 1 === O.supply[1].from && O.supply[1].to + 1 === O.supply[2].from);
   const sum = a => a.reduce((x, y) => x + y, 0);
   t('구간마다 합 100', O.supply.every(s => sum(s.pct) === 100) && O.demand.every(s => sum(s.pct) === 100));
@@ -479,12 +479,12 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
   t('뒤로 갈수록 평평', O.supply[2].pct[1] <= O.supply[0].pct[1] + 10);
   // 진행하면 구간이 오늘부터 다시 잡힌다
   for (let d = 1; d <= 9; d++) FF.stepDay(FF.Cmd.wait());
-  const O2 = FF.monthOutlook();
+  const O2 = FF.outlook();
   t('구간 시작이 오늘', O2.supply[0].from === FF.run().day);
-  t('남은 일수', O2.left === FF.C.days - FF.run().day + 1);
+  t('window 끝은 오늘+HORIZON-1', O2.horizonEnd === FF.run().day + FF.OUTLOOK_HORIZON - 1);
   // 끝이 가까우면 표시하지 않는다
   while (FF.run().day < FF.C.days - 1) FF.stepDay(FF.Cmd.wait());
-  t('종료 직전 전망 없음', FF.monthOutlook() === null);
+  t('종료 직전 전망 없음', FF.outlook() === null);
 }
 
 
@@ -644,7 +644,7 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
     optionOf:     'affordable,cost,hits,kind,lastHit,overRun,payback,usable,window',
     invStats:     'lossPct,med,p90,win',
 
-    monthOutlook: 'days,demand,left,supply,today',
+    outlook:      'demand,horizonEnd,horizonStart,supply',
 
     forecastOnly: 'FC,demand,supply'
   };
@@ -653,7 +653,7 @@ t('수요 전망 코드', fo.demand.every(v=>['weak','mid','strong'].includes(v)
     optionOf: FF.optionOf('sales'),
     invStats: FF.invStats(),
 
-    monthOutlook: FF.monthOutlook(),
+    outlook: FF.outlook(),
 
     forecastOnly: FF.forecastOnly()
   };

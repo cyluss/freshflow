@@ -91,25 +91,33 @@ FF._forecastOnly=function(){
 
 FF.forecastOnly=FF.memo(FF._forecastOnly);
 
-FF.monthOutlook=function(){
+// 이슈 #30: 근일 관측 window(#25/#27의 롤링 진단과 같은 성격 - 게임 길이와는 독립된
+// 상수다). 원래 "월간 전망"이던 이름과 초순/중순/하순이라는 위치 이름은 게임 전체 길이가
+// 30일이라 이 window와 우연히 같았을 뿐이다 - 그 우연한 일치를 이름에 박아 넣지 않고,
+// horizonStart/horizonEnd와 각 period의 실제 day 범위로만 표현한다. 나중에 이 상수가
+// 바뀌어도(예: 14일, 60일) 이름이나 구조를 다시 손댈 필요가 없다.
+FF.OUTLOOK_HORIZON=30;
+FF.outlook=function(){
  var M=FF.marketOf();
  if(!M)return null;
- var n=FF.C.days, today=FF.run()?Math.min(FF.run().day,n):1;
+ var today=FF.run()?Math.min(FF.run().day,FF.C.days):1;
  var left=FF.daysLeft();
  if(left<3)return null;
- var w=Math.round(left/3), w2=Math.round(left*2/3);
- var spans=[{key:"early",from:today,to:today+w-1},
-            {key:"mid",from:today+w,to:today+w2-1},
-            {key:"late",from:today+w2,to:n}];
+ var len=Math.min(FF.OUTLOOK_HORIZON,left);
+ var horizonEnd=today+len-1;
+ var w=Math.round(len/3), w2=Math.round(len*2/3);
+ var periods=[{from:today,to:today+w-1},
+              {from:today+w,to:today+w2-1},
+              {from:today+w2,to:horizonEnd}];
  var row=function(idx,tl){
-  return spans.map(function(s){
+  return periods.map(function(p){
    // 오늘 국면에서 몇 일 뒤인지로 전이를 돌린다
-   return {key:s.key,from:s.from,to:s.to,
-     pct:FF.pct(FF.blurredPhase(idx,s.from-today+1,s.to-today+1,FF.C,tl))};
+   return {from:p.from,to:p.to,
+     pct:FF.pct(FF.blurredPhase(idx,p.from-today+1,p.to-today+1,FF.C,tl))};
   });
  };
  var T=FF.tiltOf();
- return {days:n, today:today, left:left, supply:row(M.si,T.supply), demand:row(M.di,T.demand)};
+ return {horizonStart:today, horizonEnd:horizonEnd, supply:row(M.si,T.supply), demand:row(M.di,T.demand)};
 }
 
 // 확률 분포를 한 줄 판정으로 바꾼다. 기상청 1개월전망 해석표와 같은 규칙이다.

@@ -21,7 +21,7 @@ const fail = (msg) => { violations++; console.log('VIOLATION', msg); };
 const STANCE_SETS = [[1,1,1], [0,1,2], [3,1,0], [2,2,2], [1,3,1], [0,0,3], [3,3,3], [2,0,1], [0,2,3]];
 const CONTRACTS = [0, 0.5, 1, 1.5];
 const SEEDS = 200;
-const DAYS = 30;
+const DAYS = FF.C.days;
 
 for (let seed = 1; seed <= SEEDS; seed++) {
   const contractX = CONTRACTS[seed % CONTRACTS.length];
@@ -85,5 +85,5 @@ for (let seed = 1; seed <= SEEDS; seed++) {
   }
 }
 
-console.log(`검사 ${checked}건, 위반 ${violations}건 (시드 ${SEEDS} x 최대 ${DAYS}일)`);
+console.log(`검사 ${checked}건, 위반 ${violations}건 (시드 ${SEEDS} x 게임 전체 ${DAYS}일)`);
 process.exit(violations > 0 ? 1 : 0);

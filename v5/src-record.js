@@ -81,7 +81,7 @@ FF.recordPurchase=function(act,path,size){
  var svB=FF.pct(FF.blur(FF.hor(FF.MARKET.value.si,4,7,FF.C,T.supply)));
  var dvB=FF.pct(FF.blur(FF.hor(FF.MARKET.value.di,4,7,FF.C,T.demand)));
  if(act==="contract"){
-  // 계약은 개장 전 결정이다. 근거는 관측이 아니라 월간 전망이다.
+  // 계약은 개장 전 결정이다. 근거는 관측이 아니라 근일 전망이다.
   size=size||FF.contractOf();
   FF.append("mods",{kind:act,day:day,idx:1,from:0,size:size,use:[],hit:0});
   FF.append("buylog",{day:day,kind:act,

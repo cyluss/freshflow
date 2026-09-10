@@ -281,8 +281,8 @@ FV.FirstDayPrompt=function(){
   <${FV.Panel} id="kexplore" className="card">
    <div style=${{fontSize:"13px",color:"var(--text-primary)",marginBottom:"4px"}}>개장 전</div>
    <div style=${{fontSize:"12px",color:"var(--text-secondary)",lineHeight:"1.6"}}>
-    이번 달 전망을 보고 초과분 계약을 정한다. 계약은 지금만 맺을 수 있다.</div>
-   <${FV.MonthOutlook} data=${FF.monthOutlook()} />
+    앞으로 ${FF.OUTLOOK_HORIZON}일 전망을 보고 초과분 계약을 정한다. 계약은 지금만 맺을 수 있다.</div>
+   <${FV.Outlook} data=${FF.outlook()} />
    <div class="fd-subhead">초과분 계약</div>
    <div style=${{fontSize:"11px",color:"var(--text-muted)"}}>오늘 계약하면 내일부터 적용된다.</div>
    <div id="kopening" class="opts">
@@ -476,7 +476,7 @@ FV.DockView=function(){
 FV.OutlookView=function(){
  FF.observe();
  if(!FF.started()||FF.isOver())return null;
- return FV._html`<${FV.MonthOutlook} data=${FF.monthOutlook()} />`;
+ return FV._html`<${FV.Outlook} data=${FF.outlook()} />`;
 }
 
 // 사건 이력. 지금까지의 관계 신호를 최신순으로 나열한다. 없으면 안내 한 줄만 보인다.
@@ -502,7 +502,7 @@ FV.PlayPager=function(){
  return FV._html`
   <nav class="tabs">
    <a href="#p0">사건 이력</a>
-   <a href="#p1">월간 전망</a>
+   <a href="#p1">전망</a>
    <a href="#p2">상세 운영</a>
   </nav>
   <div class="pager">

@@ -19,7 +19,6 @@ FV.OutlookSpan=function(props){
  return FV._html`
   <div class="ospan">
    <div class="ospan-head">
-    <span class="ospan-name">${FV.say("span",s.key)}</span>
     <span class="ospan-days">${s.from}~${s.to}일</span>
    </div>
    <div class="ospan-verdict">${verdict}</div>
@@ -31,7 +30,7 @@ FV.OutlookSpan=function(props){
   </div>`;
 }
 
-FV.MonthOutlook=function(props){
+FV.Outlook=function(props){
  var O=props.data;
  if(!O)return null;
  var block=function(title,group,rows){
@@ -46,7 +45,7 @@ FV.MonthOutlook=function(props){
  return FV._html`
   <div id="koutlook" class="outlook-block">
    <div style=${{fontSize:"11px",color:"var(--text-muted)",marginBottom:"6px"}}>
-    ${O.today>1?("남은 "+O.left+"일 전망"):(O.days+"일 전망")} · 각 기간에 예상되는 상태다
+    ${O.horizonStart}~${O.horizonEnd}일 전망 · 각 기간에 예상되는 상태다
    </div>
    ${block("생산","supply",O.supply)}
    ${block("수요","demand",O.demand)}

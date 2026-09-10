@@ -15,7 +15,6 @@ FV.WORD={
  verdictDemand:{high:"평년보다 높겠음",mostlyHigh:"평년보다 대체로 높겠음",
    similar:"평년과 비슷하겠음",mostlyLow:"평년보다 대체로 낮겠음",low:"평년보다 낮겠음"},
  level:{supply:["부족","평년","풍작"],demand:["침체","정상","호황"]},
- span:{early:"초순",mid:"중순",late:"하순"},
  path:{event:"사건",manual:"직접"},
  cap:{at:"한도",near:"근접",free:"여유"},
  store:{full:"가득",mid:"보통",free:"여유"},
@@ -43,7 +42,7 @@ FV.lblOf=function(k){return FV.capName(k)}
 
 FV.p1=function(h){return h.len===0?"관측 없음":(h.last?"막혔다":"여유 있었다")}
 FV.p2=function(h){return h.len<3?("관측 "+h.len+"일뿐"):(h.len+"일 중 "+h.n+"일 막힘")}
-// 전망 기울기를 월간 전망과 같은 말로 옮긴다.
+// 전망 기울기를 전망 화면과 같은 말로 옮긴다.
 FV.trendWord=function(gap){
  return gap>=10?"늘어날 전망":(gap<=-10?"줄어들 전망":"큰 변화 없음");
 }
